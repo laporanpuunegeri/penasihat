@@ -3,15 +3,14 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Laporangubalanundang;
+use App\Models\LaporanGubalanUndang;
 
-class LaporangubalanundangController extends Controller
+class LaporanGubalanUndangController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Laporangubalanundang::query();
+        $query = LaporanGubalanUndang::query();
 
-        // Tapisan ikut bulan (created_at)
         if ($request->filled('bulan')) {
             $query->whereMonth('created_at', $request->bulan)
                   ->whereYear('created_at', now()->year);
@@ -35,14 +34,14 @@ class LaporangubalanundangController extends Controller
             'status' => 'required|string',
         ]);
 
-        Laporangubalanundang::create($validated);
+        LaporanGubalanUndang::create($validated);
 
         return redirect('/laporangubalanundang')->with('success', 'Laporan berjaya disimpan.');
     }
 
     public function edit($id)
     {
-        $laporan = Laporangubalanundang::findOrFail($id);
+        $laporan = LaporanGubalanUndang::findOrFail($id);
         return view('laporangubalanundang.edit', compact('laporan'));
     }
 
@@ -54,7 +53,7 @@ class LaporangubalanundangController extends Controller
             'status' => 'required|string',
         ]);
 
-        $laporan = Laporangubalanundang::findOrFail($id);
+        $laporan = LaporanGubalanUndang::findOrFail($id);
         $laporan->update($validated);
 
         return redirect('/laporangubalanundang')->with('success', 'Laporan berjaya dikemas kini.');
@@ -62,7 +61,7 @@ class LaporangubalanundangController extends Controller
 
     public function destroy($id)
     {
-        $laporan = Laporangubalanundang::findOrFail($id);
+        $laporan = LaporanGubalanUndang::findOrFail($id);
         $laporan->delete();
 
         return redirect('/laporangubalanundang')->with('success', 'Laporan berjaya dipadam.');
