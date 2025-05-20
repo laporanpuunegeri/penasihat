@@ -14,9 +14,11 @@ class LaporanmesyuaratController extends Controller
     {
         $query = LaporanMesyuarat::query();
 
+       // Tapisan ikut bulan sahaja berdasarkan created_at
         if ($request->filled('bulan')) {
-            $query->whereMonth('tarikh_mesyuarat', $request->bulan)
-                  ->whereYear('tarikh_mesyuarat', now()->year);
+            $query->whereMonth('created_at', $request->bulan)
+                  ->whereYear('created_at', now()->year);
+        }
         }
 
         if ($request->filled('status')) {
