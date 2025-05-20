@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\LaporanKesMahkamah;
 
-class LaporankesmahkamahController extends Controller
+class LaporanKesMahkamahController extends Controller
 {
     public function index(Request $request)
     {
@@ -39,7 +39,7 @@ class LaporankesmahkamahController extends Controller
 
         LaporanKesMahkamah::create($validated);
 
-        return redirect('/laporankesmahkamah')->with('success', 'Laporan berjaya disimpan.');
+        return redirect()->route('laporankesmahkamah.index')->with('success', 'Laporan berjaya disimpan.');
     }
 
     public function edit($id)
@@ -63,7 +63,7 @@ class LaporankesmahkamahController extends Controller
         $laporan = LaporanKesMahkamah::findOrFail($id);
         $laporan->update($validated);
 
-        return redirect('/laporankesmahkamah')->with('success', 'Laporan berjaya dikemaskini.');
+        return redirect()->route('laporankesmahkamah.index')->with('success', 'Laporan berjaya dikemaskini.');
     }
 
     public function destroy($id)
@@ -71,6 +71,6 @@ class LaporankesmahkamahController extends Controller
         $laporan = LaporanKesMahkamah::findOrFail($id);
         $laporan->delete();
 
-        return redirect('/laporankesmahkamah')->with('success', 'Laporan berjaya dipadam.');
+        return redirect()->route('laporankesmahkamah.index')->with('success', 'Laporan berjaya dipadam.');
     }
 }
