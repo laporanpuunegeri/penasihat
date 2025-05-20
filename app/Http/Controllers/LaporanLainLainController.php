@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Lainlaintugasan;
+use App\Models\LaporanLainlaintugasan;
 
 class LaporanLainLainController extends Controller
 {
@@ -11,7 +11,7 @@ class LaporanLainLainController extends Controller
     {
         $bulan = $request->input('bulan');
 
-        $query = Lainlaintugasan::query();
+        $query = LaporanLainlaintugasan::query();
 
         if ($bulan) {
             $query->whereMonth('created_at', $bulan);
@@ -32,7 +32,7 @@ class LaporanLainLainController extends Controller
         $data = $request->input('tugasan');
 
         foreach ($data as $item) {
-            Lainlaintugasan::create([
+            LaporanLainlaintugasan::create([
                 'perihal' => $item['perihal'],
                 'tarikh' => $item['tarikh'],
                 'tindakan' => $item['tindakan'],
@@ -44,13 +44,13 @@ class LaporanLainLainController extends Controller
 
     public function edit($id)
     {
-        $data = Lainlaintugasan::findOrFail($id);
+        $data = LaporanLainlaintugasan::findOrFail($id);
         return view('lainlaintugasan.edit', compact('data'));
     }
 
     public function update(Request $request, $id)
     {
-        $tugasan = Lainlaintugasan::findOrFail($id);
+        $tugasan = LaporanLainlaintugasan::findOrFail($id);
         $tugasan->update($request->only('perihal', 'tarikh', 'tindakan'));
 
         return redirect()->route('lainlaintugasan.index')->with('success', 'Laporan berjaya dikemaskini.');
@@ -58,7 +58,7 @@ class LaporanLainLainController extends Controller
 
     public function destroy($id)
     {
-        $tugasan = Lainlaintugasan::findOrFail($id);
+        $tugasan = LaporanLainlaintugasan::findOrFail($id);
         $tugasan->delete();
 
         return redirect()->route('lainlaintugasan.index')->with('success', 'Laporan berjaya dipadam.');
