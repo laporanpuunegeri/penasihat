@@ -32,32 +32,32 @@ class LaporanController extends Controller
             ->whereYear('tarikh_terima', $tahun)
             ->get();
 
-        $laporan_kesmahkamah = LaporanKesMahkamah::whereMonth('tarikh_daftar', $bulan)
-            ->whereYear('tarikh_daftar', $tahun)
+        $laporan_kesmahkamah = LaporanKesMahkamah::whereMonth('created_at', $bulan)
+            ->whereYear('created_at', $tahun)
             ->get();
 
-        $laporan_gubalan = LaporanGubalanUndang::whereMonth('tarikh_daftar', $bulan)
-            ->whereYear('tarikh_daftar', $tahun)
+        $laporan_gubalan = LaporanGubalanUndang::whereMonth('created_at', $bulan)
+            ->whereYear('created_at', $tahun)
             ->get();
 
-        $laporan_pindaan = LaporanPindaanUndang::whereMonth('tarikh_daftar', $bulan)
-            ->whereYear('tarikh_daftar', $tahun)
+        $laporan_pindaan = LaporanPindaanUndang::whereMonth('created_at', $bulan)
+            ->whereYear('created_at', $tahun)
             ->get();
 
-        $laporan_semakan = LaporanSemakanUndang::whereMonth('tarikh_daftar', $bulan)
-            ->whereYear('tarikh_daftar', $tahun)
+        $laporan_semakan = LaporanSemakanUndang::whereMonth('created_at', $bulan)
+            ->whereYear('created_at', $tahun)
             ->get();
 
-        $laporan_mesyuarat = LaporanMesyuarat::whereMonth('tarikh_mesyuarat', $bulan)
-            ->whereYear('tarikh_mesyuarat', $tahun)
+        $laporan_mesyuarat = LaporanMesyuarat::whereMonth('created_at', $bulan)
+            ->whereYear('created_at', $tahun)
             ->get();
 
         $laporan_tatatertib = Kestatatertib::whereMonth('tarikh_terima', $bulan)
             ->whereYear('tarikh_terima', $tahun)
             ->get();
 
-        $laporan_lainlain = LainLainTugasan::whereMonth('tarikh_daftar', $bulan)
-            ->whereYear('tarikh_daftar', $tahun)
+        $laporan_lainlain = LainLainTugasan::whereMonth('created_at', $bulan)
+            ->whereYear('created_at', $tahun)
             ->get();
 
         return view('laporan.index', compact(
