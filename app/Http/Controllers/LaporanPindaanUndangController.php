@@ -15,10 +15,12 @@ class LaporanpindaanundangController extends Controller
     {
         $query = LaporanPindaanUndang::query();
 
-        // Tapisan ikut tindakan sahaja
-        if ($request->filled('tindakan')) {
-            $query->where('tindakan', $request->tindakan);
+  // Tapisan ikut bulan sahaja berdasarkan created_at
+        if ($request->filled('bulan')) {
+            $query->whereMonth('created_at', $request->bulan)
+                  ->whereYear('created_at', now()->year);
         }
+        
 
         $data = $query->orderBy('created_at', 'desc')->get();
 
