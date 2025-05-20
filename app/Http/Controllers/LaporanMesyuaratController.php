@@ -19,8 +19,7 @@ class LaporanmesyuaratController extends Controller
             $query->whereMonth('created_at', $request->bulan)
                   ->whereYear('created_at', now()->year);
         }
-        }
-
+        
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
