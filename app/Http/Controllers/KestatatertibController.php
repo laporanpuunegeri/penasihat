@@ -15,7 +15,7 @@ class KestatatertibController extends Controller
         if ($request->filled('bulan')) {
             $query->whereMonth('created_at', $request->bulan)
                   ->whereYear('created_at', now()->year);
-        }
+        
         }
 
         $data = $query->orderBy('created_at', 'desc')->get();
