@@ -52,30 +52,32 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse ($data as $index => $laporan)
-                    <tr>
-                        <td>{{ $index + 1 }}</td>
-                        <td>{{ optional($laporan->created_at)->format('d/m/Y H:i') ?? '-' }}</td>
-                        <td class="text-start">{{ $laporan->mesyuarat }}</td>
-                        <td class="text-start">{{ $laporan->isu }}</td>
-                        <td>{{ optional($laporan->tarikh_mesyuarat)->format('d/m/Y') ?? '-' }}</td>
-                        <td>{{ $laporan->status }}</td>
-                        <td>{{ $laporan->pandangan === 'Lisan' ? '✔' : '' }}</td>
-                        <td>{{ $laporan->pandangan === 'Bertulis' ? '✔' : '' }}</td>
-                        <td>
-                            <a href="{{ url('/laporanmesyuarat/' . $laporan->id . '/edit') }}" class="btn btn-sm btn-warning mb-1">Edit</a>
-                            <form action="{{ url('/laporanmesyuarat/' . $laporan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Anda pasti untuk padam?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-danger">Padam</button>
-                            </form>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="9" class="text-muted">Tiada data direkodkan.</td>
-                    </tr>
-                @endforelse
+               @forelse ($data as $index => $laporan)
+    <tr>
+        <td>{{ $index + 1 }}</td>
+        <td>{{ $laporan->created_at ? \Carbon\Carbon::parse($laporan->created_at)->format('d/m/Y H:i') : '-' }}</td>
+        <td class="text-start">{{ $laporan->mesyuarat }}</td>
+        <td class="text-start">{{ $laporan->isu }}</td>
+        <td>
+            {{ $laporan->tarikh_mesyuarat ? \Carbon\Carbon::parse($laporan->tarikh_mesyuarat)->format('d/m/Y') : '-' }}
+        </td>
+        <td>{{ $laporan->status }}</td>
+        <td>{{ $laporan->pandangan === 'Lisan' ? '✔' : '' }}</td>
+        <td>{{ $laporan->pandangan === 'Bertulis' ? '✔' : '' }}</td>
+        <td>
+            <a href="{{ url('/laporanmesyuarat/' . $laporan->id . '/edit') }}" class="btn btn-sm btn-warning mb-1">Edit</a>
+            <form action="{{ url('/laporanmesyuarat/' . $laporan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Anda pasti untuk padam?')">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-sm btn-danger">Padam</button>
+            </form>
+        </td>
+    </tr>
+@empty
+    <tr>
+        <td colspan="9" class="text-muted">Tiada data direkodkan.</td>
+    </tr>
+@endforelse
             </tbody>
         </table>
     </div>
