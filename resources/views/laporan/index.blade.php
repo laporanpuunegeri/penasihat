@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('content') {{-- Mula section content --}}
+@section('content')
 <div class="container-fluid px-5">
 
     {{-- Header --}}
@@ -30,6 +30,7 @@
             </a>
         </div>
     </div>
+
 
     {{-- Bahagian 1 --}}
     <h5 class="fw-bold mb-3">PANDANGAN UNDANG-UNDANG 
