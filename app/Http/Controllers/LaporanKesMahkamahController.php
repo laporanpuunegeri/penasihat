@@ -5,20 +5,17 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\LaporanKesMahkamah;
 
-class LaporanKesMahkamahController extends Controller
+class LaporankesmahkamahController extends Controller
 {
     public function index(Request $request)
     {
         $query = LaporanKesMahkamah::query();
 
-        // Tapisan ikut bulan tarikh daftar
         if ($request->filled('bulan')) {
-            $query->whereMonth('tarikh_daftar', $request->bulan)
-                  ->whereYear('tarikh_daftar', now()->year);
+            $query->whereMonth('tarikh_sebutan', $request->bulan);
         }
 
-        // Susunan ikut tarikh daftar (terbaru dahulu)
-        $data = $query->orderBy('tarikh_daftar', 'desc')->get();
+        $data = $query->orderBy('tarikh_sebutan', 'desc')->get();
 
         return view('laporankesmahkamah.index', compact('data'));
     }
@@ -32,7 +29,6 @@ class LaporanKesMahkamahController extends Controller
     {
         $validated = $request->validate([
             'jenis_kes' => 'required',
-            'tarikh_daftar' => 'required|date',
             'tarikh_sebutan' => 'required|date',
             'fakta_ringkas' => 'required',
             'isu' => 'required',
@@ -43,7 +39,7 @@ class LaporanKesMahkamahController extends Controller
 
         LaporanKesMahkamah::create($validated);
 
-        return redirect()->route('laporankesmahkamah.index')->with('success', 'Laporan berjaya disimpan.');
+        return redirect('/laporankesmahkamah')->with('success', 'Laporan berjaya disimpan.');
     }
 
     public function edit($id)
@@ -56,7 +52,6 @@ class LaporanKesMahkamahController extends Controller
     {
         $validated = $request->validate([
             'jenis_kes' => 'required',
-            'tarikh_daftar' => 'required|date',
             'tarikh_sebutan' => 'required|date',
             'fakta_ringkas' => 'required',
             'isu' => 'required',
@@ -68,7 +63,7 @@ class LaporanKesMahkamahController extends Controller
         $laporan = LaporanKesMahkamah::findOrFail($id);
         $laporan->update($validated);
 
-        return redirect()->route('laporankesmahkamah.index')->with('success', 'Laporan berjaya dikemaskini.');
+        return redirect('/laporankesmahkamah')->with('success', 'Laporan berjaya dikemaskini.');
     }
 
     public function destroy($id)
@@ -76,6 +71,6 @@ class LaporanKesMahkamahController extends Controller
         $laporan = LaporanKesMahkamah::findOrFail($id);
         $laporan->delete();
 
-        return redirect()->route('laporankesmahkamah.index')->with('success', 'Laporan berjaya dipadam.');
+        return redirect('/laporankesmahkamah')->with('success', 'Laporan berjaya dipadam.');
     }
 }
