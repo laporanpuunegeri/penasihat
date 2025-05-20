@@ -43,33 +43,32 @@
                     <th>TINDAKAN</th>
                 </tr>
             </thead>
-           <tbody>
-    @forelse ($data as $index => $item)
-        <tr>
-            <td>{{ $index + 1 }}</td>
-            <td>{{ \Carbon\Carbon::parse($item->tarikh_daftar)->format('d/m/Y H:i') }}</td> {{-- GANTIAN TEPAT --}}
-            <td>{{ $item->jenis_kes }}</td>
-            <td>{{ \Carbon\Carbon::parse($item->tarikh_sebutan)->format('d/m/Y') }}</td>
-            <td class="text-start">{{ $item->fakta_ringkas }}</td>
-            <td class="text-start">{{ $item->isu }}</td>
-            <td class="text-start">{{ $item->skop_tugas }}</td>
-            <td class="text-start">{{ $item->ringkasan_hujahan }}</td>
-            <td>{{ $item->status }}</td>
-            <td>
-                <a href="{{ route('laporankesmahkamah.edit', $item->id) }}" class="btn btn-warning btn-sm">Edit</a>
-                <form action="{{ route('laporankesmahkamah.destroy', $item->id) }}" method="POST" class="d-inline">
-                    @csrf @method('DELETE')
-                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Padam laporan ini?')">Padam</button>
-                </form>
-            </td>
-        </tr>
-    @empty
-        <tr>
-            <td colspan="10" class="text-muted">Tiada laporan direkodkan untuk bulan ini.</td>
-        </tr>
-    @endforelse
-</tbody>
-
+            <tbody>
+                @forelse ($data as $index => $item)
+                    <tr>
+                        <td>{{ $index + 1 }}</td>
+                        <td>{{ $item->created_at->format('d/m/Y H:i') }}</td>
+                        <td>{{ $item->jenis_kes }}</td>
+                        <td>{{ \Carbon\Carbon::parse($item->tarikh_sebutan)->format('d/m/Y') }}</td>
+                        <td class="text-start">{{ $item->fakta_ringkas }}</td>
+                        <td class="text-start">{{ $item->isu }}</td>
+                        <td class="text-start">{{ $item->skop_tugas }}</td>
+                        <td class="text-start">{{ $item->ringkasan_hujahan }}</td>
+                        <td>{{ $item->status }}</td>
+                        <td>
+                            <a href="{{ route('laporankesmahkamah.edit', $item->id) }}" class="btn btn-warning btn-sm">Edit</a>
+                            <form action="{{ route('laporankesmahkamah.destroy', $item->id) }}" method="POST" class="d-inline">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Padam laporan ini?')">Padam</button>
+                            </form>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="10" class="text-muted">Tiada laporan direkodkan untuk bulan ini.</td>
+                    </tr>
+                @endforelse
+            </tbody>
         </table>
     </div>
 </div>
