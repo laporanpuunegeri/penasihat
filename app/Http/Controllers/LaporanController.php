@@ -5,12 +5,12 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\LaporanPandanganUndang;
 use App\Models\LaporanKesMahkamah;
-use App\Models\Laporangubalanundang;
-use App\Models\Laporanpindaanundang;
-use App\Models\Laporansemakanundang;
+use App\Models\LaporanGubalanUndang;
+use App\Models\LaporanPindaanUndang;
+use App\Models\LaporanSemakanUndang;
 use App\Models\Kestatatertib;
-use App\Models\Lainlaintugasan;
-use App\Models\Laporanmesyuarat;
+use App\Models\LainLainTugasan;
+use App\Models\LaporanMesyuarat;
 
 class LaporanController extends Controller
 {
@@ -36,19 +36,19 @@ class LaporanController extends Controller
             ->whereYear('tarikh_daftar', $tahun)
             ->get();
 
-        $laporan_gubalan = Laporangubalanundang::whereMonth('tarikh_daftar', $bulan)
+        $laporan_gubalan = LaporanGubalanUndang::whereMonth('tarikh_daftar', $bulan)
             ->whereYear('tarikh_daftar', $tahun)
             ->get();
 
-        $laporan_pindaan = Laporanpindaanundang::whereMonth('tarikh_daftar', $bulan)
+        $laporan_pindaan = LaporanPindaanUndang::whereMonth('tarikh_daftar', $bulan)
             ->whereYear('tarikh_daftar', $tahun)
             ->get();
 
-        $laporan_semakan = Laporansemakanundang::whereMonth('tarikh_daftar', $bulan)
+        $laporan_semakan = LaporanSemakanUndang::whereMonth('tarikh_daftar', $bulan)
             ->whereYear('tarikh_daftar', $tahun)
             ->get();
 
-        $laporan_mesyuarat = Laporanmesyuarat::whereMonth('tarikh_mesyuarat', $bulan)
+        $laporan_mesyuarat = LaporanMesyuarat::whereMonth('tarikh_mesyuarat', $bulan)
             ->whereYear('tarikh_mesyuarat', $tahun)
             ->get();
 
@@ -56,7 +56,7 @@ class LaporanController extends Controller
             ->whereYear('tarikh_terima', $tahun)
             ->get();
 
-        $laporan_lainlain = Lainlaintugasan::whereMonth('tarikh_daftar', $bulan)
+        $laporan_lainlain = LainLainTugasan::whereMonth('tarikh_daftar', $bulan)
             ->whereYear('tarikh_daftar', $tahun)
             ->get();
 
@@ -75,7 +75,6 @@ class LaporanController extends Controller
         ));
     }
 
-    // ✅ Paparan penuh laporan kes mahkamah
     public function laporanKesMahkamah(Request $request)
     {
         $bulan = $request->get('bulan', now()->month);
@@ -88,13 +87,12 @@ class LaporanController extends Controller
         return view('laporan.kesmahkamah', compact('laporan_kesmahkamah', 'bulan', 'tahun'));
     }
 
-    // ✅ Paparan penuh laporan mesyuarat
     public function laporanMesyuarat(Request $request)
     {
         $bulan = $request->get('bulan', now()->month);
         $tahun = $request->get('tahun', now()->year);
 
-        $laporan_mesyuarat = Laporanmesyuarat::whereMonth('tarikh_mesyuarat', $bulan)
+        $laporan_mesyuarat = LaporanMesyuarat::whereMonth('tarikh_mesyuarat', $bulan)
             ->whereYear('tarikh_mesyuarat', $tahun)
             ->get();
 
