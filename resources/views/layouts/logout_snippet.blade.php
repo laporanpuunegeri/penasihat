@@ -1,4 +1,4 @@
-<!-- Logout link that sends a POST request securely -->
+<!-- Betul: Guna POST dengan CSRF -->
 <a href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
     Log Keluar
 </a>
