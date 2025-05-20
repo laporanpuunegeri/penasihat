@@ -12,10 +12,11 @@ class LaporanKesMahkamahController extends Controller
         $query = LaporanKesMahkamah::query();
 
         if ($request->filled('bulan')) {
-            $query->whereMonth('tarikh_sebutan', $request->bulan);
+            $query->whereMonth('tarikh_daftar', $request->bulan)
+                  ->whereYear('tarikh_daftar', now()->year);
         }
 
-        $data = $query->orderBy('tarikh_sebutan', 'desc')->get();
+        $data = $query->orderBy('tarikh_daftar', 'desc')->get();
 
         return view('laporankesmahkamah.index', compact('data'));
     }
@@ -36,6 +37,9 @@ class LaporanKesMahkamahController extends Controller
             'ringkasan_hujahan' => 'required',
             'status' => 'required',
         ]);
+
+        // Tambah tarikh daftar secara automatik jika belum ada
+        $validated['tarikh_daftar'] = now();
 
         LaporanKesMahkamah::create($validated);
 
