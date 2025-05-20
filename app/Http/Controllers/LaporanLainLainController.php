@@ -12,9 +12,9 @@ class LaporanLainLainController extends Controller
         $bulan = $request->input('bulan');
 
         $query = LainLainTugasan::query();
-
-        if ($bulan) {
-            $query->whereMonth('created_at', $bulan);
+  if ($request->filled('bulan')) {
+            $query->whereMonth('created_at', $request->bulan)
+                  ->whereYear('created_at', now()->year);
         }
 
         $data = $query->latest()->get();
