@@ -11,9 +11,11 @@ class KestatatertibController extends Controller
     {
         $query = Kestatatertib::query();
 
-        // ✅ Tapisan ikut bulan (berdasarkan tarikh_terima)
+ // Tapisan ikut bulan sahaja berdasarkan created_at
         if ($request->filled('bulan')) {
-            $query->whereMonth('tarikh_terima', $request->bulan);
+            $query->whereMonth('created_at', $request->bulan)
+                  ->whereYear('created_at', now()->year);
+        }
         }
 
         $data = $query->orderBy('created_at', 'desc')->get();
