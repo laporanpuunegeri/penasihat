@@ -4,23 +4,25 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\LaporanPindaanUndang;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class LaporanpindaanundangController extends Controller
 {
     /**
-     * Papar senarai semua laporan dengan tapisan tindakan jika ada
+     * Papar senarai semua laporan dengan tapisan bulan
      */
     public function index(Request $request)
     {
         $query = LaporanPindaanUndang::query();
 
-  // Tapisan ikut bulan sahaja berdasarkan created_at
+        // ✅ Tapis ikut user semasa
+        $query->where('user_id', auth()->id());
+
         if ($request->filled('bulan')) {
             $query->whereMonth('created_at', $request->bulan)
                   ->whereYear('created_at', now()->year);
         }
-        
 
         $data = $query->orderBy('created_at', 'desc')->get();
 
@@ -47,7 +49,10 @@ class LaporanpindaanundangController extends Controller
         ]);
 
         try {
-            LaporanPindaanUndang::create($validated);
+            LaporanPindaanUndang::create(array_merge($validated, [
+                'user_id' => auth()->id(),
+                'negeri' => auth()->user()->negeri,
+            ]));
 
             return redirect()->route('laporanpindaanundang.index')
                              ->with('success', 'Laporan berjaya disimpan.');
