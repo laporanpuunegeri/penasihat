@@ -19,7 +19,17 @@ use App\Http\Controllers\LaporanLainLainController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PergerakanController;
 use App\Http\Controllers\PdfController;
-
+@if ($errors->any())
+    <div class="alert alert-danger">
+        <strong>Ralat!</strong> Sila semak semula input anda.<br><br>
+        <ul>
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+});
 // ===================== UTAMA =====================
 Route::get('/', fn() => redirect()->route('dashboard'))->name('utama');
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -75,17 +85,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('laporansemakanundang', LaporanSemakanUndangController::class);
     Route::resource('laporanmesyuarat', LaporanMesyuaratController::class);
     Route::resource('lainlaintugasan', LaporanLainLainController::class);
-@if ($errors->any())
-    <div class="alert alert-danger">
-        <strong>Ralat!</strong> Sila semak semula input anda.<br><br>
-        <ul>
-            @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-    </div>
-@endif
-});
+
 
 // ===================== AUTH (LOGIN, REGISTER, etc.) =====================
 require __DIR__.'/auth.php';
