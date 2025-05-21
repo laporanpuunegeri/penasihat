@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LaporanKesMahkamah extends Model
 {
@@ -25,5 +26,22 @@ class LaporanKesMahkamah extends Model
         'fakta_ringkas',
         'skop_tugas',
         'ringkasan_hujahan',
+        'user_id',
+        'negeri',
+        'created_at',
+        'updated_at',
     ];
+
+    protected $casts = [
+        'tarikh_daftar' => 'datetime',
+        'tarikh_selesai' => 'date',
+        'tarikh_sebutan' => 'date',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 }
