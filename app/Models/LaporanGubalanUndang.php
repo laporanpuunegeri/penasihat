@@ -11,7 +11,7 @@ class Laporangubalanundang extends Model
     use HasFactory;
 
     // Padankan dengan nama jadual sebenar dalam PostgreSQL
-    protected $table = 'laporangubalanundang';
+    protected $table = 'laporangubalanundangs';
 
     // Senaraikan field yang boleh diisi secara mass assignment
     protected $fillable = [
