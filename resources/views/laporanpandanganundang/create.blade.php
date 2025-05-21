@@ -41,11 +41,6 @@
             </div>
 
             <div class="mb-3">
-                <label for="ringkasan_pandangan" class="form-label">Ringkasan Pandangan</label>
-                <textarea name="ringkasan_pandangan" id="ringkasan_pandangan" class="form-control" rows="3" required>{{ old('ringkasan_pandangan') }}</textarea>
-            </div>
-
-            <div class="mb-3">
                 <label class="form-label">Jenis Pandangan</label><br>
                 <div class="form-check form-check-inline">
                     <input class="form-check-input" type="radio" name="jenis_pandangan" value="Lisan" id="lisan" {{ old('jenis_pandangan') === 'Lisan' ? 'checked' : '' }}>
