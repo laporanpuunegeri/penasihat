@@ -12,7 +12,10 @@ class LaporanPandanganUndangController extends Controller
     {
         $query = LaporanPandanganUndang::query();
 
-        // Tapisan ikut bulan sahaja berdasarkan created_at
+        // ✅ Tapis ikut user semasa
+        $query->where('created_by', auth()->id());
+
+        // Tapisan ikut bulan dan tahun
         if ($request->filled('bulan')) {
             $query->whereMonth('created_at', $request->bulan)
                   ->whereYear('created_at', now()->year);
@@ -67,6 +70,8 @@ class LaporanPandanganUndangController extends Controller
             'dirujuk_jpn' => $request->has('dirujuk_jpn'),
             'created_by' => $user->id,
             'boss_id' => $bossId,
+            'user_id' => $user->id,
+            'negeri' => $user->negeri,
         ]);
 
         return redirect()->route('laporanpandanganundang.index')->with('success', 'Laporan berjaya disimpan.');
