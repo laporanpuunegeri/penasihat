@@ -102,7 +102,17 @@
             @if ($authUser->role === 'pa')
                 <input type="hidden" name="hantar_kepada_boss" value="1">
             @endif
-
+@if ($errors->any())
+    <div class="alert alert-danger">
+        <strong>Ralat!</strong> Sila semak semula input anda.<br><br>
+        <ul>
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+});
             <div class="text-end">
                 <button type="submit" class="btn btn-success px-4">
                     <i class="bi bi-send-check"></i> Hantar
