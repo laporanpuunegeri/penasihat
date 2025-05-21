@@ -11,6 +11,9 @@ class LaporanGubalanUndangController extends Controller
     {
         $query = LaporanGubalanUndang::query();
 
+        // Papar data milik pengguna log masuk sahaja
+        $query->where('user_id', auth()->id());
+
         if ($request->filled('bulan')) {
             $query->whereMonth('created_at', $request->bulan)
                   ->whereYear('created_at', now()->year);
@@ -33,6 +36,9 @@ class LaporanGubalanUndangController extends Controller
             'tindakan' => 'required|string',
             'status' => 'required|string',
         ]);
+
+        $validated['user_id'] = auth()->id();
+        $validated['negeri'] = auth()->user()->negeri;
 
         LaporanGubalanUndang::create($validated);
 
