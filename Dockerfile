@@ -24,13 +24,16 @@ WORKDIR /var/www
 # Copy Laravel project files
 COPY . .
 
-# Install PHP dependencies
+# Install PHP dependencies (tanpa artisan script)
 RUN composer install --optimize-autoloader --no-dev --no-scripts
 
-# Laravel Artisan Commands
-RUN php artisan config:clear
+# Salin env.example → .env jika belum ada (supaya key:generate boleh jalan)
+RUN cp .env.example .env || true
+
+# Laravel Artisan Commands (selamat dijalankan selepas env wujud)
+RUN php artisan config:clear || true
 RUN php artisan key:generate || true
 
-# Expose port and start Laravel with automatic migration
+# Expose port dan jalankan dengan migration
 EXPOSE 8000
-CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=$PORT
+CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}
