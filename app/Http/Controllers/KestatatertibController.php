@@ -11,11 +11,13 @@ class KestatatertibController extends Controller
     {
         $query = Kestatatertib::query();
 
- // Tapisan ikut bulan sahaja berdasarkan created_at
+        // Hanya ambil data milik pengguna log masuk
+        $query->where('user_id', auth()->id());
+
+        // Tapisan ikut bulan berdasarkan created_at
         if ($request->filled('bulan')) {
             $query->whereMonth('created_at', $request->bulan)
                   ->whereYear('created_at', now()->year);
-        
         }
 
         $data = $query->orderBy('created_at', 'desc')->get();
@@ -40,9 +42,10 @@ class KestatatertibController extends Controller
             'tarikh_selesai' => 'nullable|date',
         ]);
 
-        // ✅ Isi default data tambahan
         $validated['hantar_kepada_boss'] = $request->has('hantar_kepada_boss');
         $validated['tarikh_daftar'] = now();
+        $validated['user_id'] = auth()->id();
+        $validated['negeri'] = auth()->user()->negeri;
 
         Kestatatertib::create($validated);
 
