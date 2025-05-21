@@ -53,21 +53,24 @@ class DashboardController extends Controller
         ));
     }
 
-    private function kiraSuku($model, $filter)
-    {
-        $suku = [0, 0, 0, 0];
+    private function kiraSuku($model)
+{
+    $user = auth()->user();
 
-        $query = $model::query();
-        foreach ($filter as $column => $value) {
-            $query->where($column, $value);
-        }
-
-        foreach ($query->select('created_at')->get() as $item) {
-            $bulan = Carbon::parse($item->created_at)->month;
-            $quarter = ceil($bulan / 3);
-            $suku[$quarter - 1]++;
-        }
-
-        return $suku;
+    // Jika role adalah yb, tapis ikut negeri
+    if ($user->role === 'yb') {
+        $data = $model::where('negeri', $user->negeri)->get();
+    } else {
+        $data = $model::where('user_id', $user->id)->get();
     }
+
+    $suku = [0, 0, 0, 0];
+
+    foreach ($data as $item) {
+        $bulan = \Carbon\Carbon::parse($item->created_at)->month;
+        $quarter = ceil($bulan / 3);
+        $suku[$quarter - 1]++;
+    }
+
+    return $suku;
 }
