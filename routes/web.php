@@ -75,7 +75,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('laporansemakanundang', LaporanSemakanUndangController::class);
     Route::resource('laporanmesyuarat', LaporanMesyuaratController::class);
     Route::resource('lainlaintugasan', LaporanLainLainController::class);
-
+}); // ✅ Tutup group(function) yang terbuka tadi
 
 // ===================== AUTH (LOGIN, REGISTER, etc.) =====================
 require __DIR__.'/auth.php';
