@@ -1,6 +1,6 @@
 FROM php:8.2-fpm
 
-# Install system dependencies & PostgreSQL driver
+# 1. ✅ Pasang dependencies untuk Laravel + PostgreSQL
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpng-dev \
@@ -13,27 +13,30 @@ RUN apt-get update && apt-get install -y \
     git \
     libzip-dev \
     libpq-dev \
-    && docker-php-ext-install pdo pdo_pgsql pdo_mysql mbstring exif pcntl bcmath gd zip
+    && docker-php-ext-install pdo pdo_pgsql mbstring exif pcntl bcmath gd zip
 
-# Install Composer
+# 2. ✅ Pasang Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Set working directory
+# 3. ✅ Set direktori kerja
 WORKDIR /var/www
 
-# Copy Laravel project files
+# 4. ✅ Salin semua fail projek Laravel
 COPY . .
 
-# Install PHP dependencies (tanpa artisan script)
-RUN composer install --optimize-autoloader --no-dev --no-scripts
-
-# Salin env.example → .env jika belum ada (supaya key:generate boleh jalan)
+# 5. ✅ Salin .env.example → .env jika belum ada
 RUN cp .env.example .env || true
 
-# Laravel Artisan Commands (selamat dijalankan selepas env wujud)
+# 6. ✅ Pasang dependencies PHP
+RUN composer install --optimize-autoloader --no-dev
+
+# 7. ✅ Laravel Artisan: Generate key dan cache config
 RUN php artisan config:clear || true
+RUN php artisan config:cache || true
 RUN php artisan key:generate || true
 
-# Expose port dan jalankan dengan migration
+# 8. ✅ Buka port 8000 untuk Laravel
 EXPOSE 8000
+
+# 9. ✅ Migrate database dan mulakan Laravel
 CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}
