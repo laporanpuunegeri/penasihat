@@ -11,8 +11,12 @@ class LaporankesmahkamahController extends Controller
     {
         $query = LaporanKesMahkamah::query();
 
+        // Tapis ikut pengguna log masuk
+        $query->where('user_id', auth()->id());
+
         if ($request->filled('bulan')) {
-            $query->whereMonth('tarikh_sebutan', $request->bulan);
+            $query->whereMonth('tarikh_sebutan', $request->bulan)
+                  ->whereYear('tarikh_sebutan', now()->year);
         }
 
         $data = $query->orderBy('tarikh_sebutan', 'desc')->get();
@@ -36,6 +40,10 @@ class LaporankesmahkamahController extends Controller
             'ringkasan_hujahan' => 'required',
             'status' => 'required',
         ]);
+
+        // Tambah user_id dan negeri
+        $validated['user_id'] = auth()->id();
+        $validated['negeri'] = auth()->user()->negeri;
 
         LaporanKesMahkamah::create($validated);
 
