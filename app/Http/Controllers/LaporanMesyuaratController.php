@@ -8,18 +8,21 @@ use App\Models\LaporanMesyuarat;
 class LaporanmesyuaratController extends Controller
 {
     /**
-     * Papar senarai laporan mesyuarat dengan tapisan bulan (dan status jika ada)
+     * Papar senarai laporan mesyuarat dengan tapisan bulan & status (berdasarkan user login)
      */
     public function index(Request $request)
     {
         $query = LaporanMesyuarat::query();
 
-       // Tapisan ikut bulan sahaja berdasarkan created_at
+        // ✅ Tapis ikut user semasa
+        $query->where('user_id', auth()->id());
+
+        // Tapisan ikut bulan & tahun
         if ($request->filled('bulan')) {
             $query->whereMonth('created_at', $request->bulan)
                   ->whereYear('created_at', now()->year);
         }
-        
+
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
@@ -49,6 +52,10 @@ class LaporanmesyuaratController extends Controller
             'status' => 'required|string|max:100',
             'pandangan' => 'required|in:Lisan,Bertulis',
         ]);
+
+        // ✅ Tambah maklumat user
+        $validated['user_id'] = auth()->id();
+        $validated['negeri'] = auth()->user()->negeri;
 
         LaporanMesyuarat::create($validated);
 
