@@ -18,85 +18,24 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $undang      = $this->kiraSuku(LaporanPandanganUndang::class);
-        $tatatertib  = $this->kiraSuku(Kestatatertib::class);
-        $mesyuarat   = $this->kiraSuku(LaporanMesyuarat::class);
-        $lain        = $this->kiraSuku(LainLainTugasan::class);
-        $kesmahkamah = $this->kiraSuku(LaporanKesMahkamah::class);
-        $gubalan     = $this->kiraSuku(LaporanGubalanUndang::class);
-        $pindaan     = $this->kiraSuku(LaporanPindaanUndang::class);
-        $semakan     = $this->kiraSuku(LaporanSemakanUndang::class);
+        $user = auth()->user();
 
-        return view('dashboard', compact(
-            'undang', 'tatatertib', 'mesyuarat', 'lain',
-            'kesmahkamah', 'gubalan', 'pindaan', 'semakan'
-        ));
-    }
-
-    private function kiraSuku($model)
-    {
-        $suku = [0, 0, 0, 0];
-
-        foreach ($model::select('created_at')->get() as $item) {
-            $bulan = Carbon::parse($item->created_at)->month;
-            $quarter = ceil($bulan / 3);
-            $suku[$quarter - 1]++;
+        // Jika boss atau YB - ikut negeri
+        if (in_array($user->role, ['boss', 'yb'])) {
+            $filter = ['negeri' => $user->negeri];
+        } else {
+            // Jika user biasa - ikut user_id
+            $filter = ['user_id' => $user->id];
         }
 
-        return $suku;
-    }
-
-    public function boss()
-    {
-        return view('dashboard.boss');
-    }
-
-    public function pa()
-    {
-        $undang      = $this->kiraSuku(LaporanPandanganUndang::class);
-        $tatatertib  = $this->kiraSuku(Kestatatertib::class);
-        $mesyuarat   = $this->kiraSuku(LaporanMesyuarat::class);
-        $lain        = $this->kiraSuku(LainLainTugasan::class);
-        $kesmahkamah = $this->kiraSuku(LaporanKesMahkamah::class);
-        $gubalan     = $this->kiraSuku(LaporanGubalanUndang::class);
-        $pindaan     = $this->kiraSuku(LaporanPindaanUndang::class);
-        $semakan     = $this->kiraSuku(LaporanSemakanUndang::class);
-
-        return view('dashboard.pa', compact(
-            'undang', 'tatatertib', 'mesyuarat', 'lain',
-            'kesmahkamah', 'gubalan', 'pindaan', 'semakan'
-        ));
-    }
-
-    public function yb()
-    {
-        $undang      = $this->kiraSuku(LaporanPandanganUndang::class);
-        $tatatertib  = $this->kiraSuku(Kestatatertib::class);
-        $mesyuarat   = $this->kiraSuku(LaporanMesyuarat::class);
-        $lain        = $this->kiraSuku(LainLainTugasan::class);
-        $kesmahkamah = $this->kiraSuku(LaporanKesMahkamah::class);
-        $gubalan     = $this->kiraSuku(LaporanGubalanUndang::class);
-        $pindaan     = $this->kiraSuku(LaporanPindaanUndang::class);
-        $semakan     = $this->kiraSuku(LaporanSemakanUndang::class);
-
-        return view('dashboard.yb', compact(
-            'undang', 'tatatertib', 'mesyuarat', 'lain',
-            'kesmahkamah', 'gubalan', 'pindaan', 'semakan'
-        ));
-    }
-
-    public function user()
-    {
-        $undang      = $this->kiraSuku(LaporanPandanganUndang::class);
-        $tatatertib  = $this->kiraSuku(Kestatatertib::class);
-        $mesyuarat   = $this->kiraSuku(LaporanMesyuarat::class);
-        $lain        = $this->kiraSuku(LainLainTugasan::class);
-        $kesmahkamah = $this->kiraSuku(LaporanKesMahkamah::class);
-        $gubalan     = $this->kiraSuku(LaporanGubalanUndang::class);
-        $pindaan     = $this->kiraSuku(LaporanPindaanUndang::class);
-        $semakan     = $this->kiraSuku(LaporanSemakanUndang::class);
-
-        $user = auth()->user();
+        $undang      = $this->kiraSuku(LaporanPandanganUndang::class, $filter);
+        $tatatertib  = $this->kiraSuku(Kestatatertib::class, $filter);
+        $mesyuarat   = $this->kiraSuku(LaporanMesyuarat::class, $filter);
+        $lain        = $this->kiraSuku(LainLainTugasan::class, $filter);
+        $kesmahkamah = $this->kiraSuku(LaporanKesMahkamah::class, $filter);
+        $gubalan     = $this->kiraSuku(LaporanGubalanUndang::class, $filter);
+        $pindaan     = $this->kiraSuku(LaporanPindaanUndang::class, $filter);
+        $semakan     = $this->kiraSuku(LaporanSemakanUndang::class, $filter);
 
         $pergerakan = Pergerakan::where('user_id', $user->id)->get()->map(function ($item) {
             return [
@@ -107,10 +46,28 @@ class DashboardController extends Controller
             ];
         });
 
-        return view('dashboard.user', compact(
+        return view('dashboard', compact(
             'undang', 'tatatertib', 'mesyuarat', 'lain',
             'kesmahkamah', 'gubalan', 'pindaan', 'semakan',
             'pergerakan'
         ));
+    }
+
+    private function kiraSuku($model, $filter)
+    {
+        $suku = [0, 0, 0, 0];
+
+        $query = $model::query();
+        foreach ($filter as $column => $value) {
+            $query->where($column, $value);
+        }
+
+        foreach ($query->select('created_at')->get() as $item) {
+            $bulan = Carbon::parse($item->created_at)->month;
+            $quarter = ceil($bulan / 3);
+            $suku[$quarter - 1]++;
+        }
+
+        return $suku;
     }
 }
