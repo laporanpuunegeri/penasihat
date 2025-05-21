@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PandanganUndang extends Model
 {
@@ -21,5 +22,22 @@ class PandanganUndang extends Model
         'status',
         'tarikh_selesai',
         'dirujuk_jpn',
+        'user_id',
+        'negeri',
+        'created_at',
+        'updated_at',
     ];
+
+    protected $casts = [
+        'tarikh_terima' => 'date',
+        'tarikh_selesai' => 'date',
+        'dirujuk_jpn' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 }
