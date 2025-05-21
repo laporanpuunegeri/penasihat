@@ -4,12 +4,16 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\LaporanSemakanUndang;
+use Illuminate\Support\Facades\Auth;
 
 class LaporansemakanundangController extends Controller
 {
     public function index(Request $request)
     {
         $query = LaporanSemakanUndang::query();
+
+        // ✅ Tapis ikut user semasa
+        $query->where('user_id', auth()->id());
 
         // ✅ Tapisan ikut bulan tarikh daftar
         if ($request->filled('bulan')) {
@@ -35,7 +39,10 @@ class LaporansemakanundangController extends Controller
             'status' => 'required|string|max:100',
         ]);
 
-        LaporanSemakanUndang::create($validated);
+        LaporanSemakanUndang::create(array_merge($validated, [
+            'user_id' => auth()->id(),
+            'negeri' => auth()->user()->negeri,
+        ]));
 
         return redirect()->route('laporansemakanundang.index')
                          ->with('success', 'Laporan semakan berjaya disimpan.');
