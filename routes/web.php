@@ -59,7 +59,9 @@ Route::middleware(['auth', 'role:yb'])->get('/yb/dashboard', [DashboardControlle
 Route::middleware(['auth', 'role:user'])->get('/user/dashboard', [DashboardController::class, 'user'])->name('user.dashboard');
 
 // ===================== MODUL UTAMA =====================
-Route::middleware('auth')->group(function () {
+Route::middleware('auth')->group(function ()
+Route::middleware(['auth'])->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+{
 
     // ✅ Cetakan PDF rasmi
     Route::get('/laporan/pdf', [PdfController::class, 'laporan'])->name('laporan.pdf');
