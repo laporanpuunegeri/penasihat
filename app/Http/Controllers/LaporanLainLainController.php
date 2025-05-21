@@ -9,10 +9,13 @@ class LaporanLainLainController extends Controller
 {
     public function index(Request $request)
     {
-        $bulan = $request->input('bulan');
-
         $query = LainLainTugasan::query();
-  if ($request->filled('bulan')) {
+
+        // ✅ Tapis ikut user semasa
+        $query->where('user_id', auth()->id());
+
+        // ✅ Tapis ikut bulan & tahun jika dipilih
+        if ($request->filled('bulan')) {
             $query->whereMonth('created_at', $request->bulan)
                   ->whereYear('created_at', now()->year);
         }
@@ -29,6 +32,12 @@ class LaporanLainLainController extends Controller
 
     public function store(Request $request)
     {
+        $request->validate([
+            'tugasan.*.perihal' => 'required|string',
+            'tugasan.*.tarikh' => 'required|date',
+            'tugasan.*.tindakan' => 'nullable|string',
+        ]);
+
         $data = $request->input('tugasan');
 
         foreach ($data as $item) {
@@ -36,6 +45,8 @@ class LaporanLainLainController extends Controller
                 'perihal' => $item['perihal'],
                 'tarikh' => $item['tarikh'],
                 'tindakan' => $item['tindakan'],
+                'user_id' => auth()->id(),
+                'negeri' => auth()->user()->negeri,
             ]);
         }
 
@@ -51,6 +62,13 @@ class LaporanLainLainController extends Controller
     public function update(Request $request, $id)
     {
         $tugasan = LainLainTugasan::findOrFail($id);
+
+        $request->validate([
+            'perihal' => 'required|string',
+            'tarikh' => 'required|date',
+            'tindakan' => 'nullable|string',
+        ]);
+
         $tugasan->update($request->only('perihal', 'tarikh', 'tindakan'));
 
         return redirect()->route('lainlaintugasan.index')->with('success', 'Laporan berjaya dikemaskini.');
