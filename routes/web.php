@@ -22,7 +22,7 @@ use App\Http\Controllers\PdfController;
 
 // ===================== UTAMA =====================
 Route::get('/', fn() => redirect()->route('dashboard'))->name('utama');
-Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 Route::get('/laporan', [LaporanController::class, 'index'])->middleware('auth')->name('laporan.index');
 Route::get('/laporan-bulanan', [LaporanBulananController::class, 'index'])->middleware('auth')->name('laporanbulanan.index');
 
