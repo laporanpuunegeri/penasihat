@@ -4,12 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Kestatatertib extends Model
 {
     use HasFactory;
 
-    // ✅ Gunakan huruf kecil untuk keserasian dengan nama jadual sebenar (MySQL case-sensitive)
     protected $table = 'kestatatertib';
 
     protected $fillable = [
@@ -18,10 +18,12 @@ class Kestatatertib extends Model
         'fakta_ringkasan',
         'isu',
         'ringkasan_pandangan',
-        'status',              // status sebagai string
-        'tarikh_selesai',      // tarikh selesai sebagai date
+        'status',
+        'tarikh_selesai',
         'hantar_kepada_boss',
         'tarikh_daftar',
+        'user_id',
+        'negeri',
     ];
 
     protected $casts = [
@@ -30,4 +32,9 @@ class Kestatatertib extends Model
         'tarikh_daftar' => 'datetime',
         'hantar_kepada_boss' => 'boolean',
     ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 }
