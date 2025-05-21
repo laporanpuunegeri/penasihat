@@ -75,7 +75,16 @@ Route::middleware('auth')->group(function () {
     Route::resource('laporansemakanundang', LaporanSemakanUndangController::class);
     Route::resource('laporanmesyuarat', LaporanMesyuaratController::class);
     Route::resource('lainlaintugasan', LaporanLainLainController::class);
-
+@if ($errors->any())
+    <div class="alert alert-danger">
+        <strong>Ralat!</strong> Sila semak semula input anda.<br><br>
+        <ul>
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
 });
 
 // ===================== AUTH (LOGIN, REGISTER, etc.) =====================
