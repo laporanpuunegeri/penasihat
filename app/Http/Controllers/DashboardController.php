@@ -20,6 +20,11 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
+        // Cegah error jika user belum login
+        if (!$user) {
+            abort(403, 'Akses tidak dibenarkan.');
+        }
+
         // Jika boss atau YB - ikut negeri
         if (in_array($user->role, ['boss', 'yb'])) {
             $filter = ['negeri' => $user->negeri];
