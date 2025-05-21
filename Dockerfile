@@ -1,6 +1,6 @@
 FROM php:8.2-fpm
 
-# 1. ✅ Pasang dependencies untuk Laravel + PostgreSQL
+# 1. ✅ Pasang semua keperluan sistem & PostgreSQL extension
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpng-dev \
@@ -18,25 +18,25 @@ RUN apt-get update && apt-get install -y \
 # 2. ✅ Pasang Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# 3. ✅ Set direktori kerja
+# 3. ✅ Tetapkan direktori kerja
 WORKDIR /var/www
 
-# 4. ✅ Salin semua fail projek Laravel
+# 4. ✅ Salin semua fail Laravel
 COPY . .
 
 # 5. ✅ Salin .env.example → .env jika belum ada
-RUN cp .env.example .env || true
+RUN [ -f .env ] || cp .env.example .env
 
-# 6. ✅ Pasang dependencies PHP
-RUN composer install --optimize-autoloader --no-dev
+# 6. ✅ Pasang semua dependency PHP (tanpa dev)
+RUN composer install --optimize-autoloader --no-dev --no-scripts
 
-# 7. ✅ Laravel Artisan: Generate key dan cache config
+# 7. ✅ Artisan commands (elakkan error jika env belum lengkap)
 RUN php artisan config:clear || true
 RUN php artisan config:cache || true
 RUN php artisan key:generate || true
 
-# 8. ✅ Buka port 8000 untuk Laravel
+# 8. ✅ Buka port untuk Laravel (default: 8000)
 EXPOSE 8000
 
-# 9. ✅ Migrate database dan mulakan Laravel
+# 9. ✅ Jalankan migrasi dan servis Laravel
 CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}
