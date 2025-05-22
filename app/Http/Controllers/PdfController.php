@@ -19,11 +19,19 @@ class PdfController extends Controller
 {
     public function laporan(Request $request)
     {
+        $user = Auth::user();
         $bulan = $request->bulan ?? now()->month;
         $tahun = now()->year;
 
         $tarikh_awal = Carbon::create($tahun, $bulan, 1)->startOfMonth();
         $tarikh_akhir = Carbon::create($tahun, $bulan, 1)->endOfMonth();
+
+        // Penapis peranan
+        if (in_array($user->role, ['pa', 'yb'])) {
+            $filter = ['negeri' => $user->negeri];
+        } else {
+            $filter = ['user_id' => $user->id];
+        }
 
         $kategori_list = [
             'Perlembagaan',
@@ -38,17 +46,39 @@ class PdfController extends Controller
             'bulan' => $bulan,
             'tahun' => $tahun,
             'kategori_list' => $kategori_list,
-            'user' => Auth::user(),
+            'user' => $user,
 
-            // Guna tarikh_daftar sahaja tanpa created_by
-            'laporan' => LaporanPandanganUndang::whereBetween('tarikh_daftar', [$tarikh_awal, $tarikh_akhir])->get(),
-            'laporan_kesmahkamah' => LaporanKesMahkamah::whereBetween('tarikh_daftar', [$tarikh_awal, $tarikh_akhir])->get(),
-            'laporan_gubalan' => LaporanGubalanUndang::whereBetween('tarikh_daftar', [$tarikh_awal, $tarikh_akhir])->get(),
-            'laporan_pindaan' => LaporanPindaanUndang::whereBetween('tarikh_daftar', [$tarikh_awal, $tarikh_akhir])->get(),
-            'laporan_semakan' => LaporanSemakanUndang::whereBetween('tarikh_daftar', [$tarikh_awal, $tarikh_akhir])->get(),
-            'laporan_mesyuarat' => LaporanMesyuarat::whereBetween('tarikh_daftar', [$tarikh_awal, $tarikh_akhir])->get(),
-            'laporan_tatatertib' => Kestatatertib::whereBetween('tarikh_daftar', [$tarikh_awal, $tarikh_akhir])->get(),
-            'laporan_lainlain' => LainLainTugasan::whereBetween('tarikh_daftar', [$tarikh_awal, $tarikh_akhir])->get(),
+            'laporan' => LaporanPandanganUndang::where($filter)
+                ->whereBetween('created_at', [$tarikh_awal, $tarikh_akhir])
+                ->get(),
+
+            'laporan_kesmahkamah' => LaporanKesMahkamah::where($filter)
+                ->whereBetween('created_at', [$tarikh_awal, $tarikh_akhir])
+                ->get(),
+
+            'laporan_gubalan' => LaporanGubalanUndang::where($filter)
+                ->whereBetween('created_at', [$tarikh_awal, $tarikh_akhir])
+                ->get(),
+
+            'laporan_pindaan' => LaporanPindaanUndang::where($filter)
+                ->whereBetween('created_at', [$tarikh_awal, $tarikh_akhir])
+                ->get(),
+
+            'laporan_semakan' => LaporanSemakanUndang::where($filter)
+                ->whereBetween('created_at', [$tarikh_awal, $tarikh_akhir])
+                ->get(),
+
+            'laporan_mesyuarat' => LaporanMesyuarat::where($filter)
+                ->whereBetween('created_at', [$tarikh_awal, $tarikh_akhir])
+                ->get(),
+
+            'laporan_tatatertib' => Kestatatertib::where($filter)
+                ->whereBetween('created_at', [$tarikh_awal, $tarikh_akhir])
+                ->get(),
+
+            'laporan_lainlain' => LainLainTugasan::where($filter)
+                ->whereBetween('created_at', [$tarikh_awal, $tarikh_akhir])
+                ->get(),
         ])
         ->setPaper('a4', 'portrait')
         ->stream('Laporan_Aktiviti_Bulanan.pdf');
