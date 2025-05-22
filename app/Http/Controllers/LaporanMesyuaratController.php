@@ -4,20 +4,16 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\LaporanMesyuarat;
+use App\Models\Pergerakan;
 
 class LaporanmesyuaratController extends Controller
 {
-    /**
-     * Papar senarai laporan mesyuarat dengan tapisan bulan & status (berdasarkan user login)
-     */
     public function index(Request $request)
     {
         $query = LaporanMesyuarat::query();
 
-        // ✅ Tapis ikut user semasa
         $query->where('user_id', auth()->id());
 
-        // Tapisan ikut bulan & tahun
         if ($request->filled('bulan')) {
             $query->whereMonth('created_at', $request->bulan)
                   ->whereYear('created_at', now()->year);
@@ -32,17 +28,11 @@ class LaporanmesyuaratController extends Controller
         return view('laporanmesyuarat.index', compact('data'));
     }
 
-    /**
-     * Papar borang daftar laporan baru
-     */
     public function create()
     {
         return view('laporanmesyuarat.create');
     }
 
-    /**
-     * Simpan laporan mesyuarat baharu
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -53,28 +43,30 @@ class LaporanmesyuaratController extends Controller
             'pandangan' => 'required|in:Lisan,Bertulis',
         ]);
 
-        // ✅ Tambah maklumat user
         $validated['user_id'] = auth()->id();
         $validated['negeri'] = auth()->user()->negeri;
 
-        LaporanMesyuarat::create($validated);
+        // Simpan laporan mesyuarat
+        $laporan = LaporanMesyuarat::create($validated);
+
+        // ✅ Automatik tambah ke pergerakan
+        Pergerakan::create([
+            'user_id' => auth()->id(),
+            'tarikh' => $validated['tarikh_mesyuarat'],
+            'jenis' => 'Mesyuarat',
+            'catatan' => $validated['mesyuarat'],
+        ]);
 
         return redirect()->route('laporanmesyuarat.index')
-                         ->with('success', 'Laporan mesyuarat berjaya disimpan.');
+                         ->with('success', 'Laporan mesyuarat & pergerakan berjaya disimpan.');
     }
 
-    /**
-     * Papar borang kemaskini laporan
-     */
     public function edit($id)
     {
         $laporan = LaporanMesyuarat::findOrFail($id);
         return view('laporanmesyuarat.edit', compact('laporan'));
     }
 
-    /**
-     * Simpan kemaskini laporan mesyuarat
-     */
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
@@ -92,9 +84,6 @@ class LaporanmesyuaratController extends Controller
                          ->with('success', 'Laporan mesyuarat berjaya dikemaskini.');
     }
 
-    /**
-     * Padam laporan dari pangkalan data
-     */
     public function destroy($id)
     {
         $laporan = LaporanMesyuarat::findOrFail($id);
