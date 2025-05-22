@@ -24,13 +24,10 @@ class DashboardController extends Controller
             abort(403, 'Akses tidak dibenarkan.');
         }
 
-        // Penapisan data ikut peranan
-        if (in_array($user->role, ['yb', 'pa'])) {
-            $filter = ['negeri' => $user->negeri];
-        } else {
-            $filter = ['user_id' => $user->id];
-        }
+        // Logik penapisan data ikut peranan
+        $filter = $this->getFilterByRole($user);
 
+        // Kiraan sukuan bagi setiap modul
         $undang      = $this->kiraSuku(LaporanPandanganUndang::class, $filter);
         $tatatertib  = $this->kiraSuku(Kestatatertib::class, $filter);
         $mesyuarat   = $this->kiraSuku(LaporanMesyuarat::class, $filter);
@@ -40,6 +37,7 @@ class DashboardController extends Controller
         $pindaan     = $this->kiraSuku(LaporanPindaanUndang::class, $filter);
         $semakan     = $this->kiraSuku(LaporanSemakanUndang::class, $filter);
 
+        // Pergerakan hanya ikut user_id
         $pergerakan = Pergerakan::where('user_id', $user->id)->get()->map(function ($item) {
             return [
                 'title'   => $item->jenis ?? 'Pergerakan',
@@ -56,10 +54,12 @@ class DashboardController extends Controller
         ));
     }
 
+    /**
+     * Kira bilangan data mengikut suku tahun
+     */
     private function kiraSuku($model, $filter)
     {
         $data = $model::where($filter)->get();
-
         $suku = [0, 0, 0, 0];
 
         foreach ($data as $item) {
@@ -69,5 +69,17 @@ class DashboardController extends Controller
         }
 
         return $suku;
+    }
+
+    /**
+     * Tetapkan filter berdasarkan peranan pengguna
+     */
+    private function getFilterByRole($user)
+    {
+        if (in_array($user->role, ['yb', 'pa'])) {
+            return ['negeri' => $user->negeri];
+        }
+
+        return ['user_id' => $user->id];
     }
 }
