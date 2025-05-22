@@ -77,7 +77,8 @@ class DashboardController extends Controller
             $suku[$quarter - 1]++;
         }
     }
-
+    
+dd($undang, $tatatertib, $mesyuarat); // atau mana-mana
     return $suku;
 }
 
