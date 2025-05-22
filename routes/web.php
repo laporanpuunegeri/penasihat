@@ -22,9 +22,9 @@ use App\Http\Controllers\PdfController;
 
 // ===================== UTAMA =====================
 Route::get('/', fn() => redirect()->route('dashboard'))->name('utama');
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-Route::get('/laporan', [LaporanController::class, 'index'])->middleware('auth')->name('laporan.index');
-Route::get('/laporan-bulanan', [LaporanBulananController::class, 'index'])->middleware('auth')->name('laporanbulanan.index');
+
+// ✅ Dashboard tunggal untuk semua role
+Route::middleware('auth')->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
 // ===================== PROFIL =====================
 Route::middleware('auth')->group(function () {
@@ -51,11 +51,6 @@ Route::post('/pergerakan', fn(Request $request) => Auth::check()
     : redirect()->route('login')->with('error', 'Sila log masuk dahulu.'))->name('pergerakan.store');
 
 Route::resource('pergerakan', PergerakanController::class)->middleware('auth');
-
-// ===================== DASHBOARD PER PERANAN =====================
-Route::middleware(['auth', 'role:pa'])->get('/pa/dashboard', [DashboardController::class, 'pa'])->name('pa.dashboard');
-Route::middleware(['auth', 'role:yb'])->get('/yb/dashboard', [DashboardController::class, 'yb'])->name('yb.dashboard');
-Route::middleware(['auth', 'role:user'])->get('/user/dashboard', [DashboardController::class, 'user'])->name('user.dashboard');
 
 // ===================== MODUL UTAMA =====================
 Route::middleware('auth')->group(function () {
