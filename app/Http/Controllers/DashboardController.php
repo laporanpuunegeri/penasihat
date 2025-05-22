@@ -46,7 +46,6 @@ class DashboardController extends Controller
                 'catatan' => $item->catatan ?? '-',
             ];
         });
-dd($undang, $tatatertib, $mesyuarat); // atau mana-mana
         return view('dashboard', compact(
             'undang', 'tatatertib', 'mesyuarat', 'lain',
             'kesmahkamah', 'gubalan', 'pindaan', 'semakan',
