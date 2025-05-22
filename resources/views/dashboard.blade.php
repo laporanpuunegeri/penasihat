@@ -5,35 +5,24 @@
     <h3 class="fw-bold text-uppercase mb-4 text-center">Dashboard Laporan</h3>
 
     <div class="row row-cols-1 row-cols-md-4 g-4">
-        {{-- Laporan Undang-Undang --}}
+        {{-- Komponen Kad --}}
         <x-dashboard-card title="Undang-Undang" chartId="chartUndang" />
-
-        {{-- Laporan Tatatertib --}}
         <x-dashboard-card title="Tatatertib" chartId="chartTatatertib" />
-
-        {{-- Laporan Mesyuarat --}}
         <x-dashboard-card title="Mesyuarat" chartId="chartMesyuarat" />
-
-        {{-- Laporan Lain-lain --}}
         <x-dashboard-card title="Lain-lain" chartId="chartLain" />
-
-        {{-- Laporan Kes Mahkamah --}}
         <x-dashboard-card title="Kes Mahkamah" chartId="chartMahkamah" />
-
-        {{-- Laporan Gubalan --}}
         <x-dashboard-card title="Gubalan Undang" chartId="chartGubalan" />
-
-        {{-- Laporan Pindaan --}}
         <x-dashboard-card title="Pindaan Undang" chartId="chartPindaan" />
-
-        {{-- Laporan Semakan --}}
         <x-dashboard-card title="Semakan Undang" chartId="chartSemakan" />
     </div>
 </div>
 
-{{-- Chart.js --}}
+{{-- Chart.js CDN --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{{-- Chart.js Config --}}
 <script>
+document.addEventListener('DOMContentLoaded', function () {
     const config = (id, data, color) => new Chart(document.getElementById(id), {
         type: 'bar',
         data: {
@@ -59,22 +48,6 @@
             }
         }
     });
-@php
-    $role = auth()->user()->role;
-@endphp
-
-<div class="alert alert-info text-center">
-    Anda sedang log masuk sebagai:
-    <strong class="text-uppercase">
-        @if($role === 'pa')
-            Pembantu Am Pentadbiran (PA)
-        @elseif($role === 'yb')
-            YB Penasihat Undang-Undang
-        @else
-            Pengguna Biasa
-        @endif
-    </strong>
-</div>
 
     config('chartUndang', {!! json_encode($undang) !!}, '#007bff');
     config('chartTatatertib', {!! json_encode($tatatertib) !!}, '#dc3545');
@@ -84,5 +57,6 @@
     config('chartGubalan', {!! json_encode($gubalan) !!}, '#17a2b8');
     config('chartPindaan', {!! json_encode($pindaan) !!}, '#fd7e14');
     config('chartSemakan', {!! json_encode($semakan) !!}, '#6610f2');
+});
 </script>
 @endsection
