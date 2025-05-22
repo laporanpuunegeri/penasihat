@@ -19,20 +19,10 @@ class AuthenticatedSessionController extends Controller
     public function store(LoginRequest $request): RedirectResponse
     {
         $request->authenticate();
-
         $request->session()->regenerate();
 
-        $user = auth()->user();
-
-        if ($user->role === 'boss') {
-            return redirect()->route('boss.dashboard');
-        } elseif ($user->role === 'pa') {
-            return redirect()->route('pa.dashboard');
-        } elseif ($user->role === 'yb') {
-            return redirect()->route('yb.dashboard');
-        } else {
-            return redirect()->route('user.dashboard');
-        }
+        // Semua pengguna ke route 'dashboard' sahaja
+        return redirect()->route('dashboard');
     }
 
     public function destroy(Request $request): RedirectResponse
@@ -40,7 +30,6 @@ class AuthenticatedSessionController extends Controller
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
 
         return redirect('/');
