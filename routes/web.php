@@ -23,7 +23,7 @@ use App\Http\Controllers\PdfController;
 // ===================== UTAMA =====================
 Route::get('/', fn() => redirect()->route('dashboard'))->name('utama');
 
-// ✅ Dashboard tunggal untuk semua role
+// ✅ Dashboard tunggal untuk semua role termasuk super_admin
 Route::middleware('auth')->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
 // ===================== PROFIL =====================
@@ -42,35 +42,31 @@ Route::post('/logout', function (Request $request) {
 })->name('logout');
 
 // ===================== PERGERAKAN =====================
-Route::get('/pergerakan/create', fn() => Auth::check()
-    ? app(PergerakanController::class)->create()
-    : redirect()->route('login')->with('error', 'Sila log masuk dahulu.'))->name('pergerakan.create');
-
-Route::post('/pergerakan', fn(Request $request) => Auth::check()
-    ? app(PergerakanController::class)->store($request)
-    : redirect()->route('login')->with('error', 'Sila log masuk dahulu.'))->name('pergerakan.store');
-
-Route::resource('pergerakan', PergerakanController::class)->middleware('auth');
+Route::middleware('auth')->group(function () {
+    Route::get('/pergerakan/create', [PergerakanController::class, 'create'])->name('pergerakan.create');
+    Route::post('/pergerakan', [PergerakanController::class, 'store'])->name('pergerakan.store');
+    Route::resource('pergerakan', PergerakanController::class);
+});
 
 // ===================== MODUL UTAMA =====================
 Route::middleware('auth')->group(function () {
 
-Route::get('/laporan', [LaporanController::class, 'index'])->middleware('auth')->name('laporan.index');
-
-    // ✅ Cetakan PDF rasmi
+    // ✅ Paparan dan cetakan laporan
+    Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
     Route::get('/laporan/pdf', [PdfController::class, 'laporan'])->name('laporan.pdf');
 
-    // ✅ Modul Tatatertib
-    Route::resource('kestatatertib', KestatatertibController::class);
-
-    // ✅ Modul lain-lain laporan
+    // ✅ Laporan Individu (resource-based)
     Route::resource('laporanpandanganundang', LaporanPandanganUndangController::class);
     Route::resource('laporankesmahkamah', LaporanKesMahkamahController::class);
     Route::resource('laporangubalanundang', LaporanGubalanUndangController::class);
     Route::resource('laporanpindaanundang', LaporanPindaanUndangController::class);
     Route::resource('laporansemakanundang', LaporanSemakanUndangController::class);
     Route::resource('laporanmesyuarat', LaporanMesyuaratController::class);
+    Route::resource('kestatatertib', KestatatertibController::class);
     Route::resource('lainlaintugasan', LaporanLainLainController::class);
+
+    // ✅ Laporan Bulanan (jika digunakan)
+    Route::get('/laporan-bulanan', [LaporanBulananController::class, 'index'])->name('laporanbulanan.index');
 });
 
 // ===================== AUTH (LOGIN, REGISTER, etc.) =====================
