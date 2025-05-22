@@ -55,6 +55,8 @@ Route::resource('pergerakan', PergerakanController::class)->middleware('auth');
 // ===================== MODUL UTAMA =====================
 Route::middleware('auth')->group(function () {
 
+Route::get('/laporan', [LaporanController::class, 'index'])->middleware('auth')->name('laporan.index');
+
     // ✅ Cetakan PDF rasmi
     Route::get('/laporan/pdf', [PdfController::class, 'laporan'])->name('laporan.pdf');
 
