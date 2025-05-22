@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\LaporanKesMahkamah;
+use App\Models\Pergerakan;
 
 class LaporankesmahkamahController extends Controller
 {
@@ -11,7 +12,6 @@ class LaporankesmahkamahController extends Controller
     {
         $query = LaporanKesMahkamah::query();
 
-        // Tapis ikut pengguna log masuk
         $query->where('user_id', auth()->id());
 
         if ($request->filled('bulan')) {
@@ -41,11 +41,19 @@ class LaporankesmahkamahController extends Controller
             'status' => 'required',
         ]);
 
-        // Tambah user_id dan negeri
         $validated['user_id'] = auth()->id();
         $validated['negeri'] = auth()->user()->negeri;
 
-        LaporanKesMahkamah::create($validated);
+        $laporan = LaporanKesMahkamah::create($validated);
+
+        // ✅ Tambah ke jadual pergerakan
+        Pergerakan::create([
+            'user_id' => $validated['user_id'],
+            'negeri' => $validated['negeri'],
+            'jenis' => $validated['jenis_kes'],
+            'catatan' => $validated['fakta_ringkas'],
+            'tarikh' => $validated['tarikh_sebutan'],
+        ]);
 
         return redirect('/laporankesmahkamah')->with('success', 'Laporan berjaya disimpan.');
     }
