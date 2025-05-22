@@ -39,7 +39,7 @@ class LaporanPandanganUndangController extends Controller
             'tarikh_terima' => 'required|date',
             'fakta_ringkasan' => 'required|string',
             'isu_detail' => 'required|string',
-            'ringkasan_pandangan' => 'required|string',
+            'ringkasan_pandangan' => 'nullable|string|max:1000',
             'jenis_pandangan' => 'nullable|string',
             'status' => 'required|string',
             'tarikh_selesai' => 'nullable|date',
