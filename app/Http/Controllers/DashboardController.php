@@ -24,10 +24,10 @@ class DashboardController extends Controller
             abort(403, 'Akses tidak dibenarkan.');
         }
 
-        // Logik penapisan data ikut peranan
+        // Tetapkan penapisan data ikut peranan
         $filter = $this->getFilterByRole($user);
 
-        // Kiraan sukuan bagi setiap modul
+        // Kira bilangan laporan mengikut suku tahun
         $undang      = $this->kiraSuku(LaporanPandanganUndang::class, $filter);
         $tatatertib  = $this->kiraSuku(Kestatatertib::class, $filter);
         $mesyuarat   = $this->kiraSuku(LaporanMesyuarat::class, $filter);
@@ -37,7 +37,7 @@ class DashboardController extends Controller
         $pindaan     = $this->kiraSuku(LaporanPindaanUndang::class, $filter);
         $semakan     = $this->kiraSuku(LaporanSemakanUndang::class, $filter);
 
-        // Pergerakan hanya ikut user_id
+        // Pergerakan hanya untuk user semasa
         $pergerakan = Pergerakan::where('user_id', $user->id)->get()->map(function ($item) {
             return [
                 'title'   => $item->jenis ?? 'Pergerakan',
@@ -46,6 +46,7 @@ class DashboardController extends Controller
                 'catatan' => $item->catatan ?? '-',
             ];
         });
+
         return view('dashboard', compact(
             'undang', 'tatatertib', 'mesyuarat', 'lain',
             'kesmahkamah', 'gubalan', 'pindaan', 'semakan',
@@ -54,40 +55,44 @@ class DashboardController extends Controller
     }
 
     /**
-     * Kira bilangan data mengikut suku tahun
+     * Kira data mengikut suku tahun
      */
-   private function kiraSuku($model, $filter)
-{
-    $query = $model::query();
+    private function kiraSuku($model, $filter)
+    {
+        $query = $model::query();
 
-    if (isset($filter['user_id'])) {
-        $query->where('user_id', $filter['user_id']);
-    } elseif (isset($filter['negeri'])) {
-        $query->where('negeri', $filter['negeri']);
-    }
-
-    $data = $query->get();
-    $suku = [0, 0, 0, 0];
-
-    foreach ($data as $item) {
-        if ($item->created_at) {
-            $bulan = Carbon::parse($item->created_at)->month;
-            $quarter = ceil($bulan / 3);
-            $suku[$quarter - 1]++;
+        // Jika filter tidak kosong, tapis ikut role
+        if (isset($filter['user_id'])) {
+            $query->where('user_id', $filter['user_id']);
+        } elseif (isset($filter['negeri'])) {
+            $query->where('negeri', $filter['negeri']);
         }
+
+        $data = $query->get();
+        $suku = [0, 0, 0, 0];
+
+        foreach ($data as $item) {
+            if ($item->created_at) {
+                $bulan = Carbon::parse($item->created_at)->month;
+                $quarter = ceil($bulan / 3);
+                $suku[$quarter - 1]++;
+            }
+        }
+
+        return $suku;
     }
-    return $suku;
-}
 
     /**
-     * Tetapkan filter berdasarkan peranan pengguna
+     * Tentukan filter berdasarkan peranan pengguna
      */
     private function getFilterByRole($user)
     {
-        if (in_array($user->role, ['yb', 'pa'])) {
+        if ($user->role === 'super_admin') {
+            return []; // Tidak tapis — lihat semua data
+        } elseif (in_array($user->role, ['yb', 'pa'])) {
             return ['negeri' => $user->negeri];
+        } else {
+            return ['user_id' => $user->id];
         }
-
-        return ['user_id' => $user->id];
     }
 }
