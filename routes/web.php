@@ -53,7 +53,6 @@ Route::post('/pergerakan', fn(Request $request) => Auth::check()
 Route::resource('pergerakan', PergerakanController::class)->middleware('auth');
 
 // ===================== DASHBOARD PER PERANAN =====================
-Route::middleware(['auth', 'role:boss'])->get('/boss/dashboard', [DashboardController::class, 'boss'])->name('boss.dashboard');
 Route::middleware(['auth', 'role:pa'])->get('/pa/dashboard', [DashboardController::class, 'pa'])->name('pa.dashboard');
 Route::middleware(['auth', 'role:yb'])->get('/yb/dashboard', [DashboardController::class, 'yb'])->name('yb.dashboard');
 Route::middleware(['auth', 'role:user'])->get('/user/dashboard', [DashboardController::class, 'user'])->name('user.dashboard');
@@ -75,7 +74,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('laporansemakanundang', LaporanSemakanUndangController::class);
     Route::resource('laporanmesyuarat', LaporanMesyuaratController::class);
     Route::resource('lainlaintugasan', LaporanLainLainController::class);
-}); // ✅ Tutup group(function) yang terbuka tadi
+});
 
 // ===================== AUTH (LOGIN, REGISTER, etc.) =====================
 require __DIR__.'/auth.php';
