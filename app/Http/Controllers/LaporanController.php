@@ -16,6 +16,7 @@ class LaporanController extends Controller
 {
     public function index(Request $request)
     {
+        $user = auth()->user();
         $bulan = $request->get('bulan', now()->month);
         $tahun = $request->get('tahun', now()->year);
 
@@ -28,35 +29,50 @@ class LaporanController extends Controller
             'Lain-lain',
         ];
 
-        $laporan = LaporanPandanganUndang::whereMonth('tarikh_terima', $bulan)
+        // Penapisan data berdasarkan peranan pengguna
+        if (in_array($user->role, ['yb', 'pa'])) {
+            $filter = ['negeri' => $user->negeri];
+        } else {
+            $filter = ['user_id' => $user->id];
+        }
+
+        $laporan = LaporanPandanganUndang::where($filter)
+            ->whereMonth('tarikh_terima', $bulan)
             ->whereYear('tarikh_terima', $tahun)
             ->get();
 
-        $laporan_kesmahkamah = LaporanKesMahkamah::whereMonth('created_at', $bulan)
+        $laporan_kesmahkamah = LaporanKesMahkamah::where($filter)
+            ->whereMonth('created_at', $bulan)
             ->whereYear('created_at', $tahun)
             ->get();
 
-        $laporan_gubalan = LaporanGubalanUndang::whereMonth('created_at', $bulan)
+        $laporan_gubalan = LaporanGubalanUndang::where($filter)
+            ->whereMonth('created_at', $bulan)
             ->whereYear('created_at', $tahun)
             ->get();
 
-        $laporan_pindaan = LaporanPindaanUndang::whereMonth('created_at', $bulan)
+        $laporan_pindaan = LaporanPindaanUndang::where($filter)
+            ->whereMonth('created_at', $bulan)
             ->whereYear('created_at', $tahun)
             ->get();
 
-        $laporan_semakan = LaporanSemakanUndang::whereMonth('created_at', $bulan)
+        $laporan_semakan = LaporanSemakanUndang::where($filter)
+            ->whereMonth('created_at', $bulan)
             ->whereYear('created_at', $tahun)
             ->get();
 
-        $laporan_mesyuarat = LaporanMesyuarat::whereMonth('created_at', $bulan)
+        $laporan_mesyuarat = LaporanMesyuarat::where($filter)
+            ->whereMonth('created_at', $bulan)
             ->whereYear('created_at', $tahun)
             ->get();
 
-        $laporan_tatatertib = Kestatatertib::whereMonth('tarikh_terima', $bulan)
+        $laporan_tatatertib = Kestatatertib::where($filter)
+            ->whereMonth('tarikh_terima', $bulan)
             ->whereYear('tarikh_terima', $tahun)
             ->get();
 
-        $laporan_lainlain = LainLainTugasan::whereMonth('created_at', $bulan)
+        $laporan_lainlain = LainLainTugasan::where($filter)
+            ->whereMonth('created_at', $bulan)
             ->whereYear('created_at', $tahun)
             ->get();
 
