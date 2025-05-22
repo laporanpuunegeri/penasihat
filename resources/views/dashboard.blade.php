@@ -59,6 +59,22 @@
             }
         }
     });
+@php
+    $role = auth()->user()->role;
+@endphp
+
+<div class="alert alert-info text-center">
+    Anda sedang log masuk sebagai:
+    <strong class="text-uppercase">
+        @if($role === 'pa')
+            Pembantu Am Pentadbiran (PA)
+        @elseif($role === 'yb')
+            YB Penasihat Undang-Undang
+        @else
+            Pengguna Biasa
+        @endif
+    </strong>
+</div>
 
     config('chartUndang', {!! json_encode($undang) !!}, '#007bff');
     config('chartTatatertib', {!! json_encode($tatatertib) !!}, '#dc3545');
