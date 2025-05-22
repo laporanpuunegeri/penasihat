@@ -57,19 +57,29 @@ class DashboardController extends Controller
     /**
      * Kira bilangan data mengikut suku tahun
      */
-    private function kiraSuku($model, $filter)
-    {
-        $data = $model::where($filter)->get();
-        $suku = [0, 0, 0, 0];
+   private function kiraSuku($model, $filter)
+{
+    $query = $model::query();
 
-        foreach ($data as $item) {
+    if (isset($filter['user_id'])) {
+        $query->where('user_id', $filter['user_id']);
+    } elseif (isset($filter['negeri'])) {
+        $query->where('negeri', $filter['negeri']);
+    }
+
+    $data = $query->get();
+    $suku = [0, 0, 0, 0];
+
+    foreach ($data as $item) {
+        if ($item->created_at) {
             $bulan = Carbon::parse($item->created_at)->month;
             $quarter = ceil($bulan / 3);
             $suku[$quarter - 1]++;
         }
-
-        return $suku;
     }
+
+    return $suku;
+}
 
     /**
      * Tetapkan filter berdasarkan peranan pengguna
