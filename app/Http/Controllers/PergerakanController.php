@@ -34,12 +34,10 @@ class PergerakanController extends Controller
                     'catatan' => $item->catatan ?? '-',
                 ];
             });
-
-          $senarai_pegawai = User::where('role', 'user')
-    ->whereDoesntHave('roles', function ($query) {
-        $query->where('name', 'super admin');
-    })
+$senarai_pegawai = User::where('role', 'user')
+    ->where('name', '!=', 'Super Admin') // atau tapis ikut ID
     ->get();
+
 
         } else {
             // Hanya papar pergerakan sendiri
