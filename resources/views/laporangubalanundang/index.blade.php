@@ -7,7 +7,7 @@
         <small class="text-uppercase">(Termasuk Cetakan Semula dan Pembaharuan Undang-Undang)</small>
     </h5>
 
-    {{-- Tapisan ikut bulan daftar --}}
+    {{-- Tapisan ikut bulan --}}
     <form method="GET" action="{{ url('/laporangubalanundang') }}" class="row g-3 mb-4 align-items-end">
         <div class="col-auto">
             <label for="bulan" class="form-label mb-0">Tapis Ikut Bulan Daftar:</label>
@@ -42,7 +42,7 @@
                     <th class="text-start">Tajuk RUU / Perundangan Subsidiari</th>
                     <th class="text-start">Tindakan</th>
                     <th>Status</th>
-                    <th>Tindakan</th>
+                    <th>Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -54,12 +54,16 @@
                         <td class="text-start">{{ $laporan->tindakan }}</td>
                         <td>{{ $laporan->status }}</td>
                         <td>
-                            <a href="{{ url('/laporangubalanundang/' . $laporan->id . '/edit') }}" class="btn btn-sm btn-warning mb-1">Edit</a>
-                            <form action="{{ url('/laporangubalanundang/' . $laporan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Anda pasti untuk padam?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-danger">Padam</button>
-                            </form>
+                            @if (auth()->id() === $laporan->user_id || auth()->user()->role === 'pa')
+                                <a href="{{ url('/laporangubalanundang/' . $laporan->id . '/edit') }}" class="btn btn-sm btn-warning mb-1">Edit</a>
+                                <form action="{{ url('/laporangubalanundang/' . $laporan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Anda pasti untuk padam?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-danger">Padam</button>
+                                </form>
+                            @else
+                                <span class="text-muted fst-italic">Untuk Semakan Sahaja</span>
+                            @endif
                         </td>
                     </tr>
                 @empty
