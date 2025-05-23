@@ -4,7 +4,7 @@
 <div class="container-fluid px-4">
     <h3 class="mb-4">Senarai Laporan Pandangan Undang-Undang</h3>
 
-    {{-- ✅ TAPISAN BULAN AUTOMATIK --}}
+    {{-- Tapisan ikut bulan --}}
     <form method="GET" class="row g-3 mb-3 align-items-end">
         <div class="col-md-3">
             <label for="bulan" class="form-label">Tapis Ikut Bulan:</label>
@@ -54,9 +54,7 @@
             </thead>
 
             @foreach ($kategori_list as $kategori)
-                @php
-                    $filtered = $data->where('kategori', $kategori);
-                @endphp
+                @php $filtered = $data->where('kategori', $kategori); @endphp
 
                 <tbody>
                     <tr class="table-secondary">
@@ -66,7 +64,7 @@
                     @forelse ($filtered as $item)
                         <tr>
                             <td>{{ $item->created_at->format('d/m/Y H:i') }}</td>
-                            <td>{{ \Carbon\Carbon::parse($item->tarikh_terima)->format('d/m/Y') }}</td>
+                            <td>{{ optional($item->tarikh_terima)->format('d/m/Y') }}</td>
                             <td class="text-start">{{ $item->fakta_ringkasan }}</td>
                             <td class="text-start">{{ $item->isu_detail }}</td>
                             <td class="text-start">{{ $item->ringkasan_pandangan }}</td>
