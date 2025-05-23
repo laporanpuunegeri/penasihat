@@ -54,11 +54,13 @@ class DashboardController extends Controller
             ->where('status', 'Dalam Proses')
             ->count();
 
-        $melepasiTarikh = LaporanPandanganUndang::where($filter)
-            ->whereNotNull('tarikh_selesai')
-            ->where('status', '!=', 'Selesai')
-            ->whereDate('tarikh_selesai', '<', now())
-            ->count();
+    $melepasiTarikh = LaporanPandanganUndang::where(function ($q) {
+        $q->whereNull('ringkasan_pandangan')
+          ->orWhere('ringkasan_pandangan', '');
+    })
+    ->when($filter, fn($q) => $this->applyFilter($q, $filter))
+    ->count();
+
 
         return view('dashboard', compact(
             'undang', 'tatatertib', 'mesyuarat', 'lain',
