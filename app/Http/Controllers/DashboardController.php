@@ -12,7 +12,6 @@ use App\Models\LaporanKesMahkamah;
 use App\Models\LaporanGubalanUndang;
 use App\Models\LaporanPindaanUndang;
 use App\Models\LaporanSemakanUndang;
-use App\Models\Pergerakan;
 
 class DashboardController extends Controller
 {
@@ -36,7 +35,7 @@ class DashboardController extends Controller
         $pindaan     = $this->kiraSuku(LaporanPindaanUndang::class, $filter);
         $semakan     = $this->kiraSuku(LaporanSemakanUndang::class, $filter);
 
-        // Jumlah bulan ini
+        // Jumlah bulan ini (setiap kategori)
         $undangBulanIni      = $this->kiraBulanIni(LaporanPandanganUndang::class, $filter);
         $tatatertibBulanIni  = $this->kiraBulanIni(Kestatatertib::class, $filter);
         $mesyuaratBulanIni   = $this->kiraBulanIni(LaporanMesyuarat::class, $filter);
@@ -46,10 +45,11 @@ class DashboardController extends Controller
         $pindaanBulanIni     = $this->kiraBulanIni(LaporanPindaanUndang::class, $filter);
         $semakanBulanIni     = $this->kiraBulanIni(LaporanSemakanUndang::class, $filter);
 
-        // Ringkasan tambahan
+        // Jumlah keseluruhan
         $bulanIni = $undangBulanIni + $tatatertibBulanIni + $mesyuaratBulanIni + $lainBulanIni +
                     $kesmahkamahBulanIni + $gubalanBulanIni + $pindaanBulanIni + $semakanBulanIni;
 
+        // Status tambahan
         $belumSelesai = LaporanPandanganUndang::where('status', 'Dalam Proses')
             ->when($filter, fn($q) => $this->applyFilter($q, $filter))
             ->count();
@@ -60,7 +60,8 @@ class DashboardController extends Controller
             ->count();
 
         return view('dashboard', compact(
-            'undang', 'tatatertib', 'mesyuarat', 'lain', 'kesmahkamah', 'gubalan', 'pindaan', 'semakan',
+            'undang', 'tatatertib', 'mesyuarat', 'lain',
+            'kesmahkamah', 'gubalan', 'pindaan', 'semakan',
             'bulanIni', 'belumSelesai', 'melepasiTarikh',
             'undangBulanIni', 'tatatertibBulanIni', 'mesyuaratBulanIni', 'lainBulanIni',
             'kesmahkamahBulanIni', 'gubalanBulanIni', 'pindaanBulanIni', 'semakanBulanIni'
@@ -74,12 +75,14 @@ class DashboardController extends Controller
         $data = $query->get();
 
         $suku = [0, 0, 0, 0];
+
         foreach ($data as $item) {
             if ($item->created_at) {
                 $quarter = ceil(Carbon::parse($item->created_at)->month / 3);
                 $suku[$quarter - 1]++;
             }
         }
+
         return $suku;
     }
 
@@ -87,6 +90,7 @@ class DashboardController extends Controller
     {
         $query = $model::query();
         $this->applyFilter($query, $filter);
+
         return $query->whereMonth('created_at', now()->month)
                      ->whereYear('created_at', now()->year)
                      ->count();
@@ -108,6 +112,7 @@ class DashboardController extends Controller
         } elseif (isset($filter['negeri'])) {
             $query->where('negeri', $filter['negeri']);
         }
+
         return $query;
     }
 }
