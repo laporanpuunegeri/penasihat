@@ -26,31 +26,7 @@ class DashboardController extends Controller
 
         $filter = $this->getFilterByRole($user);
 
-        // Paparan statistik utama
-        $bulanSekarang = Carbon::now()->month;
-        $tahunSekarang = Carbon::now()->year;
-
-        $queryPandangan = LaporanPandanganUndang::query();
-
-        // Tapis ikut role
-        if (isset($filter['user_id'])) {
-            $queryPandangan->where('user_id', $filter['user_id']);
-        } elseif (isset($filter['negeri'])) {
-            $queryPandangan->where('negeri', $filter['negeri']);
-        }
-
-        // Data untuk statistik atas
-        $bulanIni = (clone $queryPandangan)->whereMonth('created_at', $bulanSekarang)
-                                           ->whereYear('created_at', $tahunSekarang)
-                                           ->count();
-
-        $belumSelesai = (clone $queryPandangan)->where('status', 'Dalam Proses')->count();
-
-        $melepasiTarikh = (clone $queryPandangan)->where('status', 'Dalam Proses')
-                                                 ->whereDate('tarikh_selesai', '<', Carbon::today())
-                                                 ->count();
-
-        // Paparan carta laporan
+        // Paparan suku
         $undang      = $this->kiraSuku(LaporanPandanganUndang::class, $filter);
         $tatatertib  = $this->kiraSuku(Kestatatertib::class, $filter);
         $mesyuarat   = $this->kiraSuku(LaporanMesyuarat::class, $filter);
@@ -60,61 +36,78 @@ class DashboardController extends Controller
         $pindaan     = $this->kiraSuku(LaporanPindaanUndang::class, $filter);
         $semakan     = $this->kiraSuku(LaporanSemakanUndang::class, $filter);
 
-        // Pergerakan hanya pengguna semasa
-        $pergerakan = Pergerakan::where('user_id', $user->id)->get()->map(function ($item) {
-            return [
-                'title'   => $item->jenis ?? 'Pergerakan',
-                'start'   => $item->tarikh,
-                'end'     => $item->tarikh,
-                'catatan' => $item->catatan ?? '-',
-            ];
-        });
+        // Jumlah bulan ini
+        $undangBulanIni      = $this->kiraBulanIni(LaporanPandanganUndang::class, $filter);
+        $tatatertibBulanIni  = $this->kiraBulanIni(Kestatatertib::class, $filter);
+        $mesyuaratBulanIni   = $this->kiraBulanIni(LaporanMesyuarat::class, $filter);
+        $lainBulanIni        = $this->kiraBulanIni(LainLainTugasan::class, $filter);
+        $kesmahkamahBulanIni = $this->kiraBulanIni(LaporanKesMahkamah::class, $filter);
+        $gubalanBulanIni     = $this->kiraBulanIni(LaporanGubalanUndang::class, $filter);
+        $pindaanBulanIni     = $this->kiraBulanIni(LaporanPindaanUndang::class, $filter);
+        $semakanBulanIni     = $this->kiraBulanIni(LaporanSemakanUndang::class, $filter);
+
+        // Ringkasan tambahan
+        $bulanIni = $undangBulanIni + $tatatertibBulanIni + $mesyuaratBulanIni + $lainBulanIni +
+                    $kesmahkamahBulanIni + $gubalanBulanIni + $pindaanBulanIni + $semakanBulanIni;
+
+        $belumSelesai = LaporanPandanganUndang::where('status', 'Dalam Proses')
+            ->when($filter, fn($q) => $this->applyFilter($q, $filter))
+            ->count();
+
+        $melepasiTarikh = LaporanPandanganUndang::where('status', 'Dalam Proses')
+            ->whereDate('tarikh_selesai', '<', now())
+            ->when($filter, fn($q) => $this->applyFilter($q, $filter))
+            ->count();
 
         return view('dashboard', compact(
-            'undang', 'tatatertib', 'mesyuarat', 'lain',
-            'kesmahkamah', 'gubalan', 'pindaan', 'semakan',
-            'bulanIni', 'belumSelesai', 'melepasiTarikh', 'pergerakan'
+            'undang', 'tatatertib', 'mesyuarat', 'lain', 'kesmahkamah', 'gubalan', 'pindaan', 'semakan',
+            'bulanIni', 'belumSelesai', 'melepasiTarikh',
+            'undangBulanIni', 'tatatertibBulanIni', 'mesyuaratBulanIni', 'lainBulanIni',
+            'kesmahkamahBulanIni', 'gubalanBulanIni', 'pindaanBulanIni', 'semakanBulanIni'
         ));
     }
 
-    /**
-     * Kira data laporan mengikut suku tahun
-     */
     private function kiraSuku($model, $filter)
     {
         $query = $model::query();
+        $this->applyFilter($query, $filter);
+        $data = $query->get();
 
+        $suku = [0, 0, 0, 0];
+        foreach ($data as $item) {
+            if ($item->created_at) {
+                $quarter = ceil(Carbon::parse($item->created_at)->month / 3);
+                $suku[$quarter - 1]++;
+            }
+        }
+        return $suku;
+    }
+
+    private function kiraBulanIni($model, $filter)
+    {
+        $query = $model::query();
+        $this->applyFilter($query, $filter);
+        return $query->whereMonth('created_at', now()->month)
+                     ->whereYear('created_at', now()->year)
+                     ->count();
+    }
+
+    private function getFilterByRole($user)
+    {
+        return match ($user->role) {
+            'super_admin' => [],
+            'yb', 'pa' => ['negeri' => $user->negeri],
+            default => ['user_id' => $user->id],
+        };
+    }
+
+    private function applyFilter($query, $filter)
+    {
         if (isset($filter['user_id'])) {
             $query->where('user_id', $filter['user_id']);
         } elseif (isset($filter['negeri'])) {
             $query->where('negeri', $filter['negeri']);
         }
-
-        $data = $query->get();
-        $suku = [0, 0, 0, 0];
-
-        foreach ($data as $item) {
-            if ($item->created_at) {
-                $bulan = Carbon::parse($item->created_at)->month;
-                $quarter = ceil($bulan / 3);
-                $suku[$quarter - 1]++;
-            }
-        }
-
-        return $suku;
-    }
-
-    /**
-     * Tentukan penapisan berdasarkan peranan pengguna
-     */
-    private function getFilterByRole($user)
-    {
-        if ($user->role === 'super_admin') {
-            return [];
-        } elseif (in_array($user->role, ['yb', 'pa'])) {
-            return ['negeri' => $user->negeri];
-        } else {
-            return ['user_id' => $user->id];
-        }
+        return $query;
     }
 }
