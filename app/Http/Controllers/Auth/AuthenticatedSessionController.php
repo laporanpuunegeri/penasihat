@@ -16,14 +16,25 @@ class AuthenticatedSessionController extends Controller
         return view('auth.login');
     }
 
-    public function store(LoginRequest $request): RedirectResponse
-    {
-        $request->authenticate();
-        $request->session()->regenerate();
+public function store(LoginRequest $request): RedirectResponse
+{
+    $request->authenticate();
+    $request->session()->regenerate();
 
-        // Semua pengguna ke route 'dashboard' sahaja
-        return redirect()->route('dashboard');
+    $user = auth()->user();
+
+    // ❗ Sekat login jika bukan dari negeri MELAKA (kecuali super_admin)
+    if ($user->role !== 'super_admin' && strtoupper($user->negeri) !== 'MELAKA') {
+        Auth::logout();
+        return redirect()->route('login')->withErrors([
+            'email' => 'Log masuk hanya dibenarkan untuk pengguna negeri MELAKA sahaja.',
+        ]);
     }
+
+    // ✅ Arahkan ke dashboard seperti biasa
+    return redirect()->intended(route('dashboard'));
+}
+
 
     public function destroy(Request $request): RedirectResponse
     {
