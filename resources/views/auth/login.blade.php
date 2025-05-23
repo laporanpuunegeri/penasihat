@@ -40,7 +40,9 @@
             <div class="d-grid mb-3">
                 <button type="submit" class="btn btn-primary">Log Masuk</button>
             </div>
-
+            <div class="text-center mt-3">
+    <a href="{{ url('/reset-password') }}">Tukar Kata Laluan</a>
+</div>
             <div class="text-center">
                 <a href="{{ route('register') }}">Belum ada akaun? Daftar</a>
             </div>
