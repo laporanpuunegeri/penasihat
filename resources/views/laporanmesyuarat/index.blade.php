@@ -67,12 +67,19 @@
                         <td>{{ $laporan->pandangan === 'Bertulis' ? '✔' : '' }}</td>
                         <td>
                             @if ($user->role === 'pa' || $laporan->user_id === $user->id)
+                                @if ($user->role === 'pa')
+                                    <div class="text-muted mb-1 fst-italic">
+                                        {{ optional($laporan->user)->name ?? '-' }}
+                                    </div>
+                                @endif
                                 <a href="{{ url('/laporanmesyuarat/' . $laporan->id . '/edit') }}" class="btn btn-sm btn-warning mb-1">Edit</a>
                                 <form action="{{ url('/laporanmesyuarat/' . $laporan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Anda pasti untuk padam?')">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-danger">Padam</button>
                                 </form>
+                            @elseif ($user->role === 'yb')
+                                <span class="text-muted fst-italic">{{ optional($laporan->user)->name ?? '-' }}</span>
                             @else
                                 <span class="text-muted fst-italic">Semakan Sahaja</span>
                             @endif
