@@ -23,13 +23,17 @@
             </form>
         </div>
 
-        <div class="text-end">
-            <strong>LAMPIRAN B</strong><br>
-            <a href="{{ route('laporan.pdf', ['bulan' => request('bulan', now()->month)]) }}" class="btn btn-sm btn-outline-primary mt-2" target="_blank">
-                <i class="bi bi-printer"></i> Cetak PDF
-            </a>
-        </div>
-    </div>
+<div class="text-end">
+    <strong>LAMPIRAN B</strong><br>
+    <a href="{{ route('laporan.pdf', ['bulan' => request('bulan', now()->month)]) }}" class="btn btn-sm btn-outline-primary mt-2" target="_blank">
+        <i class="bi bi-printer"></i> Cetak PDF
+    </a>
+    <a href="mailto:?subject=Laporan Bulanan PUU Negeri {{ auth()->user()->negeri ?? '' }}&body=Sila rujuk laporan di pautan ini: {{ url()->current() }}" 
+       class="btn btn-sm btn-outline-secondary mt-2 ms-2">
+        <i class="bi bi-envelope"></i> Email
+    </a>
+</div>
+
 
 
     {{-- Bahagian 1 --}}
