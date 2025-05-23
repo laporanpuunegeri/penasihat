@@ -72,12 +72,16 @@
                             <td>{{ $item->jenis_pandangan === 'Bertulis' ? '✔' : '' }}</td>
                             <td class="text-start">{{ $item->status }}</td>
                             <td>
-                                <a href="{{ route('laporanpandanganundang.edit', $item->id) }}" class="btn btn-warning btn-sm">Edit</a>
-                                <form action="{{ route('laporanpandanganundang.destroy', $item->id) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Padam laporan ini?')">Padam</button>
-                                </form>
+                                @if (auth()->id() === $item->created_by)
+                                    <a href="{{ route('laporanpandanganundang.edit', $item->id) }}" class="btn btn-warning btn-sm">Edit</a>
+                                    <form action="{{ route('laporanpandanganundang.destroy', $item->id) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Padam laporan ini?')">Padam</button>
+                                    </form>
+                                @else
+                                    <span class="text-muted fst-italic">Untuk Semakan Sahaja</span>
+                                @endif
                             </td>
                         </tr>
                     @empty
