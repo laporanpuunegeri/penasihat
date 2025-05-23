@@ -103,5 +103,10 @@ class LaporanGubalanUndangController extends Controller
     protected function canEdit(LaporanGubalanUndang $laporan)
     {
         $user = Auth::user();
-        return $user->role === 'pa' && $user->negeri === $laporan->negeri
-            || $user->id === $laporan->user_id;
+
+        return (
+            ($user->role === 'pa' && $user->negeri === $laporan->negeri) ||
+            ($user->id === $laporan->user_id)
+        );
+    }
+}
