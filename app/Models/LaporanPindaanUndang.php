@@ -27,8 +27,13 @@ class LaporanPindaanUndang extends Model
         'updated_at' => 'datetime',
     ];
 
+    /**
+     * Pegawai yang mencipta laporan ini.
+     */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->withDefault([
+            'name' => '(Pengguna Tidak Dikenal Pasti)'
+        ]);
     }
 }
