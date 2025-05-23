@@ -36,6 +36,7 @@
             'Penswastaan',
             'Lain-lain'
         ];
+        $currentUser = auth()->user();
     @endphp
 
     <div class="table-responsive">
@@ -72,7 +73,10 @@
                             <td>{{ $item->jenis_pandangan === 'Bertulis' ? '✔' : '' }}</td>
                             <td class="text-start">{{ $item->status }}</td>
                             <td>
-                                @if (auth()->id() === $item->created_by)
+                                @if (
+                                    $currentUser->role === 'pa' || 
+                                    $currentUser->id === $item->created_by
+                                )
                                     <a href="{{ route('laporanpandanganundang.edit', $item->id) }}" class="btn btn-warning btn-sm">Edit</a>
                                     <form action="{{ route('laporanpandanganundang.destroy', $item->id) }}" method="POST" class="d-inline">
                                         @csrf
