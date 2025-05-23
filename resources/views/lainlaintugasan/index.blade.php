@@ -22,7 +22,6 @@
         <div class="col-auto">
             <a href="{{ route('lainlaintugasan.index') }}" class="btn btn-outline-secondary">Reset</a>
         </div>
-
         <div class="col text-end">
             <a href="{{ route('lainlaintugasan.create') }}" class="btn btn-success">+ Daftar Baharu</a>
         </div>
@@ -41,6 +40,7 @@
             </tr>
         </thead>
         <tbody>
+            @php $user = auth()->user(); @endphp
             @forelse ($data as $index => $item)
                 <tr>
                     <td class="text-center">{{ $index + 1 }}</td>
@@ -49,12 +49,16 @@
                     <td class="text-center">{{ \Carbon\Carbon::parse($item->tarikh)->format('d/m/Y') }}</td>
                     <td class="text-start">{{ $item->tindakan }}</td>
                     <td class="text-center">
-                        <a href="{{ route('lainlaintugasan.edit', $item->id) }}" class="btn btn-sm btn-warning">Edit</a>
-                        <form action="{{ route('lainlaintugasan.destroy', $item->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Anda pasti untuk padam?')">
-                            @csrf
-                            @method('DELETE')
-                            <button class="btn btn-sm btn-danger">Padam</button>
-                        </form>
+                        @if ($user->role === 'pa' && $user->negeri === $item->negeri || $user->id === $item->user_id)
+                            <a href="{{ route('lainlaintugasan.edit', $item->id) }}" class="btn btn-sm btn-warning">Edit</a>
+                            <form action="{{ route('lainlaintugasan.destroy', $item->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Anda pasti untuk padam?')">
+                                @csrf
+                                @method('DELETE')
+                                <button class="btn btn-sm btn-danger">Padam</button>
+                            </form>
+                        @else
+                            <span class="text-muted fst-italic">Semakan Sahaja</span>
+                        @endif
                     </td>
                 </tr>
             @empty
