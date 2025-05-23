@@ -51,4 +51,9 @@ class LaporanPandanganUndang extends Model
     {
         return $this->belongsTo(User::class, 'boss_id');
     }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 }
