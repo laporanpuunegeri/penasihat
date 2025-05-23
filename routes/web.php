@@ -21,43 +21,24 @@ use App\Http\Controllers\PergerakanController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\ResetPasswordManualController;
 
-/*
-|--------------------------------------------------------------------------
-| Laman Utama & Reset Manual
-|--------------------------------------------------------------------------
-*/
+// ===================== UTAMA =====================
+Route::get('/', fn() => redirect()->route('dashboard'))->name('utama');
 
-Route::get('/', fn () => redirect()->route('dashboard'))->name('utama');
-
+// ===================== RESET PASSWORD MANUAL =====================
 Route::get('/reset-password', [ResetPasswordManualController::class, 'showForm'])->name('reset.manual');
 Route::post('/reset-password', [ResetPasswordManualController::class, 'updatePassword'])->name('reset.manual.update');
 
-/*
-|--------------------------------------------------------------------------
-| Dashboard
-|--------------------------------------------------------------------------
-*/
-
+// ===================== DASHBOARD =====================
 Route::middleware('auth')->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-/*
-|--------------------------------------------------------------------------
-| Profil Pengguna
-|--------------------------------------------------------------------------
-*/
-
-Route::middleware('auth')->prefix('profile')->group(function () {
-    Route::get('/', [ProfileController::class, 'show'])->name('profile.show');
-    Route::get('/edit', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::put('/update', [ProfileController::class, 'update'])->name('profile.update');
+// ===================== PROFIL PENGGUNA =====================
+Route::middleware('auth')->prefix('profile')->name('profile.')->group(function () {
+    Route::get('/', [ProfileController::class, 'show'])->name('show');
+    Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
+    Route::put('/update', [ProfileController::class, 'update'])->name('update');
 });
 
-/*
-|--------------------------------------------------------------------------
-| Logout
-|--------------------------------------------------------------------------
-*/
-
+// ===================== LOGOUT =====================
 Route::post('/logout', function (Request $request) {
     Auth::logout();
     $request->session()->invalidate();
@@ -65,30 +46,20 @@ Route::post('/logout', function (Request $request) {
     return redirect('/login');
 })->name('logout');
 
-/*
-|--------------------------------------------------------------------------
-| Pergerakan Pegawai
-|--------------------------------------------------------------------------
-*/
-
-Route::middleware('auth')->prefix('pergerakan')->group(function () {
-    Route::get('/create', [PergerakanController::class, 'create'])->name('pergerakan.create');
-    Route::post('/', [PergerakanController::class, 'store'])->name('pergerakan.store');
+// ===================== PERGERAKAN PEGAWAI =====================
+Route::middleware('auth')->prefix('pergerakan')->name('pergerakan.')->group(function () {
+    Route::get('/create', [PergerakanController::class, 'create'])->name('create');
+    Route::post('/', [PergerakanController::class, 'store'])->name('store');
     Route::resource('/', PergerakanController::class)->parameters(['' => 'pergerakan']);
 });
 
-/*
-|--------------------------------------------------------------------------
-| Modul Laporan
-|--------------------------------------------------------------------------
-*/
-
+// ===================== MODUL LAPORAN =====================
 Route::middleware('auth')->group(function () {
-    // Paparan Umum
+    // Laporan ringkasan keseluruhan
     Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
     Route::get('/laporan/pdf', [PdfController::class, 'laporan'])->name('laporan.pdf');
 
-    // Laporan Individu
+    // Modul laporan individu
     Route::resources([
         'laporanpandanganundang' => LaporanPandanganUndangController::class,
         'laporankesmahkamah'     => LaporanKesMahkamahController::class,
@@ -100,14 +71,9 @@ Route::middleware('auth')->group(function () {
         'lainlaintugasan'        => LaporanLainLainController::class,
     ]);
 
-    // Laporan Bulanan
+    // Laporan Bulanan (jika digunakan)
     Route::get('/laporan-bulanan', [LaporanBulananController::class, 'index'])->name('laporanbulanan.index');
 });
 
-/*
-|--------------------------------------------------------------------------
-| Laravel Auth Routes (Login/Register/Forgot)
-|--------------------------------------------------------------------------
-*/
-
+// ===================== AUTH (LOGIN, REGISTER, etc.) =====================
 require __DIR__.'/auth.php';
