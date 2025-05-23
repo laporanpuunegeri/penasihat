@@ -7,7 +7,7 @@
         <small class="text-uppercase">(Termasuk Cetakan Semula dan Pembaharuan Undang-Undang)</small>
     </h5>
 
-    {{-- Tapisan ikut bulan tarikh daftar --}}
+    {{-- Tapisan ikut bulan --}}
     <form method="GET" action="{{ url('/laporansemakanundang') }}" class="row g-3 mb-4 align-items-end">
         <div class="col-auto">
             <label for="bulan" class="form-label mb-0">Tapis Ikut Bulan Daftar:</label>
@@ -39,10 +39,11 @@
                     <th class="text-start">Tajuk RUU / Perundangan Subsidiari</th>
                     <th class="text-start">Tindakan</th>
                     <th>Status</th>
-                    <th>Tindakan</th>
+                    <th>Aksi</th>
                 </tr>
             </thead>
             <tbody>
+                @php $user = auth()->user(); @endphp
                 @forelse($data as $index => $laporan)
                     <tr>
                         <td>{{ $index + 1 }}</td>
@@ -51,12 +52,16 @@
                         <td class="text-start">{{ $laporan->tindakan }}</td>
                         <td>{{ $laporan->status }}</td>
                         <td>
-                            <a href="{{ url('/laporansemakanundang/' . $laporan->id . '/edit') }}" class="btn btn-sm btn-warning mb-1">Edit</a>
-                            <form action="{{ url('/laporansemakanundang/' . $laporan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Anda pasti untuk padam?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-danger">Padam</button>
-                            </form>
+                            @if ($user->role === 'pa' || $laporan->user_id === $user->id)
+                                <a href="{{ url('/laporansemakanundang/' . $laporan->id . '/edit') }}" class="btn btn-sm btn-warning mb-1">Edit</a>
+                                <form action="{{ url('/laporansemakanundang/' . $laporan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Anda pasti untuk padam?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-danger">Padam</button>
+                                </form>
+                            @else
+                                <span class="text-muted fst-italic">Untuk Semakan Sahaja</span>
+                            @endif
                         </td>
                     </tr>
                 @empty
