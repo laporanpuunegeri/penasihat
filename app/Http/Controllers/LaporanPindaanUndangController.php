@@ -10,14 +10,18 @@ use Illuminate\Support\Facades\Log;
 class LaporanpindaanundangController extends Controller
 {
     /**
-     * Papar senarai semua laporan dengan tapisan bulan
+     * Papar senarai semua laporan dengan tapisan bulan & peranan
      */
     public function index(Request $request)
     {
+        $user = Auth::user();
         $query = LaporanPindaanUndang::query();
 
-        // ✅ Tapis ikut user semasa
-        $query->where('user_id', auth()->id());
+        if ($user->role === 'pa' || $user->role === 'yb') {
+            $query->where('negeri', $user->negeri);
+        } else {
+            $query->where('user_id', $user->id);
+        }
 
         if ($request->filled('bulan')) {
             $query->whereMonth('created_at', $request->bulan)
@@ -26,7 +30,7 @@ class LaporanpindaanundangController extends Controller
 
         $data = $query->orderBy('created_at', 'desc')->get();
 
-        return view('laporanpindaanundang.index', compact('data'));
+        return view('laporanpindaanundang.index', compact('data', 'user'));
     }
 
     /**
@@ -70,6 +74,11 @@ class LaporanpindaanundangController extends Controller
     public function edit($id)
     {
         $laporan = LaporanPindaanUndang::findOrFail($id);
+
+        if (! $this->canEdit($laporan)) {
+            abort(403);
+        }
+
         return view('laporanpindaanundang.edit', compact('laporan'));
     }
 
@@ -85,6 +94,11 @@ class LaporanpindaanundangController extends Controller
         ]);
 
         $laporan = LaporanPindaanUndang::findOrFail($id);
+
+        if (! $this->canEdit($laporan)) {
+            abort(403);
+        }
+
         $laporan->update($validated);
 
         return redirect()->route('laporanpindaanundang.index')
@@ -97,9 +111,25 @@ class LaporanpindaanundangController extends Controller
     public function destroy($id)
     {
         $laporan = LaporanPindaanUndang::findOrFail($id);
+
+        if (! $this->canEdit($laporan)) {
+            abort(403);
+        }
+
         $laporan->delete();
 
         return redirect()->route('laporanpindaanundang.index')
                          ->with('success', 'Laporan berjaya dipadam.');
+    }
+
+    /**
+     * Tentukan hak akses semasa untuk edit / padam
+     */
+    protected function canEdit(LaporanPindaanUndang $laporan)
+    {
+        $user = auth()->user();
+
+        return $user->role === 'pa' && $user->negeri === $laporan->negeri
+            || $laporan->user_id === $user->id;
     }
 }
