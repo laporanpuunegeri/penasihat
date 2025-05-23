@@ -61,7 +61,21 @@
                             @endif
                         </td>
                         <td>
-                            @if ($user->role === 'pa' || $laporan->user_id === $user->id)
+                            @if ($user->role === 'yb')
+                                <div class="text-muted fst-italic">
+                                    {{ optional($laporan->user)->name ?? '-' }}
+                                </div>
+                            @elseif ($user->role === 'pa')
+                                <div class="text-muted small mb-1">
+                                    {{ optional($laporan->user)->name ?? '-' }}
+                                </div>
+                                <a href="{{ url('/kestatatertib/' . $laporan->id . '/edit') }}" class="btn btn-sm btn-warning mb-1">Edit</a>
+                                <form action="{{ url('/kestatatertib/' . $laporan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Anda pasti untuk padam?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-danger">Padam</button>
+                                </form>
+                            @elseif ($laporan->user_id === $user->id)
                                 <a href="{{ url('/kestatatertib/' . $laporan->id . '/edit') }}" class="btn btn-sm btn-warning mb-1">Edit</a>
                                 <form action="{{ url('/kestatatertib/' . $laporan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Anda pasti untuk padam?')">
                                     @csrf
