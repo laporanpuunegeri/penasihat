@@ -44,6 +44,7 @@
                 </tr>
             </thead>
             <tbody>
+                @php $currentUser = auth()->user(); @endphp
                 @forelse ($data as $index => $item)
                     <tr>
                         <td>{{ $index + 1 }}</td>
@@ -56,7 +57,21 @@
                         <td class="text-start">{{ $item->ringkasan_hujahan }}</td>
                         <td>{{ $item->status }}</td>
                         <td>
-                            @if (auth()->user()->role === 'pa' || auth()->id() === $item->user_id)
+                            @if ($currentUser->role === 'yb')
+                                <span class="text-muted fst-italic">
+                                    {{ optional($item->user)->name ?? '-' }}
+                                </span>
+                            @elseif ($currentUser->role === 'pa')
+                                <div class="text-muted small">
+                                    <strong>{{ optional($item->user)->name ?? '-' }}</strong>
+                                </div>
+                                <a href="{{ route('laporankesmahkamah.edit', $item->id) }}" class="btn btn-warning btn-sm mt-1">Edit</a>
+                                <form action="{{ route('laporankesmahkamah.destroy', $item->id) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Padam laporan ini?')">Padam</button>
+                                </form>
+                            @elseif ($currentUser->id === $item->user_id)
                                 <a href="{{ route('laporankesmahkamah.edit', $item->id) }}" class="btn btn-warning btn-sm">Edit</a>
                                 <form action="{{ route('laporankesmahkamah.destroy', $item->id) }}" method="POST" class="d-inline">
                                     @csrf
