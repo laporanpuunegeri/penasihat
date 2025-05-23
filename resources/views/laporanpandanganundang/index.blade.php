@@ -73,18 +73,27 @@
                             <td>{{ $item->jenis_pandangan === 'Bertulis' ? '✔' : '' }}</td>
                             <td class="text-start">{{ $item->status }}</td>
                             <td>
-                                @if (
-                                    $currentUser->role === 'pa' || 
-                                    $currentUser->id === $item->created_by
-                                )
+                                @if ($currentUser->role === 'pa')
+                                    <div class="text-muted small fst-italic mb-1">
+                                        {{ optional($item->creator)->name ?? 'Pegawai tidak dikenalpasti' }}
+                                    </div>
                                     <a href="{{ route('laporanpandanganundang.edit', $item->id) }}" class="btn btn-warning btn-sm">Edit</a>
                                     <form action="{{ route('laporanpandanganundang.destroy', $item->id) }}" method="POST" class="d-inline">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Padam laporan ini?')">Padam</button>
                                     </form>
+                                @elseif ($currentUser->role === 'yb')
+                                    <span class="text-muted fst-italic">
+                                        {{ optional($item->creator)->name ?? 'Pegawai tidak dikenalpasti' }}
+                                    </span>
                                 @else
-                                    <span class="text-muted fst-italic">Untuk Semakan Sahaja</span>
+                                    <a href="{{ route('laporanpandanganundang.edit', $item->id) }}" class="btn btn-warning btn-sm">Edit</a>
+                                    <form action="{{ route('laporanpandanganundang.destroy', $item->id) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Padam laporan ini?')">Padam</button>
+                                    </form>
                                 @endif
                             </td>
                         </tr>
