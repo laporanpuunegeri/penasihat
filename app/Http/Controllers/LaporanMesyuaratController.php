@@ -5,14 +5,20 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\LaporanMesyuarat;
 use App\Models\Pergerakan;
+use Illuminate\Support\Facades\Auth;
 
 class LaporanmesyuaratController extends Controller
 {
     public function index(Request $request)
     {
+        $user = Auth::user();
         $query = LaporanMesyuarat::query();
 
-        $query->where('user_id', auth()->id());
+        if ($user->role === 'pa' || $user->role === 'yb') {
+            $query->where('negeri', $user->negeri);
+        } else {
+            $query->where('user_id', $user->id);
+        }
 
         if ($request->filled('bulan')) {
             $query->whereMonth('created_at', $request->bulan)
@@ -25,7 +31,7 @@ class LaporanmesyuaratController extends Controller
 
         $data = $query->orderBy('tarikh_mesyuarat', 'desc')->get();
 
-        return view('laporanmesyuarat.index', compact('data'));
+        return view('laporanmesyuarat.index', compact('data', 'user'));
     }
 
     public function create()
@@ -43,18 +49,20 @@ class LaporanmesyuaratController extends Controller
             'pandangan' => 'required|in:Lisan,Bertulis',
         ]);
 
-        $validated['user_id'] = auth()->id();
-        $validated['negeri'] = auth()->user()->negeri;
+        $user = Auth::user();
 
-        // Simpan laporan mesyuarat
+        $validated['user_id'] = $user->id;
+        $validated['negeri'] = $user->negeri;
+
         $laporan = LaporanMesyuarat::create($validated);
 
-        // ✅ Automatik tambah ke pergerakan
+        // ✅ Tambah pergerakan automatik
         Pergerakan::create([
-            'user_id' => auth()->id(),
+            'user_id' => $user->id,
             'tarikh' => $validated['tarikh_mesyuarat'],
             'jenis' => 'Mesyuarat',
             'catatan' => $validated['mesyuarat'],
+            'negeri' => $user->negeri,
         ]);
 
         return redirect()->route('laporanmesyuarat.index')
@@ -64,6 +72,11 @@ class LaporanmesyuaratController extends Controller
     public function edit($id)
     {
         $laporan = LaporanMesyuarat::findOrFail($id);
+
+        if (! $this->canEdit($laporan)) {
+            abort(403);
+        }
+
         return view('laporanmesyuarat.edit', compact('laporan'));
     }
 
@@ -78,6 +91,11 @@ class LaporanmesyuaratController extends Controller
         ]);
 
         $laporan = LaporanMesyuarat::findOrFail($id);
+
+        if (! $this->canEdit($laporan)) {
+            abort(403);
+        }
+
         $laporan->update($validated);
 
         return redirect()->route('laporanmesyuarat.index')
@@ -87,9 +105,24 @@ class LaporanmesyuaratController extends Controller
     public function destroy($id)
     {
         $laporan = LaporanMesyuarat::findOrFail($id);
+
+        if (! $this->canEdit($laporan)) {
+            abort(403);
+        }
+
         $laporan->delete();
 
         return redirect()->route('laporanmesyuarat.index')
                          ->with('success', 'Laporan mesyuarat berjaya dipadam.');
+    }
+
+    /**
+     * Tentukan jika pengguna boleh edit/padam
+     */
+    protected function canEdit(LaporanMesyuarat $laporan)
+    {
+        $user = Auth::user();
+        return $user->role === 'pa' && $user->negeri === $laporan->negeri
+            || $laporan->user_id === $user->id;
     }
 }
