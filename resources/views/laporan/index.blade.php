@@ -1,4 +1,37 @@
 @extends('layouts.app')
+<style>
+    body {
+        font-family: 'DejaVu Sans', sans-serif;
+        font-size: 10px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        word-wrap: break-word;
+    }
+
+    th, td {
+        border: 1px solid #000;
+        padding: 4px;
+        vertical-align: top;
+    }
+
+    th {
+        background-color: #eee;
+        text-align: center;
+    }
+
+    .text-center { text-align: center; }
+    .text-start { text-align: left; }
+    .text-end { text-align: right; }
+
+    .fw-bold { font-weight: bold; }
+    .fst-italic { font-style: italic; }
+
+    h5, h6 { margin: 0; padding: 0; }
+</style>
 
 @section('content')
 <div class="container-fluid px-5">
