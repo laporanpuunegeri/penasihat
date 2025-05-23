@@ -19,14 +19,19 @@ use App\Http\Controllers\LaporanLainLainController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PergerakanController;
 use App\Http\Controllers\PdfController;
-use App\Http\Controllers\ResetPasswordManualController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
 
 // ===================== UTAMA =====================
 Route::get('/', fn() => redirect()->route('dashboard'))->name('utama');
 
 // ===================== RESET PASSWORD MANUAL =====================
-Route::get('/reset-password', [ResetPasswordManualController::class, 'showForm'])->name('reset.manual');
-Route::post('/reset-password', [ResetPasswordManualController::class, 'updatePassword'])->name('reset.manual.update');
+Route::get('/reset-password', [PasswordResetLinkController::class, 'create'])
+    ->middleware('guest')
+    ->name('password.request');
+
+Route::post('/reset-password', [PasswordResetLinkController::class, 'store'])
+    ->middleware('guest')
+    ->name('password.email');
 
 // ===================== DASHBOARD =====================
 Route::middleware('auth')->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
