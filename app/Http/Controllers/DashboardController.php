@@ -12,6 +12,7 @@ use App\Models\LaporanKesMahkamah;
 use App\Models\LaporanGubalanUndang;
 use App\Models\LaporanPindaanUndang;
 use App\Models\LaporanSemakanUndang;
+use App\Models\Pergerakan;
 
 class DashboardController extends Controller
 {
@@ -25,7 +26,6 @@ class DashboardController extends Controller
 
         $filter = $this->getFilterByRole($user);
 
-        // Paparan suku
         $undang      = $this->kiraSuku(LaporanPandanganUndang::class, $filter);
         $tatatertib  = $this->kiraSuku(Kestatatertib::class, $filter);
         $mesyuarat   = $this->kiraSuku(LaporanMesyuarat::class, $filter);
@@ -35,84 +35,80 @@ class DashboardController extends Controller
         $pindaan     = $this->kiraSuku(LaporanPindaanUndang::class, $filter);
         $semakan     = $this->kiraSuku(LaporanSemakanUndang::class, $filter);
 
-        // Jumlah bulan ini (setiap kategori)
-        $undangBulanIni      = $this->kiraBulanIni(LaporanPandanganUndang::class, $filter);
-        $tatatertibBulanIni  = $this->kiraBulanIni(Kestatatertib::class, $filter);
-        $mesyuaratBulanIni   = $this->kiraBulanIni(LaporanMesyuarat::class, $filter);
-        $lainBulanIni        = $this->kiraBulanIni(LainLainTugasan::class, $filter);
-        $kesmahkamahBulanIni = $this->kiraBulanIni(LaporanKesMahkamah::class, $filter);
-        $gubalanBulanIni     = $this->kiraBulanIni(LaporanGubalanUndang::class, $filter);
-        $pindaanBulanIni     = $this->kiraBulanIni(LaporanPindaanUndang::class, $filter);
-        $semakanBulanIni     = $this->kiraBulanIni(LaporanSemakanUndang::class, $filter);
+        $bulan = now()->month;
+        $tahun = now()->year;
 
-        // Jumlah keseluruhan
+        $undangBulanIni = $this->kiraBulan(LaporanPandanganUndang::class, $filter, $bulan, $tahun);
+        $tatatertibBulanIni = $this->kiraBulan(Kestatatertib::class, $filter, $bulan, $tahun);
+        $mesyuaratBulanIni = $this->kiraBulan(LaporanMesyuarat::class, $filter, $bulan, $tahun);
+        $lainBulanIni = $this->kiraBulan(LainLainTugasan::class, $filter, $bulan, $tahun);
+        $kesMahkamahBulanIni = $this->kiraBulan(LaporanKesMahkamah::class, $filter, $bulan, $tahun);
+        $gubalanBulanIni = $this->kiraBulan(LaporanGubalanUndang::class, $filter, $bulan, $tahun);
+        $pindaanBulanIni = $this->kiraBulan(LaporanPindaanUndang::class, $filter, $bulan, $tahun);
+        $semakanBulanIni = $this->kiraBulan(LaporanSemakanUndang::class, $filter, $bulan, $tahun);
+
         $bulanIni = $undangBulanIni + $tatatertibBulanIni + $mesyuaratBulanIni + $lainBulanIni +
-                    $kesmahkamahBulanIni + $gubalanBulanIni + $pindaanBulanIni + $semakanBulanIni;
+                    $kesMahkamahBulanIni + $gubalanBulanIni + $pindaanBulanIni + $semakanBulanIni;
 
-        // Status tambahan
-        $belumSelesai = LaporanPandanganUndang::where('status', 'Dalam Proses')
-            ->when($filter, fn($q) => $this->applyFilter($q, $filter))
+        $belumSelesai = LaporanPandanganUndang::where($filter)
+            ->where('status', 'Dalam Proses')
             ->count();
 
-        $melepasiTarikh = LaporanPandanganUndang::where('status', 'Dalam Proses')
+        $melepasiTarikh = LaporanPandanganUndang::where($filter)
+            ->whereNotNull('tarikh_selesai')
+            ->where('status', '!=', 'Selesai')
             ->whereDate('tarikh_selesai', '<', now())
-            ->when($filter, fn($q) => $this->applyFilter($q, $filter))
             ->count();
 
         return view('dashboard', compact(
             'undang', 'tatatertib', 'mesyuarat', 'lain',
             'kesmahkamah', 'gubalan', 'pindaan', 'semakan',
-            'bulanIni', 'belumSelesai', 'melepasiTarikh',
             'undangBulanIni', 'tatatertibBulanIni', 'mesyuaratBulanIni', 'lainBulanIni',
-            'kesmahkamahBulanIni', 'gubalanBulanIni', 'pindaanBulanIni', 'semakanBulanIni'
+            'kesMahkamahBulanIni', 'gubalanBulanIni', 'pindaanBulanIni', 'semakanBulanIni',
+            'bulanIni', 'belumSelesai', 'melepasiTarikh'
         ));
     }
 
     private function kiraSuku($model, $filter)
     {
         $query = $model::query();
-        $this->applyFilter($query, $filter);
-        $data = $query->get();
-
-        $suku = [0, 0, 0, 0];
-
-        foreach ($data as $item) {
-            if ($item->created_at) {
-                $quarter = ceil(Carbon::parse($item->created_at)->month / 3);
-                $suku[$quarter - 1]++;
-            }
-        }
-
-        return $suku;
-    }
-
-    private function kiraBulanIni($model, $filter)
-    {
-        $query = $model::query();
-        $this->applyFilter($query, $filter);
-
-        return $query->whereMonth('created_at', now()->month)
-                     ->whereYear('created_at', now()->year)
-                     ->count();
-    }
-
-    private function getFilterByRole($user)
-    {
-        return match ($user->role) {
-            'super_admin' => [],
-            'yb', 'pa' => ['negeri' => $user->negeri],
-            default => ['user_id' => $user->id],
-        };
-    }
-
-    private function applyFilter($query, $filter)
-    {
         if (isset($filter['user_id'])) {
             $query->where('user_id', $filter['user_id']);
         } elseif (isset($filter['negeri'])) {
             $query->where('negeri', $filter['negeri']);
         }
 
-        return $query;
+        $suku = [0, 0, 0, 0];
+        foreach ($query->get() as $item) {
+            if ($item->created_at) {
+                $quarter = ceil(Carbon::parse($item->created_at)->month / 3);
+                $suku[$quarter - 1]++;
+            }
+        }
+        return $suku;
+    }
+
+    private function kiraBulan($model, $filter, $bulan, $tahun)
+    {
+        $query = $model::query();
+        if (isset($filter['user_id'])) {
+            $query->where('user_id', $filter['user_id']);
+        } elseif (isset($filter['negeri'])) {
+            $query->where('negeri', $filter['negeri']);
+        }
+        return $query->whereMonth('created_at', $bulan)
+                     ->whereYear('created_at', $tahun)
+                     ->count();
+    }
+
+    private function getFilterByRole($user)
+    {
+        if ($user->role === 'super_admin') {
+            return [];
+        } elseif (in_array($user->role, ['yb', 'pa'])) {
+            return ['negeri' => $user->negeri];
+        } else {
+            return ['user_id' => $user->id];
+        }
     }
 }
