@@ -35,7 +35,11 @@ class PergerakanController extends Controller
                 ];
             });
 
-            $senarai_pegawai = User::where('role', 'user')->get();
+          $senarai_pegawai = User::where('role', 'user')
+    ->whereDoesntHave('roles', function ($query) {
+        $query->where('name', 'super admin');
+    })
+    ->get();
 
         } else {
             // Hanya papar pergerakan sendiri
