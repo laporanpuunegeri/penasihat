@@ -1,11 +1,39 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
+<div class="container-fluid px-4">
     <h3 class="fw-bold text-uppercase mb-4 text-center">Dashboard Laporan</h3>
 
+    {{-- Statistik Ringkasan --}}
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-start border-primary border-4">
+                <div class="card-body text-center">
+                    <h5 class="text-primary mb-1">📅 Jumlah laporan bulan ini</h5>
+                    <p class="fs-4 fw-bold mb-0">{{ $bulanIni }} laporan direkodkan</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-start border-warning border-4">
+                <div class="card-body text-center">
+                    <h5 class="text-warning mb-1">📝 Laporan belum selesai</h5>
+                    <p class="fs-4 fw-bold mb-0">{{ $belumSelesai }} laporan masih "Dalam Proses"</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-start border-danger border-4">
+                <div class="card-body text-center">
+                    <h5 class="text-danger mb-1">⚠️ Tindakan segera</h5>
+                    <p class="fs-4 fw-bold mb-0">{{ $melepasiTarikh }} laporan melepasi tarikh selesai</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Kad-kad Chart --}}
     <div class="row row-cols-1 row-cols-md-4 g-4">
-        {{-- Komponen Kad --}}
         <x-dashboard-card title="Undang-Undang" chartId="chartUndang" />
         <x-dashboard-card title="Tatatertib" chartId="chartTatatertib" />
         <x-dashboard-card title="Mesyuarat" chartId="chartMesyuarat" />
@@ -17,10 +45,9 @@
     </div>
 </div>
 
-{{-- Chart.js CDN --}}
+{{-- Chart.js --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-{{-- Chart.js Config --}}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const config = (id, data, color) => new Chart(document.getElementById(id), {
@@ -31,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 label: 'Jumlah Laporan',
                 data: data,
                 backgroundColor: color,
-                borderRadius: 8
+                borderRadius: 6
             }]
         },
         options: {
