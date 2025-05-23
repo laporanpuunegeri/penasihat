@@ -10,12 +10,17 @@ class LaporansemakanundangController extends Controller
 {
     public function index(Request $request)
     {
+        $user = Auth::user();
         $query = LaporanSemakanUndang::query();
 
-        // ✅ Tapis ikut user semasa
-        $query->where('user_id', auth()->id());
+        // ✅ Paparan ikut peranan
+        if ($user->role === 'pa' || $user->role === 'yb') {
+            $query->where('negeri', $user->negeri);
+        } else {
+            $query->where('user_id', $user->id);
+        }
 
-        // ✅ Tapisan ikut bulan tarikh daftar
+        // ✅ Tapisan ikut bulan daftar
         if ($request->filled('bulan')) {
             $query->whereMonth('created_at', $request->bulan)
                   ->whereYear('created_at', now()->year);
@@ -23,7 +28,7 @@ class LaporansemakanundangController extends Controller
 
         $data = $query->orderBy('created_at', 'desc')->get();
 
-        return view('laporansemakanundang.index', compact('data'));
+        return view('laporansemakanundang.index', compact('data', 'user'));
     }
 
     public function create()
@@ -39,10 +44,13 @@ class LaporansemakanundangController extends Controller
             'status' => 'required|string|max:100',
         ]);
 
-        LaporanSemakanUndang::create(array_merge($validated, [
+        LaporanSemakanUndang::create([
+            'tajuk' => $validated['tajuk'],
+            'tindakan' => $validated['tindakan'],
+            'status' => $validated['status'],
             'user_id' => auth()->id(),
             'negeri' => auth()->user()->negeri,
-        ]));
+        ]);
 
         return redirect()->route('laporansemakanundang.index')
                          ->with('success', 'Laporan semakan berjaya disimpan.');
@@ -51,6 +59,11 @@ class LaporansemakanundangController extends Controller
     public function edit($id)
     {
         $laporan = LaporanSemakanUndang::findOrFail($id);
+
+        if (! $this->canEdit($laporan)) {
+            abort(403);
+        }
+
         return view('laporansemakanundang.edit', compact('laporan'));
     }
 
@@ -63,6 +76,11 @@ class LaporansemakanundangController extends Controller
         ]);
 
         $laporan = LaporanSemakanUndang::findOrFail($id);
+
+        if (! $this->canEdit($laporan)) {
+            abort(403);
+        }
+
         $laporan->update($validated);
 
         return redirect()->route('laporansemakanundang.index')
@@ -72,9 +90,24 @@ class LaporansemakanundangController extends Controller
     public function destroy($id)
     {
         $laporan = LaporanSemakanUndang::findOrFail($id);
+
+        if (! $this->canEdit($laporan)) {
+            abort(403);
+        }
+
         $laporan->delete();
 
         return redirect()->route('laporansemakanundang.index')
                          ->with('success', 'Laporan berjaya dipadam.');
+    }
+
+    /**
+     * Tentukan jika pengguna semasa boleh edit/padam
+     */
+    protected function canEdit(LaporanSemakanUndang $laporan)
+    {
+        $user = auth()->user();
+        return $user->role === 'pa' && $user->negeri === $laporan->negeri
+            || $laporan->user_id === $user->id;
     }
 }
