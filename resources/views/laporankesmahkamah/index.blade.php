@@ -4,7 +4,7 @@
 <div class="container-fluid px-4">
     <h3 class="mb-4">Senarai Laporan Kes Mahkamah</h3>
 
-    {{-- Tapisan ikut bulan berdasarkan created_at --}}
+    {{-- Tapisan ikut bulan --}}
     <form method="GET" class="row g-3 mb-3 align-items-end">
         <div class="col-md-3">
             <label for="bulan" class="form-label">Tapis Ikut Bulan:</label>
@@ -33,14 +33,14 @@
                 <tr>
                     <th>BIL</th>
                     <th>Tarikh Daftar</th>
-                    <th>*JENIS KES / PIHAK-PIHAK</th>
-                    <th>TARIKH SEBUTAN / BICARA</th>
-                    <th>FAKTA RINGKAS</th>
-                    <th>ISU</th>
-                    <th>** SKOP TUGAS</th>
-                    <th>RINGKASAN HUJAHAN</th>
-                    <th>STATUS</th>
-                    <th>TINDAKAN</th>
+                    <th>*Jenis Kes / Pihak-Pihak</th>
+                    <th>Tarikh Sebutan / Bicara</th>
+                    <th>Fakta Ringkas</th>
+                    <th>Isu</th>
+                    <th>** Skop Tugas</th>
+                    <th>Ringkasan Hujahan</th>
+                    <th>Status</th>
+                    <th>Tindakan</th>
                 </tr>
             </thead>
             <tbody>
@@ -56,11 +56,16 @@
                         <td class="text-start">{{ $item->ringkasan_hujahan }}</td>
                         <td>{{ $item->status }}</td>
                         <td>
-                            <a href="{{ route('laporankesmahkamah.edit', $item->id) }}" class="btn btn-warning btn-sm">Edit</a>
-                            <form action="{{ route('laporankesmahkamah.destroy', $item->id) }}" method="POST" class="d-inline">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Padam laporan ini?')">Padam</button>
-                            </form>
+                            @if (auth()->user()->role === 'pa' || auth()->id() === $item->user_id)
+                                <a href="{{ route('laporankesmahkamah.edit', $item->id) }}" class="btn btn-warning btn-sm">Edit</a>
+                                <form action="{{ route('laporankesmahkamah.destroy', $item->id) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Padam laporan ini?')">Padam</button>
+                                </form>
+                            @else
+                                <span class="text-muted fst-italic">Untuk Semakan Sahaja</span>
+                            @endif
                         </td>
                     </tr>
                 @empty
