@@ -52,7 +52,19 @@
                         <td class="text-start">{{ $laporan->tindakan }}</td>
                         <td>{{ $laporan->status }}</td>
                         <td>
-                            @if ($user->role === 'pa' || $laporan->user_id === $user->id)
+                            @if ($user->role === 'yb')
+                                <span class="text-muted fst-italic">{{ $laporan->user->name ?? '-' }}</span>
+                            @elseif ($user->role === 'pa')
+                                <div class="text-start small text-muted mb-1">
+                                    Pegawai: {{ $laporan->user->name ?? '-' }}
+                                </div>
+                                <a href="{{ url('/laporansemakanundang/' . $laporan->id . '/edit') }}" class="btn btn-sm btn-warning mb-1">Edit</a>
+                                <form action="{{ url('/laporansemakanundang/' . $laporan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Anda pasti untuk padam?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-danger">Padam</button>
+                                </form>
+                            @elseif ($user->id === $laporan->user_id)
                                 <a href="{{ url('/laporansemakanundang/' . $laporan->id . '/edit') }}" class="btn btn-sm btn-warning mb-1">Edit</a>
                                 <form action="{{ url('/laporansemakanundang/' . $laporan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Anda pasti untuk padam?')">
                                     @csrf
