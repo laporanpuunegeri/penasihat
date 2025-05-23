@@ -55,13 +55,25 @@
                         <td class="text-start">{{ $laporan->tindakan }}</td>
                         <td>{{ $laporan->status }}</td>
                         <td>
-                            @if ($user->role === 'pa' || $laporan->user_id === $user->id)
+                            @php
+                                $isPemilik = $user->id === $laporan->user_id;
+                                $isPA = $user->role === 'pa';
+                                $isYB = $user->role === 'yb';
+                            @endphp
+
+                            @if ($isPA || $isPemilik)
+                                @if ($isPA && $laporan->user)
+                                    <div class="small text-muted mb-1">{{ $laporan->user->name }}</div>
+                                @endif
+
                                 <a href="{{ route('laporanpindaanundang.edit', $laporan->id) }}" class="btn btn-sm btn-warning mb-1">Edit</a>
                                 <form action="{{ route('laporanpindaanundang.destroy', $laporan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Anda pasti untuk padam?')">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-danger">Padam</button>
                                 </form>
+                            @elseif ($isYB && $laporan->user)
+                                <div class="small text-muted fst-italic">{{ $laporan->user->name }}</div>
                             @else
                                 <span class="text-muted fst-italic">Untuk Semakan Sahaja</span>
                             @endif
