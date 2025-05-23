@@ -10,10 +10,8 @@ class Laporangubalanundang extends Model
 {
     use HasFactory;
 
-    // Padankan dengan nama jadual sebenar dalam PostgreSQL
     protected $table = 'laporangubalanundangs';
 
-    // Senaraikan field yang boleh diisi secara mass assignment
     protected $fillable = [
         'tarikh_daftar',
         'tajuk',
@@ -23,16 +21,17 @@ class Laporangubalanundang extends Model
         'negeri',
     ];
 
-    // Format type casting automatik untuk tarikh
     protected $casts = [
         'tarikh_daftar' => 'date',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
 
-    // Perhubungan ke model User (untuk user_id)
+    /**
+     * Hubungan kepada pengguna (yang mendaftarkan laporan)
+     */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 }
