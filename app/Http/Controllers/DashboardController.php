@@ -24,10 +24,33 @@ class DashboardController extends Controller
             abort(403, 'Akses tidak dibenarkan.');
         }
 
-        // Tetapkan penapisan data ikut peranan
         $filter = $this->getFilterByRole($user);
 
-        // Kira bilangan laporan mengikut suku tahun
+        // Paparan statistik utama
+        $bulanSekarang = Carbon::now()->month;
+        $tahunSekarang = Carbon::now()->year;
+
+        $queryPandangan = LaporanPandanganUndang::query();
+
+        // Tapis ikut role
+        if (isset($filter['user_id'])) {
+            $queryPandangan->where('user_id', $filter['user_id']);
+        } elseif (isset($filter['negeri'])) {
+            $queryPandangan->where('negeri', $filter['negeri']);
+        }
+
+        // Data untuk statistik atas
+        $bulanIni = (clone $queryPandangan)->whereMonth('created_at', $bulanSekarang)
+                                           ->whereYear('created_at', $tahunSekarang)
+                                           ->count();
+
+        $belumSelesai = (clone $queryPandangan)->where('status', 'Dalam Proses')->count();
+
+        $melepasiTarikh = (clone $queryPandangan)->where('status', 'Dalam Proses')
+                                                 ->whereDate('tarikh_selesai', '<', Carbon::today())
+                                                 ->count();
+
+        // Paparan carta laporan
         $undang      = $this->kiraSuku(LaporanPandanganUndang::class, $filter);
         $tatatertib  = $this->kiraSuku(Kestatatertib::class, $filter);
         $mesyuarat   = $this->kiraSuku(LaporanMesyuarat::class, $filter);
@@ -37,7 +60,7 @@ class DashboardController extends Controller
         $pindaan     = $this->kiraSuku(LaporanPindaanUndang::class, $filter);
         $semakan     = $this->kiraSuku(LaporanSemakanUndang::class, $filter);
 
-        // Pergerakan hanya untuk user semasa
+        // Pergerakan hanya pengguna semasa
         $pergerakan = Pergerakan::where('user_id', $user->id)->get()->map(function ($item) {
             return [
                 'title'   => $item->jenis ?? 'Pergerakan',
@@ -50,18 +73,17 @@ class DashboardController extends Controller
         return view('dashboard', compact(
             'undang', 'tatatertib', 'mesyuarat', 'lain',
             'kesmahkamah', 'gubalan', 'pindaan', 'semakan',
-            'pergerakan'
+            'bulanIni', 'belumSelesai', 'melepasiTarikh', 'pergerakan'
         ));
     }
 
     /**
-     * Kira data mengikut suku tahun
+     * Kira data laporan mengikut suku tahun
      */
     private function kiraSuku($model, $filter)
     {
         $query = $model::query();
 
-        // Jika filter tidak kosong, tapis ikut role
         if (isset($filter['user_id'])) {
             $query->where('user_id', $filter['user_id']);
         } elseif (isset($filter['negeri'])) {
@@ -83,12 +105,12 @@ class DashboardController extends Controller
     }
 
     /**
-     * Tentukan filter berdasarkan peranan pengguna
+     * Tentukan penapisan berdasarkan peranan pengguna
      */
     private function getFilterByRole($user)
     {
         if ($user->role === 'super_admin') {
-            return []; // Tidak tapis — lihat semua data
+            return [];
         } elseif (in_array($user->role, ['yb', 'pa'])) {
             return ['negeri' => $user->negeri];
         } else {
