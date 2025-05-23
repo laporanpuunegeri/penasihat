@@ -19,9 +19,12 @@ use App\Http\Controllers\LaporanLainLainController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PergerakanController;
 use App\Http\Controllers\PdfController;
+use App\Http\Controllers\ResetPasswordManualController;
 
 // ===================== UTAMA =====================
 Route::get('/', fn() => redirect()->route('dashboard'))->name('utama');
+Route::get('/reset-password', [ResetPasswordManualController::class, 'showForm'])->name('reset.manual');
+Route::post('/reset-password', [ResetPasswordManualController::class, 'updatePassword'])->name('reset.manual.update');
 
 // ✅ Dashboard tunggal untuk semua role termasuk super_admin
 Route::middleware('auth')->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
