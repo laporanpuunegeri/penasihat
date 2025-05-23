@@ -9,29 +9,30 @@ use Illuminate\Support\Facades\Auth;
 class LaporanPandanganUndangController extends Controller
 {
     public function index(Request $request)
-    {
-        $user = auth()->user();
-        $query = LaporanPandanganUndang::query();
+{
+    $user = auth()->user();
+    $query = LaporanPandanganUndang::query();
 
-        // ✅ Tapis ikut peranan pengguna
-        if ($user->role === 'yb') {
-            // YB hanya lihat laporan yang dihantar kepadanya
-            $query->where('boss_id', $user->id);
-        } else {
-            // Pengguna biasa dan PA lihat laporan yang mereka cipta sahaja
-            $query->where('created_by', $user->id);
-        }
+    if ($user->role === 'yb' || $user->role === 'pa') {
+        // YB & PA lihat semua dari negeri sama
+        $query->where('negeri', $user->negeri);
 
-        // Tapisan ikut bulan (jika dipilih)
-        if ($request->filled('bulan')) {
-            $query->whereMonth('created_at', $request->bulan)
-                  ->whereYear('created_at', now()->year);
-        }
-
-        $data = $query->latest()->get();
-
-        return view('laporanpandanganundang.index', compact('data'));
+    } elseif ($user->role === 'user') {
+        // User biasa hanya lihat laporan sendiri
+        $query->where('created_by', $user->id);
     }
+
+    // Tapisan ikut bulan
+    if ($request->filled('bulan')) {
+        $query->whereMonth('created_at', $request->bulan)
+              ->whereYear('created_at', now()->year);
+    }
+
+    $data = $query->latest()->get();
+
+    return view('laporanpandanganundang.index', compact('data', 'user'));
+}
+
 
     public function create()
     {
