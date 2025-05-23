@@ -22,28 +22,29 @@
         <div class="col-auto">
             <a href="{{ url('/kestatatertib') }}" class="btn btn-outline-secondary">Reset</a>
         </div>
+        <div class="col text-end">
+            <a href="{{ url('/kestatatertib/create') }}" class="btn btn-success">+ Daftar Baharu</a>
+        </div>
     </form>
 
-    {{-- Butang daftar baharu --}}
-    <a href="{{ url('/kestatatertib/create') }}" class="btn btn-success mb-3">+ Daftar Baharu</a>
-
-    {{-- Jadual laporan --}}
+    {{-- Jadual --}}
     <div class="table-responsive">
         <table class="table table-bordered text-center align-middle">
             <thead class="table-secondary">
                 <tr>
                     <th>BIL</th>
-                    <th>TARIKH DAFTAR</th>
-                    <th>TARIKH TERIMA</th>
-                    <th>KATEGORI</th>
-                    <th>FAKTA RINGKASAN</th>
-                    <th>ISU</th>
-                    <th>RINGKASAN PANDANGAN</th>
-                    <th>STATUS / TARIKH SELESAI</th>
-                    <th>TINDAKAN</th>
+                    <th>Tarikh Daftar</th>
+                    <th>Tarikh Terima</th>
+                    <th>Kategori</th>
+                    <th>Fakta Ringkasan</th>
+                    <th>Isu</th>
+                    <th>Ringkasan Pandangan</th>
+                    <th>Status / Tarikh Selesai</th>
+                    <th>Tindakan</th>
                 </tr>
             </thead>
             <tbody>
+                @php $user = auth()->user(); @endphp
                 @forelse ($data as $index => $laporan)
                     <tr>
                         <td>{{ $index + 1 }}</td>
@@ -60,12 +61,16 @@
                             @endif
                         </td>
                         <td>
-                            <a href="{{ url('/kestatatertib/' . $laporan->id . '/edit') }}" class="btn btn-sm btn-warning mb-1">Edit</a>
-                            <form action="{{ url('/kestatatertib/' . $laporan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Anda pasti untuk padam?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-danger">Padam</button>
-                            </form>
+                            @if ($user->role === 'pa' || $laporan->user_id === $user->id)
+                                <a href="{{ url('/kestatatertib/' . $laporan->id . '/edit') }}" class="btn btn-sm btn-warning mb-1">Edit</a>
+                                <form action="{{ url('/kestatatertib/' . $laporan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Anda pasti untuk padam?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-danger">Padam</button>
+                                </form>
+                            @else
+                                <span class="text-muted fst-italic">Semakan Sahaja</span>
+                            @endif
                         </td>
                     </tr>
                 @empty
