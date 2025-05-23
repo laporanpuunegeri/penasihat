@@ -49,7 +49,21 @@
                     <td class="text-center">{{ \Carbon\Carbon::parse($item->tarikh)->format('d/m/Y') }}</td>
                     <td class="text-start">{{ $item->tindakan }}</td>
                     <td class="text-center">
-                        @if ($user->role === 'pa' && $user->negeri === $item->negeri || $user->id === $item->user_id)
+                        @if ($user->role === 'yb')
+                            <div class="text-muted fst-italic">
+                                {{ optional($item->user)->name ?? '-' }}
+                            </div>
+                        @elseif ($user->role === 'pa' && $user->negeri === $item->negeri)
+                            <div class="text-muted small mb-1">
+                                {{ optional($item->user)->name ?? '-' }}
+                            </div>
+                            <a href="{{ route('lainlaintugasan.edit', $item->id) }}" class="btn btn-sm btn-warning">Edit</a>
+                            <form action="{{ route('lainlaintugasan.destroy', $item->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Anda pasti untuk padam?')">
+                                @csrf
+                                @method('DELETE')
+                                <button class="btn btn-sm btn-danger">Padam</button>
+                            </form>
+                        @elseif ($user->id === $item->user_id)
                             <a href="{{ route('lainlaintugasan.edit', $item->id) }}" class="btn btn-sm btn-warning">Edit</a>
                             <form action="{{ route('lainlaintugasan.destroy', $item->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Anda pasti untuk padam?')">
                                 @csrf
