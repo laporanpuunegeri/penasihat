@@ -4,17 +4,21 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\LainLainTugasan;
+use Illuminate\Support\Facades\Auth;
 
 class LaporanLainLainController extends Controller
 {
     public function index(Request $request)
     {
+        $user = Auth::user();
         $query = LainLainTugasan::query();
 
-        // ✅ Tapis ikut user semasa
-        $query->where('user_id', auth()->id());
+        if ($user->role === 'pa' || $user->role === 'yb') {
+            $query->where('negeri', $user->negeri);
+        } else {
+            $query->where('user_id', $user->id);
+        }
 
-        // ✅ Tapis ikut bulan & tahun jika dipilih
         if ($request->filled('bulan')) {
             $query->whereMonth('created_at', $request->bulan)
                   ->whereYear('created_at', now()->year);
@@ -22,7 +26,7 @@ class LaporanLainLainController extends Controller
 
         $data = $query->latest()->get();
 
-        return view('lainlaintugasan.index', compact('data'));
+        return view('lainlaintugasan.index', compact('data', 'user'));
     }
 
     public function create()
@@ -38,15 +42,16 @@ class LaporanLainLainController extends Controller
             'tugasan.*.tindakan' => 'nullable|string',
         ]);
 
-        $data = $request->input('tugasan');
+        $tugasans = $request->input('tugasan');
+        $user = Auth::user();
 
-        foreach ($data as $item) {
+        foreach ($tugasans as $item) {
             LainLainTugasan::create([
                 'perihal' => $item['perihal'],
                 'tarikh' => $item['tarikh'],
-                'tindakan' => $item['tindakan'],
-                'user_id' => auth()->id(),
-                'negeri' => auth()->user()->negeri,
+                'tindakan' => $item['tindakan'] ?? null,
+                'user_id' => $user->id,
+                'negeri' => $user->negeri,
             ]);
         }
 
@@ -55,13 +60,22 @@ class LaporanLainLainController extends Controller
 
     public function edit($id)
     {
-        $data = LainLainTugasan::findOrFail($id);
+        $tugasan = LainLainTugasan::findOrFail($id);
+
+        if (! $this->canEdit($tugasan)) {
+            abort(403);
+        }
+
         return view('lainlaintugasan.edit', compact('data'));
     }
 
     public function update(Request $request, $id)
     {
         $tugasan = LainLainTugasan::findOrFail($id);
+
+        if (! $this->canEdit($tugasan)) {
+            abort(403);
+        }
 
         $request->validate([
             'perihal' => 'required|string',
@@ -77,8 +91,20 @@ class LaporanLainLainController extends Controller
     public function destroy($id)
     {
         $tugasan = LainLainTugasan::findOrFail($id);
+
+        if (! $this->canEdit($tugasan)) {
+            abort(403);
+        }
+
         $tugasan->delete();
 
         return redirect()->route('lainlaintugasan.index')->with('success', 'Laporan berjaya dipadam.');
+    }
+
+    protected function canEdit(LainLainTugasan $tugasan)
+    {
+        $user = Auth::user();
+        return $user->role === 'pa' && $user->negeri === $tugasan->negeri
+            || $user->id === $tugasan->user_id;
     }
 }
