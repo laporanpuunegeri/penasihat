@@ -32,7 +32,34 @@
         </div>
     </div>
 
-    {{-- Kad-kad Chart --}}
+    {{-- Statistik Per Kategori --}}
+    <div class="row row-cols-1 row-cols-md-4 g-4 mb-5">
+        @php
+            $kategoriStatistik = [
+                ['label' => 'Undang-Undang', 'jumlah' => $undangBulanIni, 'warna' => 'primary'],
+                ['label' => 'Tatatertib', 'jumlah' => $tatatertibBulanIni, 'warna' => 'danger'],
+                ['label' => 'Mesyuarat', 'jumlah' => $mesyuaratBulanIni, 'warna' => 'warning'],
+                ['label' => 'Lain-lain', 'jumlah' => $lainBulanIni, 'warna' => 'success'],
+                ['label' => 'Kes Mahkamah', 'jumlah' => $kesMahkamahBulanIni, 'warna' => 'purple'],
+                ['label' => 'Gubalan Undang', 'jumlah' => $gubalanBulanIni, 'warna' => 'info'],
+                ['label' => 'Pindaan Undang', 'jumlah' => $pindaanBulanIni, 'warna' => 'orange'],
+                ['label' => 'Semakan Undang', 'jumlah' => $semakanBulanIni, 'warna' => 'dark'],
+            ];
+        @endphp
+
+        @foreach ($kategoriStatistik as $item)
+        <div class="col">
+            <div class="card shadow-sm border-start border-{{ $item['warna'] }} border-4">
+                <div class="card-body text-center">
+                    <h6 class="text-uppercase text-{{ $item['warna'] }} mb-1">{{ $item['label'] }}</h6>
+                    <p class="fs-5 fw-bold mb-0">{{ $item['jumlah'] }} laporan</p>
+                </div>
+            </div>
+        </div>
+        @endforeach
+    </div>
+
+    {{-- Kad-kad Carta --}}
     <div class="row row-cols-1 row-cols-md-4 g-4">
         <x-dashboard-card title="Undang-Undang" chartId="chartUndang" />
         <x-dashboard-card title="Tatatertib" chartId="chartTatatertib" />
@@ -47,7 +74,6 @@
 
 {{-- Chart.js --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const config = (id, data, color) => new Chart(document.getElementById(id), {
