@@ -10,12 +10,19 @@ class LaporanPandanganUndangController extends Controller
 {
     public function index(Request $request)
     {
+        $user = auth()->user();
         $query = LaporanPandanganUndang::query();
 
-        // ✅ Tapis ikut user semasa
-        $query->where('created_by', auth()->id());
+        // ✅ Tapis ikut peranan pengguna
+        if ($user->role === 'yb') {
+            // YB hanya lihat laporan yang dihantar kepadanya
+            $query->where('boss_id', $user->id);
+        } else {
+            // Pengguna biasa dan PA lihat laporan yang mereka cipta sahaja
+            $query->where('created_by', $user->id);
+        }
 
-        // Tapisan ikut bulan dan tahun
+        // Tapisan ikut bulan (jika dipilih)
         if ($request->filled('bulan')) {
             $query->whereMonth('created_at', $request->bulan)
                   ->whereYear('created_at', now()->year);
