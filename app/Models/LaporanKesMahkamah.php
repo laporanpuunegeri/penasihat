@@ -27,6 +27,7 @@ class LaporanKesMahkamah extends Model
         'skop_tugas',
         'ringkasan_hujahan',
         'user_id',
+        'created_by',
         'negeri',
         'created_at',
         'updated_at',
@@ -43,5 +44,10 @@ class LaporanKesMahkamah extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
     }
 }
