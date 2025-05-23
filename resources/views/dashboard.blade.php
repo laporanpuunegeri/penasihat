@@ -25,8 +25,8 @@
         <div class="col-md-4">
             <div class="card shadow-sm border-start border-danger border-4">
                 <div class="card-body text-center">
-                    <h5 class="text-danger mb-1">⚠️ Tindakan segera</h5>
-                    <p class="fs-4 fw-bold mb-0">{{ $melepasiTarikh }} laporan melepasi tarikh selesai</p>
+<h5 class="text-danger mb-1">⚠️ Ringkasan Belum Diisi</h5>
+<p class="fs-4 fw-bold mb-0">{{ $melepasiTarikh }} laporan belum lengkap</p>
                 </div>
             </div>
         </div>
