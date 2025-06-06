@@ -1,0 +1,15 @@
+# Fail/folder untuk abaikan masa deploy ke GAE
+.gcloudignore
+.git
+.gitignore
+node_modules/
+vendor/
+storage/
+tests/
+.env
+*.log
+*.zip
+*.tar.gz
+*.sqlite
+.idea/
+.vscode/
