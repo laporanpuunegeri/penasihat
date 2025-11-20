@@ -176,28 +176,49 @@ class KewanganController extends Controller
     // --- 3. SIMPAN DATA (STORE) ---
     public function store(Request $request)
     {
+        // Validate input asas
         $request->validate([
             'kod_utama' => 'required',
             'kod_objek' => 'required',
             'butiran'   => 'required',
             'peruntukan'=> 'required|numeric',
-            'belanja'   => 'nullable|numeric',
-            'tahun'     => 'nullable|integer',
+            // Belanja boleh null, tapi kalau ada mesti numeric
+            'belanja'   => 'nullable|numeric', 
         ]);
 
         $tahun_input = $request->input('tahun', date('Y'));
 
+        // Kira total belanja secara automatik dari backend (Backup kalau JS tak jalan)
+        // Atau guna nilai dari request jika ada.
+        // Di sini kita ambil nilai input individual suku tahun
+        $s1 = $request->belanja_s1 ?? 0;
+        $s2 = $request->belanja_s2 ?? 0;
+        $s3 = $request->belanja_s3 ?? 0;
+        $s4 = $request->belanja_s4 ?? 0;
+        
+        // Logic: Kalau user tak hantar total 'belanja' dari hidden input, kita kira sendiri
+        $total_belanja = $request->belanja ?? ($s1 + $s2 + $s3 + $s4);
+
         KewanganRecord::create([
-            'negeri'    => Auth::user()->negeri,
-            'kod_utama' => $request->kod_utama,
-            'kod_objek' => $request->kod_objek,
-            'butiran'   => $request->butiran,
-            'peruntukan'=> $request->peruntukan,
-            'belanja'   => $request->belanja ?? 0,
-            'tahun'     => $tahun_input,
+            'negeri'     => Auth::user()->negeri,
+            'kod_utama'  => $request->kod_utama,
+            'kod_objek'  => $request->kod_objek,
+            'butiran'    => $request->butiran,
+            'peruntukan' => $request->peruntukan,
+            'tahun'      => $tahun_input,
+            
+            // --- INI YANG TERTINGGAL TADI (WAJIB ADA) ---
+            'belanja_s1' => $s1,
+            'belanja_s2' => $s2,
+            'belanja_s3' => $s3,
+            'belanja_s4' => $s4,
+            // -------------------------------------------
+
+            'belanja'    => $total_belanja,
         ]);
 
-        return redirect()->route('kewangan.index', ['tahun' => $tahun_input])->with('success', 'Rekod berjaya ditambah!');
+        return redirect()->route('kewangan.index', ['tahun' => $tahun_input])
+                         ->with('success', 'Rekod berjaya ditambah!');
     }
 
     // --- 4. BORANG EDIT (EDIT) ---
@@ -208,7 +229,7 @@ class KewanganController extends Controller
         return view('kewangan.edit', compact('record'));
     }
 
-    // --- 5. KEMASKINI DATA (UPDATE) ---
+  // --- 5. KEMASKINI DATA (UPDATE) ---
     public function update(Request $request, $id)
     {
         $request->validate([
@@ -220,19 +241,38 @@ class KewanganController extends Controller
         ]);
 
         $record = KewanganRecord::findOrFail($id);
+        
+        // Security check: Pastikan user edit negeri sendiri sahaja
         if($record->negeri !== Auth::user()->negeri) abort(403);
 
+        // Ambil nilai suku tahun
+        $s1 = $request->belanja_s1 ?? 0;
+        $s2 = $request->belanja_s2 ?? 0;
+        $s3 = $request->belanja_s3 ?? 0;
+        $s4 = $request->belanja_s4 ?? 0;
+
+        // Logic: Kalau hidden input belanja kosong, backend tolong kirakan
+        $total_belanja = $request->belanja ?? ($s1 + $s2 + $s3 + $s4);
+
         $record->update([
-            'kod_utama' => $request->kod_utama,
-            'kod_objek' => $request->kod_objek,
-            'butiran'   => $request->butiran,
-            'peruntukan'=> $request->peruntukan,
-            'belanja'   => $request->belanja ?? 0,
+            'kod_utama'  => $request->kod_utama,
+            'kod_objek'  => $request->kod_objek,
+            'butiran'    => $request->butiran,
+            'peruntukan' => $request->peruntukan,
+            
+            // --- INI YANG TERTINGGAL TADI (WAJIB ADA) ---
+            'belanja_s1' => $s1,
+            'belanja_s2' => $s2,
+            'belanja_s3' => $s3,
+            'belanja_s4' => $s4,
+            // -------------------------------------------
+
+            'belanja'    => $total_belanja,
         ]);
 
-        return redirect()->route('kewangan.index', ['tahun' => $record->tahun])->with('success', 'Rekod berjaya dikemaskini!');
+        return redirect()->route('kewangan.index', ['tahun' => $record->tahun])
+                         ->with('success', 'Rekod berjaya dikemaskini!');
     }
-
     // --- 6. HAPUS DATA (DESTROY) ---
     public function destroy($id)
     {

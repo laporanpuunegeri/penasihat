@@ -1,4 +1,4 @@
-@extends('layouts.app') 
+@extends('layouts.app')
 
 @section('content')
 <div class="container-fluid">
@@ -192,18 +192,23 @@
                                     <tbody>
                                         @foreach($data['items'] as $item)
                                             @php
-                                                $baki_item = $item['siling'] - $item['belanja'];
-                                                $peratus_item = $item['siling'] > 0 ? ($item['belanja'] / $item['siling']) * 100 : 0;
+                                                // --- FIX: Guna ->peruntukan dan ->belanja (bukan array ['siling']) ---
+                                                $baki_item = $item->peruntukan - $item->belanja;
+                                                $peratus_item = $item->peruntukan > 0 ? ($item->belanja / $item->peruntukan) * 100 : 0;
                                                 
                                                 $progress_color = 'bg-success';
                                                 if($peratus_item > 70) $progress_color = 'bg-warning';
                                                 if($peratus_item > 90) $progress_color = 'bg-danger';
                                             @endphp
                                             <tr>
-                                                <td class="text-center font-weight-bold">{{ $item['kod'] }}</td>
-                                                <td>{{ $item['butiran'] }}</td>
-                                                <td class="text-right">{{ number_format($item['siling'], 2) }}</td>
-                                                <td class="text-right text-danger">{{ number_format($item['belanja'], 2) }}</td>
+                                                <td class="text-center font-weight-bold">{{ $item->kod_objek }}</td>
+                                                
+                                                <td>{{ $item->butiran }}</td>
+                                                
+                                                <td class="text-right">{{ number_format($item->peruntukan, 2) }}</td>
+                                                
+                                                <td class="text-right text-danger">{{ number_format($item->belanja, 2) }}</td>
+                                                
                                                 <td class="text-right text-success font-weight-bold">{{ number_format($baki_item, 2) }}</td>
                                                 <td class="text-center">
                                                     <div class="progress progress-sm" title="{{ number_format($peratus_item, 1) }}%">
@@ -211,11 +216,11 @@
                                                     </div>
                                                 </td>
                                                 <td class="text-center">
-                                                    <a href="{{ route('kewangan.edit', $item['id']) }}" class="btn btn-warning btn-sm mr-1">
+                                                    <a href="{{ route('kewangan.edit', $item->id) }}" class="btn btn-warning btn-sm mr-1">
                                                         <i class="fas fa-edit"></i> Edit
                                                     </a>
                                                     
-                                                    <form action="{{ route('kewangan.destroy', $item['id']) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('Adakah anda pasti mahu memadam rekod ini?');">
+                                                    <form action="{{ route('kewangan.destroy', $item->id) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('Adakah anda pasti mahu memadam rekod ini?');">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" class="btn btn-danger btn-sm">
@@ -257,6 +262,7 @@
 @push('scripts')
 <script>
     $(document).ready(function(){
+        // Auto open accordion Emolumen (10000) bila page load
         $('#collapse10000').addClass('show');
     });
 </script>
