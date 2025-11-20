@@ -96,7 +96,12 @@ Route::middleware('auth')->prefix('kewangan')->name('kewangan.')->group(function
     Route::get('/{id}/edit', [KewanganController::class, 'edit'])->name('edit');
     Route::put('/{id}', [KewanganController::class, 'update'])->name('update');
     Route::delete('/{id}', [KewanganController::class, 'destroy'])->name('destroy');
+
+// ROUTE UTK PDF (Letak di bahagian atas bersama route spesifik lain)
+Route::get('/pdf/{type}', [KewanganController::class, 'exportPdf'])->name('export_pdf');
 });
+Route::get('/kewangan/cetak-pdf', [KewanganController::class, 'cetakPdf'])
+    ->name('kewangan.cetak_pdf');
 
 // ===================== MODUL LAPORAN =====================
 Route::middleware('auth')->group(function () {

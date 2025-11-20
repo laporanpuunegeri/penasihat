@@ -25,6 +25,20 @@
     <div class="container-fluid">
         <div class="row">
             <aside class="col-md-2 bg-white shadow-sm p-3 d-none d-md-block" style="min-height: 100vh;">
+                
+                {{-- 1. LOGIC PHP DI SINI (Supaya kod bawah kemas) --}}
+                @php
+                    $user = Auth::user();
+                    $role = strtolower($user->role ?? ''); // contoh: 'user', 'pa', 'yb'
+                    $bahagian = trim($user->bahagian ?? ''); // buang space extra
+
+                    // Check Logic: Adakah dia STAFF BIASA dari Bahagian Pentadbiran?
+                    $isUserPentadbiran = ($role === 'user' && $bahagian === 'Bahagian Pentadbiran');
+                    
+                    // Check Logic: Admin/Boss (PA/YB)
+                    $isAdmin = in_array($role, ['pa', 'yb']);
+                @endphp
+
                 <h5 class="fw-bold text-primary"><i class="fas fa-bars mr-2"></i> MENU</h5>
                 <hr>
                 <div class="text-center mb-4">
@@ -35,7 +49,7 @@
                 @if(Auth::check())
                 <div class="alert alert-light border text-center p-2 mb-3">
                     <small class="text-muted d-block">Selamat Datang,</small>
-                    <strong>{{ Auth::user()->name }}</strong>
+                    <strong>{{ $user->name }}</strong>
                     <form method="POST" action="{{ route('logout') }}" class="mt-2">
                         @csrf
                         <button class="btn btn-sm btn-outline-danger w-100"><i class="fas fa-sign-out-alt mr-1"></i> Log Keluar</button>
@@ -51,24 +65,19 @@
                     <li class="nav-item my-2"><hr class="m-0"></li>
                     <li class="nav-item mb-2"><small class="text-uppercase text-muted fw-bold pl-3">Modul Laporan</small></li>
                     
-                    @if(Auth::check() && 
-                        (strtolower(Auth::user()->role) === 'pa' || 
-                         strtolower(Auth::user()->role) === 'yb' || 
-                         strtolower(Auth::user()->role) === 'eo' || 
-                         Auth::user()->bahagian === 'Bahagian Pentadbiran'))
+                    {{-- === GROUP A: PENTADBIRAN & KEWANGAN === --}}
+                    {{-- Logic: Admin Nampak, EO Nampak, ATAU User Pentadbiran Nampak --}}
+                    
+                    @if(Auth::check() && ($isAdmin || $role === 'eo' || $isUserPentadbiran || $bahagian === 'Bahagian Kewangan'))
+                        
+                        {{-- Menu Pentadbiran --}}
                         <li class="nav-item">
                             <a class="nav-link {{ Route::is('pentadbiran.*') ? 'active' : '' }}" href="{{ route('pentadbiran.index') }}">
                                 <i class="fas fa-cogs mr-2"></i> Pentadbiran
                             </a>
                         </li>
-                    @endif
-                    
-                    @if(Auth::check() && 
-                        (strtolower(Auth::user()->role) === 'pa' || 
-                         strtolower(Auth::user()->role) === 'yb' || 
-                         strtolower(Auth::user()->role) === 'eo' || 
-                         Auth::user()->bahagian === 'Bahagian Kewangan'))
-
+                        
+                        {{-- Menu Kewangan --}}
                         <li class="nav-item">
                             <a class="nav-link {{ Route::is('kewangan.*') ? '' : 'collapsed' }} d-flex justify-content-between align-items-center" 
                                href="#collapseKewangan" 
@@ -86,11 +95,15 @@
                                     <a class="collapse-item {{ Route::is('kewangan.index') ? 'active' : '' }}" href="{{ route('kewangan.index') }}">Prestasi Keseluruhan</a>
                                     <a class="collapse-item {{ Route::is('kewangan.suku_tahun') ? 'active' : '' }}" href="{{ route('kewangan.suku_tahun') }}">Prestasi Suku Tahun</a>
                                     <a class="collapse-item {{ Route::is('kewangan.perbandingan') ? 'active' : '' }}" href="{{ route('kewangan.perbandingan') }}">Perbandingan Tahunan</a>
+                                </div>
                             </div>
                         </li>
                     @endif
                     
-                    @if(Auth::check() && strtolower(Auth::user()->role) !== 'eo')
+                    {{-- === GROUP B: MODUL TEKNIKAL (Legal, Mahkamah, dll) === --}}
+                    {{-- Logic: User Pentadbiran TAK BOLEH NAMPAK INI --}}
+                    
+                    @if(Auth::check() && $role !== 'eo' && !$isUserPentadbiran)
                         
                         <li class="nav-item"><a class="nav-link {{ Route::is('laporanpandanganundang.*') ? 'active' : '' }}" href="{{ route('laporanpandanganundang.index') }}"><i class="fas fa-gavel mr-2"></i> Pandangan Undang-Undang</a></li>
                         
@@ -98,7 +111,7 @@
                             <a class="nav-link {{ Route::is('laporankesmahkamah.*') ? 'active' : '' }}" href="{{ route('laporankesmahkamah.index') }}"><i class="fas fa-balance-scale mr-2"></i> Kes Mahkamah</a>
                         </li>
                         
-                        @if(strtolower(Auth::user()->role) === 'pa')
+                        @if($role === 'pa')
                             <li class="nav-item ml-3">
                                 <a class="nav-link text-secondary small {{ Route::is('lampiran.*') ? 'active' : '' }}" href="{{ route('lampiran.index') }}">
                                     <i class="fas fa-angle-right mr-1"></i> Lampiran II - Kes Mahkamah
@@ -113,7 +126,7 @@
                         <li class="nav-item"><a class="nav-link {{ Route::is('kestatatertib.*') ? 'active' : '' }}" href="{{ route('kestatatertib.index') }}"><i class="fas fa-exclamation-circle mr-2"></i> Kes Tatatertib</a></li>
                         <li class="nav-item"><a class="nav-link {{ Route::is('lainlaintugasan.*') ? 'active' : '' }}" href="{{ route('lainlaintugasan.index') }}"><i class="fas fa-tasks mr-2"></i> Lain-lain Tugasan</a></li>
                         
-                        @if(strtolower(Auth::user()->role) === 'pa' || strtolower(Auth::user()->role) === 'yb')
+                        @if($isAdmin)
                             <li class="nav-item mt-2"><a class="nav-link btn btn-outline-primary text-left {{ Route::is('laporan.index') ? 'active text-white bg-primary' : '' }}" href="{{ route('laporan.index') }}"><i class="fas fa-file-alt mr-2"></i> Laporan Penuh</a></li>
                         @endif
 
