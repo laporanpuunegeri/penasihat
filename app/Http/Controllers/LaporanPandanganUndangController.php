@@ -44,8 +44,77 @@ class LaporanPandanganUndangController extends Controller
                             ->orderBy('nama_agensi', 'ASC')
                             ->pluck('nama_agensi');
 
+<<<<<<< HEAD
         return view('laporanpandanganundang.create', compact('agensiList'));
     }
+=======
+    // Senarai agensi tetap
+    $agensiTetap = [
+        "AKCC (Ayer Keroh Country Club)",
+        "Bahagian Teknologi Maklumat Dan Komunikasi (BTMK)", 
+        "BADSA (Bhg. Audit Dalam & Siasatan Awam)",
+        "BKP, JKMM (Bhg. Khidmat Pengurusan / Pengurusan Aset)",
+        "BKSA (Badan Kawal Selia Air)",
+        "BPSM, JKMM (Bhg. Pengurusan Sumber Manusia)",
+        "CMI (Pejabat Ketua Menteri)",
+        "CUCKOO INTERNATIONAL (MAL) BERHAD",
+        "DUN / Unit Dewan",
+        "FR Fariza Enterprise",
+        "Hospital Putra",
+        "ITPS Marketing S/B",
+        "Invest Melaka Berhad",
+        "Jabatan Kebajikan Masyarakat Negeri Melaka (JKM)", 
+        "Jabatan Kewangan & Perbendaharaan Negeri Melaka",
+        "Jabatan Mufti Melaka",
+        "Jabatan Pendakwaan Syariah",
+        "Jabatan Pertanian",
+        "Jabatan Perkhidmatan Veterinar Negeri Melaka",
+        "Jabatan Pengairan dan Saliran Negeri Melaka",
+        "Jabatan Perhutanan Negeri Melaka",
+        "JAIM (Jabatan Agama Islam Melaka)",
+        "JKR",
+        "JPBD (Jab. Perancangan Bandar & Desa)",
+        "Kertas Jemaah Pengampunan",
+        "KMB (Kumpulan Melaka Berhad)",
+        "Kompleks Falak Al-Khawarizmi",
+        "LPM (Lembaga Perumahan Melaka)",
+        "LTAM (Lembaga Tabung Amanah Melaka)",
+        "Melaka International College of Science and Texhnology (MiCoST)",
+        "Melaka Bekal Sdn Bhd",
+        "Majlis Mesyuarat Kerajaan Negeri Melaka",
+        "Mahkamah Syariah Melaka",
+        "MAIM (Majlis Agama Islam Melaka)",
+        "MCORP",
+        "MITC",
+        "MITCH (Melaka ICT Holding)",
+        "M-WEZ (Melaka Waterfront Economic Zone)",
+        "Panorama Melaka",
+        "PBT (MBMB)",
+        "PBT (MPAG)",
+        "PBT (MPJ)",
+        "PBT (MPTHJ)",
+        "Pejabat T.Y.T",
+        "Perbadanan Biokteknologi Melaka",
+        "PERTAM (Perbadanan Kemajuan Tanah Adat Melaka)",
+        "PERZIM (Perbadanan Muzium Melaka)",
+        "PPSPM (Perbadanan Pembangunan Sungai & Pantai Melaka)",
+        "PTD A/GAJAH",
+        "PTD JASIN",
+        "PTD M/TGH",
+        "PTG Negeri Melaka",
+        "PTHM (Perbadanan Teknologi Hijau Melaka)",
+        "PUTARAN SEMASA SDN BHD",
+        "SAMB (Syarikat Air Melaka)",
+        "Setiausaha Kerajaan Negeri (suk)",
+        "TAPEM (Tabung Amanah Pendidikan Melaka)",
+        "UKT, JKMM (Unit Kerajaan Tempatan)",
+        "UNIMEL / KUIM (Kolej Universiti Islam Melaka)",
+        "Unit Integriti",
+        "UTC Melaka",
+        "UPEN (Unit Perancangan Ekonomi)",
+        "Yayasan Melaka",
+    ];
+>>>>>>> a0c472fb933f28f5e7ce2499cc289ee4f1126ec1
 
     /**
      * 3. STORE: Simpan Data & Fail
