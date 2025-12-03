@@ -6,28 +6,38 @@ use Illuminate\Http\Request;
 use App\Models\LaporanPindaanUndang;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class LaporanpindaanundangController extends Controller
 {
     /**
      * Papar senarai semua laporan dengan tapisan bulan & peranan
+     * DEFAULT: Bulan Semasa
      */
     public function index(Request $request)
     {
         $user = Auth::user();
         $query = LaporanPindaanUndang::query();
 
+        // 1. Filter Ikut Peranan (Role)
         if ($user->role === 'pa' || $user->role === 'yb') {
             $query->where('negeri', $user->negeri);
         } else {
             $query->where('user_id', $user->id);
         }
 
-        if ($request->filled('bulan')) {
-            $query->whereMonth('created_at', $request->bulan)
-                  ->whereYear('created_at', now()->year);
+        // 2. Filter Ikut Bulan (Logic Baru)
+        // Ambil input 'bulan'. Jika kosong, guna bulan semasa (date('n')).
+        $bulanPilihan = $request->input('bulan', date('n'));
+        $tahunSemasa = date('Y');
+
+        if ($bulanPilihan !== 'all') {
+            // Tapis ikut bulan yang dipilih (atau default bulan semasa)
+            $query->whereMonth('created_at', $bulanPilihan)
+                  ->whereYear('created_at', $tahunSemasa);
         }
 
+        // 3. Susunan Data
         $data = $query->orderBy('created_at', 'desc')->get();
 
         return view('laporanpindaanundang.index', compact('data', 'user'));
@@ -129,7 +139,36 @@ class LaporanpindaanundangController extends Controller
     {
         $user = auth()->user();
 
-        return $user->role === 'pa' && $user->negeri === $laporan->negeri
-            || $laporan->user_id === $user->id;
+        return ($user->role === 'pa' && $user->negeri === $laporan->negeri)
+            || ($laporan->user_id === $user->id);
+    }
+
+    /**
+     * --- FUNGSI DRILL-DOWN: PINDAAN UNDANG-UNDANG ---
+     */
+    public function pecahanBulan(Request $request)
+    {
+        $bulan = $request->bulan;
+        $tahun = $request->tahun;
+        $namaBulan = Carbon::create()->month($bulan)->format('F');
+
+        // --- SETTING: NAMA COLUMN DATABASE ---
+        $colKategori = 'tajuk'; 
+
+        // 1. Ambil Data Pecahan
+        $dataPecahan = LaporanPindaanUndang::select($colKategori, \Illuminate\Support\Facades\DB::raw('count(*) as total'))
+            ->whereMonth('created_at', $bulan)
+            ->whereYear('created_at', $tahun)
+            ->groupBy($colKategori)
+            ->orderBy('total', 'desc')
+            ->get();
+
+        $labels = $dataPecahan->pluck($colKategori);
+        $totals = $dataPecahan->pluck('total');
+
+        return view('laporanpindaanundang.pecahan', compact(
+            'bulan', 'tahun', 'namaBulan', 
+            'labels', 'totals', 'dataPecahan'
+        ));
     }
 }

@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\DashboardBahagian; // FIX 1: Namespace yang betul
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use App\Models\User;
@@ -13,20 +14,14 @@ use App\Models\LaporanKesMahkamah;
 use App\Models\LaporanGubalanUndang;
 use App\Models\LaporanPindaanUndang;
 use App\Models\LaporanSemakanUndang;
-use Illuminate\Support\Facades\Auth; // Pastikan Auth diimport
 
-class DashboardController extends Controller
+class PenasihatDashboardController extends Controller // FIX 1: Nama Class yang betul
 {
     public function index(Request $request)
     {
         $user = auth()->user();
-        
-        // 1. IZIN AKSES (TAMBAH EO)
-        // Jika user tiada role yang sah, halang.
-        // Tapi logik di bawah dah handle filter, so kita cuma pastikan user login.
-        if (!$user) abort(403, 'Sila log masuk.');
+        if (!$user) abort(403, 'Akses tidak dibenarkan.');
 
-        // 2. DAPATKAN FILTER IKUT ROLE (EO ditambah di sini)
         $filter = $this->getFilterByRole($user);
 
         $bulan = $request->bulan ?? now()->month;
@@ -36,7 +31,7 @@ class DashboardController extends Controller
 
         if ($pegawaiId) $filter['user_id'] = $pegawaiId;
 
-        // ✅ SENARAI PEGAWAI
+        // SENARAI PEGAWAI
         $senaraiPegawai = User::where('role', 'user')
             ->when($user->role !== 'super_admin', function ($query) use ($user) {
                 $query->where('negeri', $user->negeri);
@@ -44,26 +39,28 @@ class DashboardController extends Controller
             ->orderBy('name')
             ->get();
 
-        // ✅ SENARAI BULAN
+        // SENARAI BULAN
         $senaraiBulan = [
             1 => 'Januari', 2 => 'Februari', 3 => 'Mac', 4 => 'April',
             5 => 'Mei', 6 => 'Jun', 7 => 'Julai', 8 => 'Ogos',
             9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Disember'
         ];
 
-        // ✅ SENARAI TAHUN (mengikut Pandangan Undang-undang)
+        // SENARAI TAHUN (mengikut Pandangan Undang-undang)
         $senaraiTahun = LaporanPandanganUndang::selectRaw('DISTINCT EXTRACT(YEAR FROM created_at) as tahun')
             ->orderByDesc('tahun')
             ->pluck('tahun');
 
-        // ✅ SENARAI AGENSI (mengikut Pandangan Undang-undang)
+        // SENARAI AGENSI (mengikut Pandangan Undang-undang)
         $senaraiAgensi = LaporanPandanganUndang::select('agensi')
             ->whereNotNull('agensi')
             ->distinct()
             ->pluck('agensi');
 
-        // ✅ KIRA SUKU (semua kategori ikut role & negeri/user)
+        // KIRA SUKU (Data untuk Chart)
         $undang = $this->kiraSuku(LaporanPandanganUndang::class, $filter);
+        $dataPandangUndang = $undang; 
+        
         $tatatertib = $this->kiraSuku(Kestatatertib::class, $filter);
         $mesyuarat = $this->kiraSuku(LaporanMesyuarat::class, $filter);
         $lain = $this->kiraSuku(LainLainTugasan::class, $filter);
@@ -72,21 +69,21 @@ class DashboardController extends Controller
         $pindaan = $this->kiraSuku(LaporanPindaanUndang::class, $filter);
         $semakan = $this->kiraSuku(LaporanSemakanUndang::class, $filter);
 
-        // ✅ KIRA BULAN
+        // KIRA BULAN
         $undangBulanIni = $this->kiraBulan(LaporanPandanganUndang::class, $filter, $bulan, $tahun, $agensi);
         $tatatertibBulanIni = $this->kiraBulan(Kestatatertib::class, $filter, $bulan, $tahun);
         $mesyuaratBulanIni = $this->kiraBulan(LaporanMesyuarat::class, $filter, $bulan, $tahun);
-        $lainBulanIni = $this->kiraBulan(LainLainTugasan::class, $filter, $bulan, $tahun);
+        $lainBulanIni = $this->kiraBulan(LainLainTugasan::class, $filter, $bulan, $tahun); 
         $kesMahkamahBulanIni = $this->kiraBulan(LaporanKesMahkamah::class, $filter, $bulan, $tahun);
         $gubalanBulanIni = $this->kiraBulan(LaporanGubalanUndang::class, $filter, $bulan, $tahun);
         $pindaanBulanIni = $this->kiraBulan(LaporanPindaanUndang::class, $filter, $bulan, $tahun);
         $semakanBulanIni = $this->kiraBulan(LaporanSemakanUndang::class, $filter, $bulan, $tahun);
 
-        // ✅ JUMLAH BULAN INI
+        // JUMLAH BULAN INI
         $bulanIni = $undangBulanIni + $tatatertibBulanIni + $mesyuaratBulanIni + $lainBulanIni +
             $kesMahkamahBulanIni + $gubalanBulanIni + $pindaanBulanIni + $semakanBulanIni;
 
-        // ✅ STATUS PANDANGAN – ikut agensi jika dipilih
+        // STATUS PANDANGAN – ikut agensi jika dipilih
         $pandanganQuery = LaporanPandanganUndang::query()
             ->when($filter, fn($q) => $this->applyFilter($q, $filter))
             ->when(!empty($agensi) && $agensi !== 'Semua', fn($q) => $q->where('agensi', $agensi));
@@ -110,7 +107,7 @@ class DashboardController extends Controller
             })
             ->count();
 
-        // ✅ GRAF AGENSI — HANYA PANDANGAN UNDANG-UNDANG
+        // GRAF AGENSI — HANYA PANDANGAN UNDANG-UNDANG
         $agensiQuery = LaporanPandanganUndang::selectRaw('agensi, COUNT(*) as jumlah')
             ->when($filter, fn($q) => $this->applyFilter($q, $filter))
             ->when(!empty($agensi) && $agensi !== 'Semua', fn($q) => $q->where('agensi', $agensi))
@@ -118,7 +115,7 @@ class DashboardController extends Controller
 
         $agensiData = $agensiQuery->pluck('jumlah', 'agensi')->toArray();
 
-        // ✅ GRAF PEGAWAI (tiada kaitan agensi)
+        // GRAF PEGAWAI (tiada kaitan agensi)
         $pegawaiData = $senaraiPegawai->map(function ($pegawai) {
             $jumlah = LaporanPandanganUndang::where('user_id', $pegawai->id)->count()
                 + LaporanKesMahkamah::where('user_id', $pegawai->id)->count()
@@ -135,7 +132,7 @@ class DashboardController extends Controller
             ];
         });
 
-        // ✅ TOTAL – Pandangan ikut agensi, lain tidak
+        // TOTAL – Pandangan ikut agensi, lain tidak
         $totalPandangan = LaporanPandanganUndang::when($filter, fn($q) => $this->applyFilter($q, $filter))
             ->when(!empty($agensi) && $agensi !== 'Semua', fn($q) => $q->where('agensi', $agensi))
             ->count();
@@ -148,30 +145,62 @@ class DashboardController extends Controller
         $totalTatatertib = Kestatatertib::when($filter, fn($q) => $this->applyFilter($q, $filter))->count();
         $totalLain = LainLainTugasan::when($filter, fn($q) => $this->applyFilter($q, $filter))->count();
 
-        return view('dashboard', compact(
-            'undang', 'tatatertib', 'mesyuarat', 'lain',
-            'kesmahkamah', 'gubalan', 'pindaan', 'semakan',
-            'undangBulanIni', 'tatatertibBulanIni', 'mesyuaratBulanIni', 'lainBulanIni',
-            'kesMahkamahBulanIni', 'gubalanBulanIni', 'pindaanBulanIni', 'semakanBulanIni',
-            'bulanIni', 'belumSelesai', 'melepasiTarikh',
-            'sudahTindakan', 'belumTindakan',
-            'agensiData', 'pegawaiData',
-            'totalPandangan', 'totalMahkamah', 'totalGubalan', 'totalPindaan',
-            'totalSemakan', 'totalMesyuarat', 'totalTatatertib', 'totalLain',
-            'senaraiPegawai', 'senaraiBulan', 'senaraiTahun', 'senaraiAgensi'
-        ));
+        // 🔥 FIX 2 & 3: Tukar nama view ke dashboard.penasihat dan gunakan array sintaks untuk naming
+        return view('dashboard.penasihat', [ 
+            // Variable yang dihantar ke View (Mesti sepadan dengan kod JS anda)
+            'dataPandanganUndang' => $dataPandangUndang, 
+            'dataKesMahkamah' => $kesmahkamah, 
+            'dataGubalan' => $gubalan, 
+            'dataPindaan' => $pindaan, 
+            'dataSemakan' => $semakan, 
+            'dataMesyuarat' => $mesyuarat, 
+            // Menggunakan ejaan 'dataTataterib' untuk memadankan View lama anda
+            'dataTataterib' => $tatatertib, 
+            'dataTugasan' => $lain, 
+            
+            // Variable lain (untuk paparan selain graf)
+            'undang' => $undang,
+            'tatatertib' => $tatatertib,
+            'mesyuarat' => $mesyuarat,
+            'lain' => $lain,
+            'kesmahkamah' => $kesmahkamah,
+            'gubalan' => $gubalan,
+            'pindaan' => $pindaan,
+            'semakan' => $semakan,
+            'undangBulanIni' => $undangBulanIni,
+            'tatatertibBulanIni' => $tatatertibBulanIni,
+            'mesyuaratBulanIni' => $mesyuaratBulanIni,
+            'lainBulanIni' => $lainBulanIni,
+            'kesMahkamahBulanIni' => $kesMahkamahBulanIni,
+            'gubalanBulanIni' => $gubalanBulanIni,
+            'pindaanBulanIni' => $pindaanBulanIni,
+            'semakanBulanIni' => $semakanBulanIni,
+            'bulanIni' => $bulanIni,
+            'belumSelesai' => $belumSelesai,
+            'melepasiTarikh' => $melepasiTarikh,
+            'sudahTindakan' => $sudahTindakan,
+            'belumTindakan' => $belumTindakan,
+            'agensiData' => $agensiData,
+            'pegawaiData' => $pegawaiData,
+            'totalPandangan' => $totalPandangan,
+            'totalMahkamah' => $totalMahkamah,
+            'totalGubalan' => $totalGubalan,
+            'totalPindaan' => $totalPindaan,
+            'totalSemakan' => $totalSemakan,
+            'totalMesyuarat' => $totalMesyuarat,
+            'totalTatatertib' => $totalTatatertib,
+            'totalLain' => $totalLain,
+            'senaraiPegawai' => $senaraiPegawai,
+            'senaraiBulan' => $senaraiBulan,
+            'senaraiTahun' => $senaraiTahun,
+            'senaraiAgensi' => $senaraiAgensi,
+        ]);
     }
 
-    // === PERUBAHAN UTAMA DI SINI ===
     private function getFilterByRole($user)
     {
-        // Super Admin nampak semua
         if ($user->role === 'super_admin') return [];
-        
-        // YB, PA, dan EO nampak data berdasarkan NEGERI mereka
-        if (in_array($user->role, ['yb', 'pa', 'eo'])) return ['negeri' => $user->negeri];
-        
-        // User biasa nampak data sendiri
+        if (in_array($user->role, ['yb', 'pa'])) return ['negeri' => $user->negeri];
         return ['user_id' => $user->id];
     }
 
@@ -204,7 +233,6 @@ class DashboardController extends Controller
         $query = $model::query();
         $this->applyFilter($query, $filter);
 
-        // ✅ Agensi hanya untuk Pandangan Undang
         if ($model === LaporanPandanganUndang::class && !empty($agensi) && $agensi !== 'Semua') {
             $query->where('agensi', $agensi);
         }

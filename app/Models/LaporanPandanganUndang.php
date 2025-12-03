@@ -31,6 +31,7 @@ class LaporanPandanganUndang extends Model
         'negeri',
         'created_at',
         'updated_at',
+        'dokumen_path',
     ];
 
     protected $casts = [

@@ -1,85 +1,197 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid px-4">
-    <h5 class="fw-bold text-center text-uppercase mb-4">
-        Laporan Pindaan Rang Undang-Undang / Perundangan Subsidiari Substantif / Pemberitahuan Awam (G.N)<br>
-        <small class="text-uppercase">(Termasuk Cetakan Semula dan Pembaharuan Undang-Undang)</small>
-    </h5>
 
-    {{-- Tapisan ikut bulan --}}
-    <form method="GET" action="{{ route('laporanpindaanundang.index') }}" class="row g-3 mb-3 align-items-end">
-        <div class="col-auto">
-            <label for="bulan" class="form-label mb-0">Tapis Ikut Bulan Daftar:</label>
-        </div>
-        <div class="col-auto">
-            <select name="bulan" id="bulan" class="form-select" onchange="this.form.submit()">
-                <option value="">-- Semua Bulan --</option>
-                @foreach ([1 => 'Januari', 2 => 'Februari', 3 => 'Mac', 4 => 'April', 5 => 'Mei', 6 => 'Jun',
-                          7 => 'Julai', 8 => 'Ogos', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Disember']
-                          as $num => $nama)
-                    <option value="{{ $num }}" {{ request('bulan') == $num ? 'selected' : '' }}>{{ $nama }}</option>
-                @endforeach
-            </select>
-        </div>
+{{-- CSS Khas --}}
+<style>
+    .page-header {
+        background: #fff;
+        padding: 20px 25px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+        margin-bottom: 25px;
+        border-left: 5px solid #0f172a;
+    }
+    
+    .table-card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        overflow: hidden;
+        border: 1px solid #f1f5f9;
+    }
 
-        <div class="col-auto">
-            <a href="{{ route('laporanpindaanundang.index') }}" class="btn btn-outline-secondary">Reset</a>
-        </div>
+    .table thead th {
+        background-color: #1e293b;
+        color: #fff;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+        border: none;
+        vertical-align: middle;
+        padding: 12px;
+    }
 
-        <div class="col text-end">
-            <a href="{{ route('laporanpindaanundang.create') }}" class="btn btn-success">+ Daftar Baharu</a>
-        </div>
-    </form>
+    .status-badge {
+        font-size: 0.7rem;
+        padding: 5px 10px;
+        border-radius: 50px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
 
-    {{-- Jadual Laporan --}}
-    <div class="table-responsive">
-        <table class="table table-bordered align-middle text-center">
-            <thead class="table-secondary">
-                <tr>
-                    <th>BIL</th>
-                    <th>Tarikh Daftar</th>
-                    <th class="text-start">Tajuk RUU / Perundangan Subsidiari</th>
-                    <th class="text-start">Tindakan</th>
-                    <th>Status</th>
-                    <th>Tindakan</th>
-                </tr>
-            </thead>
-            <tbody>
-                @php $user = auth()->user(); @endphp
-                @forelse ($data as $index => $laporan)
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+    .btn-icon:hover { transform: translateY(-2px); }
+</style>
+
+<div class="container-fluid px-4 py-4">
+
+    {{-- 1. HEADER --}}
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div>
+            <h3 class="mb-1 fw-bold text-dark">Laporan Pindaan Undang-Undang</h3>
+            <p class="text-muted small mb-0">Senarai pindaan Rang Undang-Undang dan Perundangan Subsidiari.</p>
+        </div>
+        
+        <div class="d-flex gap-2">
+            <a href="{{ route('laporanpindaanundang.create') }}" class="btn btn-primary shadow-sm px-4">
+                <i class="fas fa-plus-circle me-2"></i> Daftar Pindaan
+            </a>
+        </div>
+    </div>
+
+    {{-- 2. FILTER --}}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-3 px-4">
+            <form method="GET" action="{{ route('laporanpindaanundang.index') }}" class="row align-items-center g-3">
+                <div class="col-auto">
+                    <label for="bulan" class="col-form-label fw-bold text-secondary small text-uppercase">
+                        <i class="fas fa-filter me-1"></i> Tapis Bulan Daftar:
+                    </label>
+                </div>
+                <div class="col-auto">
+                    <select name="bulan" id="bulan" class="form-select form-select-sm fw-bold border-primary" style="min-width: 200px;" onchange="this.form.submit()">
+                        <option value="">-- Semua Bulan --</option>
+                        @foreach ([1 => 'Januari', 2 => 'Februari', 3 => 'Mac', 4 => 'April', 5 => 'Mei', 6 => 'Jun',
+                                   7 => 'Julai', 8 => 'Ogos', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Disember']
+                                   as $num => $nama)
+                            <option value="{{ $num }}" {{ request('bulan') == $num ? 'selected' : '' }}>
+                                {{ $nama }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                
+                @if(request('bulan'))
+                <div class="col-auto">
+                    <a href="{{ route('laporanpindaanundang.index') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                        <i class="fas fa-undo me-1"></i> Reset
+                    </a>
+                </div>
+                @endif
+            </form>
+        </div>
+    </div>
+
+    {{-- 3. JADUAL --}}
+    <div class="table-card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle text-center mb-0">
+                <thead>
                     <tr>
-                        <td>{{ $index + 1 }}</td>
-                        <td>{{ $laporan->created_at->format('d/m/Y H:i') }}</td>
-                        <td class="text-start">{{ $laporan->tajuk }}</td>
-                        <td class="text-start">{{ $laporan->tindakan }}</td>
-                        <td>{{ $laporan->status }}</td>
-                        <td class="text-start">
-                            {{-- Papar nama pendaftar --}}
-                            <div class="small text-muted fst-italic mb-1">
-                                {{ optional($laporan->user)->name ?? '-' }}
-                            </div>
-
-                            {{-- Semua role boleh edit --}}
-                            <a href="{{ route('laporanpindaanundang.edit', $laporan->id) }}" class="btn btn-sm btn-warning mb-1">Edit</a>
-
-                            {{-- Hanya user yang daftar boleh padam --}}
-                            @if ($user->id === $laporan->user_id)
-                                <form action="{{ route('laporanpindaanundang.destroy', $laporan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Anda pasti untuk padam?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger">Padam</button>
-                                </form>
-                            @endif
-                        </td>
+                        <th width="5%">Bil</th>
+                        <th width="15%">Tarikh Daftar</th>
+                        <th width="35%" class="text-start">Tajuk Pindaan</th>
+                        <th width="25%" class="text-start">Tindakan / Catatan</th>
+                        <th width="10%">Status</th>
+                        <th width="10%">Tindakan</th>
                     </tr>
-                @empty
-                    <tr>
-                        <td colspan="6" class="text-muted">Tiada data direkodkan.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @php $currentUser = auth()->user(); @endphp
+                    
+                    @forelse ($data as $index => $laporan)
+                        <tr>
+                            <td class="text-muted">{{ $index + 1 }}</td>
+                            
+                            {{-- Tarikh --}}
+                            <td>
+                                <div class="fw-bold text-dark">{{ $laporan->created_at->format('d/m/Y') }}</div>
+                                <small class="text-muted" style="font-size: 0.7rem;">{{ $laporan->created_at->format('H:i A') }}</small>
+                            </td>
+
+                            {{-- Tajuk --}}
+                            <td class="text-start">
+                                <div class="fw-semibold text-dark text-break">{{ $laporan->tajuk }}</div>
+                            </td>
+
+                            {{-- Tindakan --}}
+                            <td class="text-start">
+                                <div class="small text-muted">{{ Str::limit($laporan->tindakan, 80) }}</div>
+                            </td>
+
+                            {{-- Status --}}
+                            <td>
+                                @if(Str::contains(strtolower($laporan->status), ['selesai', 'warta', 'lulus']))
+                                    <span class="badge bg-success status-badge">
+                                        <i class="fas fa-check-circle me-1"></i> Selesai
+                                    </span>
+                                @else
+                                    <span class="badge bg-warning text-dark status-badge">
+                                        <i class="fas fa-clock me-1"></i> {{ Str::limit($laporan->status, 15) }}
+                                    </span>
+                                @endif
+                            </td>
+
+                            {{-- Tindakan --}}
+                            <td>
+                                <div class="d-flex justify-content-center gap-2">
+                                    {{-- Edit --}}
+                                    <a href="{{ route('laporanpindaanundang.edit', $laporan->id) }}" 
+                                       class="btn btn-outline-primary btn-icon btn-sm" 
+                                       title="Kemaskini">
+                                        <i class="fas fa-pen"></i>
+                                    </a>
+
+                                    {{-- Delete --}}
+                                    @if ($currentUser->id === $laporan->user_id || $currentUser->role === 'admin')
+                                        <form action="{{ route('laporanpindaanundang.destroy', $laporan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Adakah anda pasti mahu memadam rekod ini?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-outline-danger btn-icon btn-sm" title="Padam">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                                
+                                <div class="mt-2 text-muted" style="font-size: 0.6rem;">
+                                    Oleh: {{ Str::limit(optional($laporan->user)->name ?? '?', 10) }}
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted bg-light">
+                                <i class="fas fa-file-pen fa-3x mb-3 opacity-25"></i>
+                                <p class="mb-0 fw-bold">Tiada rekod pindaan ditemui.</p>
+                                <small>Sila klik butang "Daftar Pindaan" untuk mula.</small>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
+
 @endsection

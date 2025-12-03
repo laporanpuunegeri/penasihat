@@ -19,9 +19,21 @@ class RedirectIfAuthenticated
     {
         $guards = empty($guards) ? [null] : $guards;
 
+        // Mendapatkan URL semasa
+        $currentUrl = $request->path(); 
+
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
-                return redirect(RouteServiceProvider::HOME);
+                
+                // Jika pengguna sudah log masuk DAN cuba mengakses halaman /register (LALUAN TERHAD), 
+                // benarkan mereka untuk teruskan (TIDAK REDIRECT)
+                if ($currentUrl == 'register') {
+                    // Benarkan pengguna (CC/EO) yang sudah login untuk kekal di halaman /register
+                    return $next($request); 
+                }
+                
+                // Untuk semua laluan 'guest' yang lain, redirect ke HOME (dashboard)
+                return redirect(RouteServiceProvider::HOME); 
             }
         }
 

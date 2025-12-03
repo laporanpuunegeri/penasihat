@@ -6,46 +6,47 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
+    public function up()
     {
-        Schema::create('kewangan_records', function (Blueprint $table) {
-            $table->id();
-
-            // 1. WAJIB ADA: Negeri (Sebab controller awak check 'where negeri')
-            $table->string('negeri')->index(); 
-
-            // 2. Kod & Butiran
-            $table->string('kod_utama'); // 10000
-            $table->string('kod_objek'); // 11000
-            $table->string('butiran');   // Gaji & Upahan
-
-            // 3. Duit (Decimal 15 digit, 2 titik perpuluhan)
-            $table->decimal('peruntukan', 15, 2)->default(0);
+        // Pastikan nama table di sini ialah 'kewangan_records'
+        Schema::table('kewangan_records', function (Blueprint $table) {
             
-            // 4. Belanja Suku Tahun (INI YANG TERTINGGAL SEBELUM NI)
+            // 1. BUANG kolum Suku Tahun lama (Jika ada)
+            if (Schema::hasColumn('kewangan_records', 'belanja_s1')) {
+                $table->dropColumn(['belanja_s1', 'belanja_s2', 'belanja_s3', 'belanja_s4']);
+            }
+
+            // 2. TAMBAH 12 Kolum Bulan Baru
+            // Decimal(15, 2) untuk nilai duit
+            $table->decimal('belanja_jan', 15, 2)->default(0)->after('peruntukan');
+            $table->decimal('belanja_feb', 15, 2)->default(0)->after('belanja_jan');
+            $table->decimal('belanja_mac', 15, 2)->default(0)->after('belanja_feb');
+            $table->decimal('belanja_apr', 15, 2)->default(0)->after('belanja_mac');
+            $table->decimal('belanja_mei', 15, 2)->default(0)->after('belanja_apr');
+            $table->decimal('belanja_jun', 15, 2)->default(0)->after('belanja_mei');
+            $table->decimal('belanja_jul', 15, 2)->default(0)->after('belanja_jun');
+            $table->decimal('belanja_ogos', 15, 2)->default(0)->after('belanja_jul');
+            $table->decimal('belanja_sep', 15, 2)->default(0)->after('belanja_ogos');
+            $table->decimal('belanja_okt', 15, 2)->default(0)->after('belanja_sep');
+            $table->decimal('belanja_nov', 15, 2)->default(0)->after('belanja_okt');
+            $table->decimal('belanja_dis', 15, 2)->default(0)->after('belanja_nov');
+        });
+    }
+
+    public function down()
+    {
+        Schema::table('kewangan_records', function (Blueprint $table) {
+            // Reverse proses jika perlu rollback
+            $table->dropColumn([
+                'belanja_jan', 'belanja_feb', 'belanja_mac', 'belanja_apr', 
+                'belanja_mei', 'belanja_jun', 'belanja_jul', 'belanja_ogos', 
+                'belanja_sep', 'belanja_okt', 'belanja_nov', 'belanja_dis'
+            ]);
+
             $table->decimal('belanja_s1', 15, 2)->default(0);
             $table->decimal('belanja_s2', 15, 2)->default(0);
             $table->decimal('belanja_s3', 15, 2)->default(0);
             $table->decimal('belanja_s4', 15, 2)->default(0);
-
-            // 5. Jumlah Besar Belanja
-            $table->decimal('belanja', 15, 2)->default(0);
-
-            // 6. Tahun (Integer lebih selamat dari Year untuk elak isu format)
-            $table->integer('tahun')->default(date('Y'));
-            
-            $table->timestamps();
         });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('kewangan_records');
     }
 };

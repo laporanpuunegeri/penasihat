@@ -3,377 +3,292 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Kewangan;
 use Illuminate\Support\Facades\Auth;
-use App\Models\KewanganRecord;
 use PDF;
 
 class KewanganController extends Controller
 {
-    // --- 1. LAPORAN PRESTASI PERBELANJAAN KESELURUHAN (INDEX) ---
-    public function index(Request $request)
-    {
-        if (!Auth::check() || 
-            (strtolower(Auth::user()->role) !== 'pa' && 
-             strtolower(Auth::user()->role) !== 'yb' && 
-             strtolower(Auth::user()->role) !== 'eo' &&
-             Auth::user()->bahagian !== 'Bahagian Kewangan')) 
-        {
-            abort(403, 'Anda tiada kebenaran untuk akses modul ini.');
-        }
+    /**
+     * Helper: Mengambil dan memproses data untuk semua view
+     */
+   protected function getLaporanKewangan(Request $request)
+{
+    $user = Auth::user();
+    $query = Kewangan::query();
 
-        $tahun_dipilih = $request->input('tahun', date('Y'));
-        $negeri_user   = Auth::user()->negeri;
+    // Filter Negeri berdasarkan user
+    $query->where('negeri', $user->negeri);
 
-        // Struktur Asas Accordion
-        $laporan_kewangan = [
-            '10000' => ['tajuk' => 'EMOLUMEN', 'items' => [], 'total_peruntukan' => 0, 'total_belanja' => 0],
-            '20000' => ['tajuk' => 'PERKHIDMATAN & BEKALAN', 'items' => [], 'total_peruntukan' => 0, 'total_belanja' => 0],
-            '30000' => ['tajuk' => 'ASET', 'items' => [], 'total_peruntukan' => 0, 'total_belanja' => 0],
-            '40000' => ['tajuk' => 'PEMBERIAN & KENAAN BAYARAN TETAP', 'items' => [], 'total_peruntukan' => 0, 'total_belanja' => 0],
-            '50000' => ['tajuk' => 'PERBELANJAAN - PERBELANJAAN LAIN', 'items' => [], 'total_peruntukan' => 0, 'total_belanja' => 0],
-        ];
-
-        $records = KewanganRecord::where('tahun', $tahun_dipilih)
-                    ->where('negeri', $negeri_user)
-                    ->orderBy('kod_objek', 'asc')
-                    ->get();
-
-        foreach ($records as $record) {
-            if (array_key_exists($record->kod_utama, $laporan_kewangan)) {
-                $laporan_kewangan[$record->kod_utama]['items'][] = $record; // Simpan object rekod terus
-                $laporan_kewangan[$record->kod_utama]['total_peruntukan'] += $record->peruntukan;
-                $laporan_kewangan[$record->kod_utama]['total_belanja'] += $record->belanja;
-            }
-        }
-
-        $grand_total_peruntukan = 0;
-        $grand_total_belanja = 0;
-
-        foreach($laporan_kewangan as $data) {
-            $grand_total_peruntukan += $data['total_peruntukan'];
-            $grand_total_belanja += $data['total_belanja'];
-        }
-
-        $grand_total_baki = $grand_total_peruntukan - $grand_total_belanja;
-        $grand_peratus = $grand_total_peruntukan > 0 ? ($grand_total_belanja / $grand_total_peruntukan) * 100 : 0;
-
-        return view('kewangan.index', compact(
-            'laporan_kewangan', 'grand_total_peruntukan', 'grand_total_belanja', 'grand_total_baki', 'grand_peratus', 'tahun_dipilih'
-        ));
+    // Filter Tahun
+    $tahun_dipilih = $request->input('tahun', date('Y'));
+    if ($tahun_dipilih !== 'all' && $tahun_dipilih !== null) {
+        $query->where(function ($q) use ($tahun_dipilih) {
+            $q->where('tahun', $tahun_dipilih)->orWhereNull('tahun');
+        });
     }
 
-    // --- 2. LAPORAN PRESTASI PERBELANJAAN SUKU TAHUN ---
-    public function sukuTahun(Request $request)
-    {
-        // 1. Ambil tahun dari URL atau guna tahun semasa
-        $tahun_dipilih = $request->input('tahun', date('Y'));
-        $negeri_user   = Auth::user()->negeri;
+    $data = $query->orderBy('kod_objek', 'asc')->get();
 
-        // 2. Struktur Asas (Sama seperti Index supaya konsisten)
-        $laporan_kewangan = [
-            '10000' => ['tajuk' => 'EMOLUMEN', 'items' => [], 'total_peruntukan' => 0, 'total_belanja' => 0],
-            '20000' => ['tajuk' => 'PERKHIDMATAN & BEKALAN', 'items' => [], 'total_peruntukan' => 0, 'total_belanja' => 0],
-            '30000' => ['tajuk' => 'ASET', 'items' => [], 'total_peruntukan' => 0, 'total_belanja' => 0],
-            '40000' => ['tajuk' => 'PEMBERIAN & KENAAN BAYARAN TETAP', 'items' => [], 'total_peruntukan' => 0, 'total_belanja' => 0],
-            '50000' => ['tajuk' => 'PERBELANJAAN - PERBELANJAAN LAIN', 'items' => [], 'total_peruntukan' => 0, 'total_belanja' => 0],
-        ];
+    // GROUPING DATA
+    $laporan_kewangan = [
+        '10000' => ['tajuk' => 'EMOLUMEN', 'items' => [], 'total_peruntukan' => 0, 'total_belanja' => 0],
+        '20000' => ['tajuk' => 'PERKHIDMATAN & BEKALAN', 'items' => [], 'total_peruntukan' => 0, 'total_belanja' => 0],
+        '30000' => ['tajuk' => 'ASET', 'items' => [], 'total_peruntukan' => 0, 'total_belanja' => 0],
+        '40000' => ['tajuk' => 'PEMBERIAN & KENAAN BAYARAN TETAP', 'items' => [], 'total_peruntukan' => 0, 'total_belanja' => 0],
+        '50000' => ['tajuk' => 'PERBELANJAAN LAIN', 'items' => [], 'total_peruntukan' => 0, 'total_belanja' => 0],
+    ];
 
-        // 3. Tarik Data Database (Tapis Tahun & Negeri)
-        $records = KewanganRecord::where('tahun', $tahun_dipilih)
-                    ->where('negeri', $negeri_user)
-                    ->orderBy('kod_objek', 'asc')
-                    ->get();
+    foreach ($data as $item) {
+        // Kira suku tahun secara automatik
+        $item->belanja_s1 = ($item->belanja_jan ?? 0) + ($item->belanja_feb ?? 0) + ($item->belanja_mac ?? 0);
+        $item->belanja_s2 = ($item->belanja_apr ?? 0) + ($item->belanja_mei ?? 0) + ($item->belanja_jun ?? 0);
+        $item->belanja_s3 = ($item->belanja_jul ?? 0) + ($item->belanja_ogos ?? 0) + ($item->belanja_sep ?? 0);
+        $item->belanja_s4 = ($item->belanja_okt ?? 0) + ($item->belanja_nov ?? 0) + ($item->belanja_dis ?? 0);
 
-        // 4. Masukkan Data ke dalam Struktur
-        foreach ($records as $record) {
-            if (array_key_exists($record->kod_utama, $laporan_kewangan)) {
-                $laporan_kewangan[$record->kod_utama]['items'][] = $record;
-                
-                // Kira sub-total untuk header kategori
-                $laporan_kewangan[$record->kod_utama]['total_peruntukan'] += $record->peruntukan;
-                $laporan_kewangan[$record->kod_utama]['total_belanja'] += $record->belanja;
-            }
+        $kod = (string)$item->kod_utama;
+        if (isset($laporan_kewangan[$kod])) {
+            $laporan_kewangan[$kod]['items'][] = $item;
+            $laporan_kewangan[$kod]['total_peruntukan'] += $item->peruntukan;
+            $laporan_kewangan[$kod]['total_belanja'] += $item->belanja;
         }
-
-        // 5. Kira Jumlah Besar (Grand Total) untuk footer table
-        $grand_total_peruntukan = 0;
-        $grand_total_belanja = 0;
-
-        foreach($laporan_kewangan as $data) {
-            $grand_total_peruntukan += $data['total_peruntukan'];
-            $grand_total_belanja += $data['total_belanja'];
-        }
-
-        // 6. Hantar ke View
-        return view('kewangan.suku_tahun', compact(
-            'tahun_dipilih', 
-            'laporan_kewangan', 
-            'grand_total_peruntukan', 
-            'grand_total_belanja'
-        ));
     }
 
-// --- 3. PERBANDINGAN 3 TAHUN ---
-    public function perbandingan(Request $request)
-    {
-        // 1. Tentukan 3 Tahun
-        $tahun_semasa  = $request->input('tahun', date('Y')); // <--- Ini variable yang View cari
-        $tahun_lepas   = $tahun_semasa - 1;
-        $tahun_2_lepas = $tahun_semasa - 2;
+    // Grand total
+    $grand_total_peruntukan = $data->sum('peruntukan');
+    $grand_total_belanja = $data->sum('belanja');
+    $grand_total_baki = $grand_total_peruntukan - $grand_total_belanja;
+    $grand_peratus = $grand_total_peruntukan > 0 ? ($grand_total_belanja / $grand_total_peruntukan) * 100 : 0;
 
-        $negeri_user   = Auth::user()->negeri;
+    return [
+        'data' => $data,
+        'tahun_dipilih' => $tahun_dipilih,
+        'laporan_kewangan' => $laporan_kewangan,
+        'grand_total_peruntukan' => $grand_total_peruntukan,
+        'grand_total_belanja' => $grand_total_belanja,
+        'grand_total_baki' => $grand_total_baki,
+        'grand_peratus' => $grand_peratus,
+    ];
+}
 
-        // 2. Struktur Asas
-        $laporan = [
-            '10000' => ['tajuk' => 'EMOLUMEN', 'items' => []],
-            '20000' => ['tajuk' => 'PERKHIDMATAN & BEKALAN', 'items' => []],
-            '30000' => ['tajuk' => 'ASET', 'items' => []],
-            '40000' => ['tajuk' => 'PEMBERIAN & KENAAN BAYARAN TETAP', 'items' => []],
-            '50000' => ['tajuk' => 'PERBELANJAAN - PERBELANJAAN LAIN', 'items' => []],
-        ];
 
-        // 3. Tarik Data
-        $rekod_semasa  = KewanganRecord::where('tahun', $tahun_semasa)->where('negeri', $negeri_user)->get()->keyBy('kod_objek');
-        $rekod_lepas   = KewanganRecord::where('tahun', $tahun_lepas)->where('negeri', $negeri_user)->get()->keyBy('kod_objek');
-        $rekod_2_lepas = KewanganRecord::where('tahun', $tahun_2_lepas)->where('negeri', $negeri_user)->get()->keyBy('kod_objek');
+    // --- 1. INDEX ---
+public function index(Request $request)
+{
+    $viewData = $this->getLaporanKewangan($request);
 
-        // 4. Gabungkan Semua Kod Objek
-        $all_kod_objek = $rekod_semasa->pluck('kod_objek')
-                            ->merge($rekod_lepas->pluck('kod_objek'))
-                            ->merge($rekod_2_lepas->pluck('kod_objek'))
-                            ->unique()
-                            ->sort();
+    // --- Pengiraan Emolumen ---
+    $emoData = $viewData['laporan_kewangan']['10000'] ?? ['total_peruntukan'=>0, 'total_belanja'=>0];
+    $emoSiling = $emoData['total_peruntukan'] ?? 0;
+    $emoBelanja = $emoData['total_belanja'] ?? 0;
+    $emoBaki = $emoSiling - $emoBelanja;
 
-        foreach ($all_kod_objek as $kod) {
-            $item_semasa  = $rekod_semasa[$kod] ?? null;
-            $item_lepas   = $rekod_lepas[$kod] ?? null;
-            $item_2_lepas = $rekod_2_lepas[$kod] ?? null;
+    $viewData['emoSiling'] = $emoSiling;
+    $viewData['emoBelanja'] = $emoBelanja;
+    $viewData['emoBaki'] = $emoBaki;
 
-            $kod_utama = $item_semasa->kod_utama ?? $item_lepas->kod_utama ?? $item_2_lepas->kod_utama ?? 'Lain-lain';
-            $butiran   = $item_semasa->butiran ?? $item_lepas->butiran ?? $item_2_lepas->butiran ?? '-';
+    return view('kewangan.index', $viewData);
+}
 
-            if (array_key_exists($kod_utama, $laporan)) {
-                $laporan[$kod_utama]['items'][] = [
-                    'kod_objek'       => $kod,
-                    'butiran'         => $butiran,
-                    'belanja_semasa'  => $item_semasa->belanja ?? 0,
-                    'belanja_lepas'   => $item_lepas->belanja ?? 0,
-                    'belanja_2_lepas' => $item_2_lepas->belanja ?? 0,
-                ];
-            }
-        }
-
-        // HANTAR KE VIEW (Pastikan ejaan 'tahun_semasa' sama dengan View)
-        return view('kewangan.perbandingan', compact('laporan', 'tahun_semasa', 'tahun_lepas', 'tahun_2_lepas'));
-    }
-
-    // --- 2. BORANG TAMBAH (CREATE) ---
+// --- 2. CREATE ---
     public function create()
     {
         return view('kewangan.create');
     }
 
-    // --- 3. SIMPAN DATA (STORE) ---
+    // --- 3. STORE ---
     public function store(Request $request)
     {
-        // Validate input asas
-        $request->validate([
+        $data = $request->validate([
             'kod_utama' => 'required',
             'kod_objek' => 'required',
-            'butiran'   => 'required',
-            'peruntukan'=> 'required|numeric',
-            // Belanja boleh null, tapi kalau ada mesti numeric
-            'belanja'   => 'nullable|numeric', 
+            'butiran' => 'required',
+            'peruntukan' => 'required|numeric',
+            'belanja_jan' => 'nullable|numeric',
+            'belanja_feb' => 'nullable|numeric',
+            'belanja_mac' => 'nullable|numeric',
+            'belanja_apr' => 'nullable|numeric',
+            'belanja_mei' => 'nullable|numeric',
+            'belanja_jun' => 'nullable|numeric',
+            'belanja_jul' => 'nullable|numeric',
+            'belanja_ogos' => 'nullable|numeric',
+            'belanja_sep' => 'nullable|numeric',
+            'belanja_okt' => 'nullable|numeric',
+            'belanja_nov' => 'nullable|numeric',
+            'belanja_dis' => 'nullable|numeric',
         ]);
 
-        $tahun_input = $request->input('tahun', date('Y'));
+        $totalBelanja = collect([
+            $request->belanja_jan, $request->belanja_feb, $request->belanja_mac,
+            $request->belanja_apr, $request->belanja_mei, $request->belanja_jun,
+            $request->belanja_jul, $request->belanja_ogos, $request->belanja_sep,
+            $request->belanja_okt, $request->belanja_nov, $request->belanja_dis
+        ])->sum();
 
-        // Kira total belanja secara automatik dari backend (Backup kalau JS tak jalan)
-        // Atau guna nilai dari request jika ada.
-        // Di sini kita ambil nilai input individual suku tahun
-        $s1 = $request->belanja_s1 ?? 0;
-        $s2 = $request->belanja_s2 ?? 0;
-        $s3 = $request->belanja_s3 ?? 0;
-        $s4 = $request->belanja_s4 ?? 0;
-        
-        // Logic: Kalau user tak hantar total 'belanja' dari hidden input, kita kira sendiri
-        $total_belanja = $request->belanja ?? ($s1 + $s2 + $s3 + $s4);
-
-        KewanganRecord::create([
-            'negeri'     => Auth::user()->negeri,
-            'kod_utama'  => $request->kod_utama,
-            'kod_objek'  => $request->kod_objek,
-            'butiran'    => $request->butiran,
-            'peruntukan' => $request->peruntukan,
-            'tahun'      => $tahun_input,
-            
-            // --- INI YANG TERTINGGAL TADI (WAJIB ADA) ---
-            'belanja_s1' => $s1,
-            'belanja_s2' => $s2,
-            'belanja_s3' => $s3,
-            'belanja_s4' => $s4,
-            // -------------------------------------------
-
-            'belanja'    => $total_belanja,
+        $finalData = array_merge($data, [
+            'belanja' => $totalBelanja,
+            'tahun' => $request->input('tahun', date('Y')),
+            'user_id' => Auth::id(),
+            'negeri' => Auth::user()->negeri,
         ]);
 
-        return redirect()->route('kewangan.index', ['tahun' => $tahun_input])
-                         ->with('success', 'Rekod berjaya ditambah!');
+        Kewangan::create($finalData);
+
+        return redirect()->route('kewangan.index')->with('success', 'Rekod kewangan berjaya ditambah.');
     }
 
-    // --- 4. BORANG EDIT (EDIT) ---
+    // --- 4. EDIT ---
     public function edit($id)
     {
-        $record = KewanganRecord::findOrFail($id);
-        if($record->negeri !== Auth::user()->negeri) abort(403);
+        $record = Kewangan::findOrFail($id);
         return view('kewangan.edit', compact('record'));
     }
 
-  // --- 5. KEMASKINI DATA (UPDATE) ---
+    // --- 5. UPDATE ---
     public function update(Request $request, $id)
     {
-        $request->validate([
+        $record = Kewangan::findOrFail($id);
+
+        $data = $request->validate([
             'kod_utama' => 'required',
             'kod_objek' => 'required',
-            'butiran'   => 'required',
-            'peruntukan'=> 'required|numeric',
-            'belanja'   => 'nullable|numeric',
+            'butiran' => 'required',
+            'peruntukan' => 'required|numeric',
+            'belanja_jan' => 'nullable|numeric',
+            'belanja_feb' => 'nullable|numeric',
+            'belanja_mac' => 'nullable|numeric',
+            'belanja_apr' => 'nullable|numeric',
+            'belanja_mei' => 'nullable|numeric',
+            'belanja_jun' => 'nullable|numeric',
+            'belanja_jul' => 'nullable|numeric',
+            'belanja_ogos' => 'nullable|numeric',
+            'belanja_sep' => 'nullable|numeric',
+            'belanja_okt' => 'nullable|numeric',
+            'belanja_nov' => 'nullable|numeric',
+            'belanja_dis' => 'nullable|numeric',
         ]);
 
-        $record = KewanganRecord::findOrFail($id);
-        
-        // Security check: Pastikan user edit negeri sendiri sahaja
-        if($record->negeri !== Auth::user()->negeri) abort(403);
+        $totalBelanja = collect([
+            $request->belanja_jan, $request->belanja_feb, $request->belanja_mac,
+            $request->belanja_apr, $request->belanja_mei, $request->belanja_jun,
+            $request->belanja_jul, $request->belanja_ogos, $request->belanja_sep,
+            $request->belanja_okt, $request->belanja_nov, $request->belanja_dis
+        ])->sum();
 
-        // Ambil nilai suku tahun
-        $s1 = $request->belanja_s1 ?? 0;
-        $s2 = $request->belanja_s2 ?? 0;
-        $s3 = $request->belanja_s3 ?? 0;
-        $s4 = $request->belanja_s4 ?? 0;
+        $record->update(array_merge($data, ['belanja' => $totalBelanja]));
 
-        // Logic: Kalau hidden input belanja kosong, backend tolong kirakan
-        $total_belanja = $request->belanja ?? ($s1 + $s2 + $s3 + $s4);
-
-        $record->update([
-            'kod_utama'  => $request->kod_utama,
-            'kod_objek'  => $request->kod_objek,
-            'butiran'    => $request->butiran,
-            'peruntukan' => $request->peruntukan,
-            
-            // --- INI YANG TERTINGGAL TADI (WAJIB ADA) ---
-            'belanja_s1' => $s1,
-            'belanja_s2' => $s2,
-            'belanja_s3' => $s3,
-            'belanja_s4' => $s4,
-            // -------------------------------------------
-
-            'belanja'    => $total_belanja,
-        ]);
-
-        return redirect()->route('kewangan.index', ['tahun' => $record->tahun])
-                         ->with('success', 'Rekod berjaya dikemaskini!');
+        return redirect()->route('kewangan.index')->with('success', 'Rekod kewangan berjaya dikemaskini.');
     }
-    // --- 6. HAPUS DATA (DESTROY) ---
+
+    // --- 6. DESTROY ---
     public function destroy($id)
     {
-        $record = KewanganRecord::findOrFail($id);
-        if($record->negeri !== Auth::user()->negeri) abort(403);
-        $tahun_asal = $record->tahun;
+        $record = Kewangan::findOrFail($id);
         $record->delete();
-
-        return redirect()->route('kewangan.index', ['tahun' => $tahun_asal])->with('success', 'Rekod berjaya dihapuskan!');
+        return redirect()->route('kewangan.index')->with('success', 'Rekod berjaya dipadam.');
     }
 
-        // --- 7. CETAK PDF ---
+    // --- 7. PDF BULANAN ---
+    public function cetakPdfBulanan(Request $request)
+    {
+        $tahun = $request->input('tahun', date('Y'));
+        $rekod_db = Kewangan::where('tahun', $tahun)->orderBy('kod_objek')->get();
 
+        $laporan_kewangan = [];
+        $grand_total_peruntukan = 0;
+        $grand_total_belanja = 0;
 
-public function cetakPdf(Request $request)
-{
-    $tahun = $request->input('tahun');
+        $tajuk_kod = [
+            '10000' => 'EMOLUMEN',
+            '20000' => 'PERKHIDMATAN & BEKALAN',
+            '30000' => 'ASET',
+            '40000' => 'PEMBERIAN & KENAAN BAYARAN TETAP',
+            '50000' => 'PERBELANJAAN LAIN-LAIN'
+        ];
 
-    // 1. TARIK DATA DARI DATABASE
-    // Menggunakan KewanganRecord
-    $rekod_db = KewanganRecord::where('tahun', $tahun)
-                ->orderBy('kod_objek', 'asc') // Susun ikut kod objek (10000, 20000...)
-                ->get();
+        foreach ($rekod_db as $item) {
+            $kod_utama = $item->kod_utama;
+            if (!isset($laporan_kewangan[$kod_utama])) {
+                $laporan_kewangan[$kod_utama] = [
+                    'tajuk' => $tajuk_kod[$kod_utama] ?? 'LAIN',
+                    'total_peruntukan' => 0,
+                    'total_belanja' => 0,
+                    'items' => []
+                ];
+            }
+            $laporan_kewangan[$kod_utama]['items'][] = $item;
+            $laporan_kewangan[$kod_utama]['total_peruntukan'] += $item->peruntukan;
+            $laporan_kewangan[$kod_utama]['total_belanja'] += $item->belanja;
 
-    // 2. DEFINISI NAMA TAJUK UTAMA (MAPPING)
-    $tajuk_kod = [
-        '10000' => 'EMOLUMEN',
-        '20000' => 'PERKHIDMATAN DAN BEKALAN',
-        '30000' => 'ASET',
-        '40000' => 'PEMBERIAN DAN KENAAN BAYARAN TETAP',
-        '50000' => 'PERBELANJAAN LAIN-LAIN',
-    ];
+            $grand_total_peruntukan += $item->peruntukan;
+            $grand_total_belanja += $item->belanja;
+        }
 
-    // 3. PROSES DATA UNTUK GROUPING (Logic PHP)
-    $laporan_kewangan = [];
-    
-    // Initialize Grand Totals (Untuk Footer Table)
-    $grand_total_peruntukan = 0;
-    $grand_total_belanja = 0;
-    $grand_s1 = 0; $grand_s2 = 0; $grand_s3 = 0; $grand_s4 = 0;
+        ksort($laporan_kewangan);
 
-    foreach ($rekod_db as $item) {
-        // Ambil digit pertama kod objek (Contoh: 11000 -> '1')
-        // Pastikan column di DB nama dia 'kod_objek'
-        $first_digit = substr((string)$item->kod_objek, 0, 1); 
-        $kod_utama = $first_digit . '0000'; // Jadi '10000'
+        $viewData = [
+            'title' => 'Laporan Kewangan Bulanan Tahun ' . $tahun,
+            'tahun' => $tahun,
+            'laporan_kewangan' => $laporan_kewangan,
+            'grand_total_peruntukan' => $grand_total_peruntukan,
+            'grand_total_belanja' => $grand_total_belanja,
+        ];
 
-        // Jika group ini belum wujud, create array dia
-        if (!isset($laporan_kewangan[$kod_utama])) {
-            $laporan_kewangan[$kod_utama] = [
-                'tajuk' => $tajuk_kod[$kod_utama] ?? 'LAIN-LAIN',
-                'total_peruntukan' => 0,
-                'total_belanja' => 0,
-                'items' => []
+        $pdf = PDF::loadView('kewangan.pdf_bulanan', $viewData);
+        $pdf->setPaper('a4', 'landscape');
+
+        return $pdf->stream('Laporan_Kewangan_Bulanan_' . $tahun . '.pdf');
+    }
+
+    // --- 8. PDF SUKU TAHUN ---
+    public function cetakPdfSuku(Request $request)
+    {
+        $viewData = $this->getLaporanKewangan($request);
+
+        $viewData['title'] = 'Laporan Prestasi Suku Tahun ' . $viewData['tahun_dipilih'];
+
+        $pdf = PDF::loadView('kewangan.pdf_suku_tahun', $viewData);
+        $pdf->setPaper('a4', 'landscape');
+
+        return $pdf->stream('Laporan_Prestasi_Suku_' . $viewData['tahun_dipilih'] . '.pdf');
+    }
+
+    // --- 9. SUKU TAHUN ---
+    public function sukuTahun(Request $request)
+    {
+        $viewData = $this->getLaporanKewangan($request);
+        return view('kewangan.suku_tahun', $viewData);
+    }
+
+    // --- 10. PERBANDINGAN ---
+    public function perbandingan(Request $request)
+    {
+        $viewData = $this->getLaporanKewangan($request);
+
+        $viewData['tahun_semasa'] = $request->input('tahun', date('Y'));
+        $viewData['tahun_lepas'] = $viewData['tahun_semasa'] - 1;
+        $viewData['tahun_2_lepas'] = $viewData['tahun_semasa'] - 2;
+
+        $laporan = [];
+        foreach ($viewData['laporan_kewangan'] as $kod => $group) {
+            $items = [];
+            foreach ($group['items'] as $item) {
+                $items[] = [
+                    'kod_objek' => $item->kod_objek,
+                    'butiran' => $item->butiran,
+                    'belanja_semasa' => $item->belanja,
+                    'belanja_lepas' => $item->belanja,
+                    'belanja_2_lepas' => $item->belanja,
+                ];
+            }
+            $laporan[$kod] = [
+                'tajuk' => $group['tajuk'],
+                'items' => $items,
             ];
         }
 
-        // Kira Total Belanja Item ini
-        // PASTIKAN column DB anda nama dia: 'belanja_s1', 'belanja_s2' etc.
-        $total_item_belanja = $item->belanja_s1 + $item->belanja_s2 + $item->belanja_s3 + $item->belanja_s4;
-        
-        // Tambah property 'belanja' manual ke dalam object item untuk view guna
-        $item->belanja = $total_item_belanja; 
-        
-        // Masukkan ke dalam list items
-        $laporan_kewangan[$kod_utama]['items'][] = $item;
+        $viewData['laporan'] = $laporan;
 
-        // Update Sub-Total Group
-        $laporan_kewangan[$kod_utama]['total_peruntukan'] += $item->peruntukan;
-        $laporan_kewangan[$kod_utama]['total_belanja'] += $total_item_belanja;
-
-        // Update Grand Total (Keseluruhan)
-        $grand_total_peruntukan += $item->peruntukan;
-        $grand_total_belanja += $total_item_belanja;
-        $grand_s1 += $item->belanja_s1;
-        $grand_s2 += $item->belanja_s2;
-        $grand_s3 += $item->belanja_s3;
-        $grand_s4 += $item->belanja_s4;
+        return view('kewangan.perbandingan', $viewData);
     }
-
-    // Sort array supaya urutan betul (10000, 20000...)
-    ksort($laporan_kewangan);
-
-    // 4. HANTAR DATA KE VIEW
-    $viewData = [
-        'title' => 'LAPORAN PRESTASI PERBELANJAAN TAHUN ' . $tahun,
-        'tahun' => $tahun,
-        'laporan_kewangan' => $laporan_kewangan,
-        
-        // Variable Totals
-        'grand_total_peruntukan' => $grand_total_peruntukan,
-        'grand_total_belanja' => $grand_total_belanja,
-        'grand_s1' => $grand_s1,
-        'grand_s2' => $grand_s2,
-        'grand_s3' => $grand_s3,
-        'grand_s4' => $grand_s4,
-    ];
-
-    $pdf = PDF::loadView('kewangan.pdf_suku_tahun', $viewData);
-    $pdf->setPaper('a4', 'landscape');
-
-    return $pdf->stream('Laporan_Suku_Tahun_'.$tahun.'.pdf');
-}
 }

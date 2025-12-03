@@ -1,141 +1,449 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ms">
 <head>
     <meta charset="UTF-8">
-    <title>Sistem Laporan</title>
+    <title>Sistem Laporan | AGC</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     @stack('styles')
 
     <style>
-        canvas { background-color: #fff; padding: 10px; border-radius: 8px; }
-        .nav-link.active { font-weight: bold; color: #0d6efd !important; background-color: rgba(13, 110, 253, 0.1); border-radius: 5px; }
-        .collapse-inner { background: #f8f9fa; border-left: 3px solid #0d6efd; margin-left: 1rem; padding: 0.5rem 0; border-radius: 0 5px 5px 0; }
-        .collapse-item { display: block; padding: 0.5rem 1rem; color: #555; text-decoration: none; font-size: 0.85rem; transition: all 0.2s; }
-        .collapse-item:hover { background-color: #e9ecef; color: #0d6efd; text-decoration: none; }
-        .collapse-item.active { color: #0d6efd; font-weight: bold; background-color: #e2e6ea; }
-        .collapse-header { font-size: 0.7rem; text-transform: uppercase; color: #888; padding: 0.5rem 1rem; font-weight: bold; letter-spacing: 0.5px; }
-        .nav-link[aria-expanded="true"] .fa-caret-down { transform: rotate(180deg); transition: transform 0.3s; }
+        body {
+            background-color: #f1f5f9;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        aside {
+            background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+            color: #fff;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-logo-area {
+            padding: 40px 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+            background: rgba(0,0,0,0.15);
+        }
+
+        .sidebar-logo-img {
+            width: 140px;
+            height: 140px;
+            object-fit: contain;
+            border-radius: 50%;
+            margin-bottom: 20px;
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.3); 
+            background: #fff;
+            padding: 5px;
+            transition: transform 0.3s ease;
+        }
+        .sidebar-logo-img:hover { transform: scale(1.05); }
+
+        .brand-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: #fff;
+            text-transform: uppercase;
+            line-height: 1.2;
+            margin-bottom: 5px;
+        }
+
+        .brand-subtitle {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .user-profile-compact {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 12px;
+            margin: 0 15px 15px 15px; 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .avatar-circle {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, #06b6d4, #3b82f6);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+            flex-shrink: 0;
+            font-weight: bold;
+        }
+        .user-info {
+            flex-grow: 1; 
+            min-width: 0; 
+        }
+        .user-info h6 { 
+            font-size: 0.9rem; 
+            margin: 0; 
+            color: #fff; 
+            font-weight: 700; 
+            white-space: normal; 
+            line-height: 1.2;
+            max-height: 2.4em; 
+            overflow: hidden;
+            text-overflow: ellipsis; 
+        }
+        .user-info span { 
+            font-size: 0.75rem; 
+            color: #cbd5e1; 
+            display: block; 
+            white-space: nowrap; 
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .menu-label {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #64748b;
+            padding: 0 25px;
+            margin-bottom: 10px;
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-link {
+            color: #cbd5e1 !important;
+            padding: 12px 25px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            border-left: 4px solid transparent;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            text-decoration: none; 
+        }
+
+        .nav-link i { width: 25px; text-align: center; margin-right: 10px; font-size: 1.1rem; }
+        .nav-link:hover { background: rgba(255, 255, 255, 0.05); color: #fff !important; }
+        
+        .nav-link.active {
+            background: linear-gradient(90deg, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0) 100%);
+            color: #22d3ee !important;
+            border-left: 4px solid #06b6d4;
+        }
+
+        .collapse-inner {
+            background: rgba(0, 0, 0, 0.3);
+            margin: 5px 15px;
+            border-radius: 8px;
+            padding: 10px 0;
+        }
+        .collapse-item {
+            color: #94a3b8 !important;
+            padding: 8px 20px;
+            display: block;
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            border-radius: 5px;
+            margin: 0 10px;
+        }
+        .collapse-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff !important;
+            transform: translateX(5px);
+        }
+        .collapse-item.active {
+            color: #22d3ee !important;
+            font-weight: 700;
+            background: rgba(6, 182, 212, 0.1);
+        }
+
+        aside::-webkit-scrollbar { width: 5px; }
+        aside::-webkit-scrollbar-thumb { background: #475569; border-radius: 5px; }
+        aside::-webkit-scrollbar-track { background: transparent; }
     </style>
 </head>
-<body class="bg-light min-vh-100">
+<body> 
     <div class="container-fluid">
         <div class="row">
-            <aside class="col-md-2 bg-white shadow-sm p-3 d-none d-md-block" style="min-height: 100vh;">
+            
+            <aside class="col-md-2 d-none d-md-flex p-0">
                 
-                {{-- 1. LOGIC PHP DI SINI (Supaya kod bawah kemas) --}}
+                <div class="sidebar-logo-area">
+                    <img src="{{ asset('images/logo-ai.png') }}" 
+                        onerror="this.src='{{ asset('images/logo.png') }}'" 
+                        alt="Logo" class="sidebar-logo-img">
+                    <div class="brand-title">SISTEM LAPORAN</div>
+                    <div class="brand-subtitle">JABATAN PEGUAM NEGARA</div>
+                </div>
+
                 @php
                     $user = Auth::user();
-                    $role = strtolower($user->role ?? ''); // contoh: 'user', 'pa', 'yb'
-                    $bahagian = trim($user->bahagian ?? ''); // buang space extra
+                    $role = strtolower(trim($user->role ?? '')); 
+                    $bahagian = strtoupper(trim($user->bahagian ?? '')); 
 
-                    // Check Logic: Adakah dia STAFF BIASA dari Bahagian Pentadbiran?
-                    $isUserPentadbiran = ($role === 'user' && $bahagian === 'Bahagian Pentadbiran');
+                    $targetRoute = 'dashboard'; 
+
+                    switch ($bahagian) {
+                        case 'BAHAGIAN PENTADBIRAN & KEWANGAN':
+                        case 'BAHAGIAN PENTADBIRAN DAN KEWANGAN':
+                            $targetRoute = 'dashboard.pentadbirandankewangan';
+                            break;
+                        case 'BAHAGIAN GUAMAN':
+                            $targetRoute = 'dashboard.guaman'; 
+                            break;
+                        case 'BAHAGIAN PENASIHAT':
+                            $targetRoute = 'dashboard.penasihat';
+                            break;
+                        case 'BAHAGIAN PENDAKWAAN':
+                            $targetRoute = 'dashboard.pendakwaan';
+                            break;
+                        case 'BAHAGIAN SEMAKAN':
+                            $targetRoute = 'dashboard.semakan';
+                            break;
+                        case 'BAHAGIAN SYARIAH':
+                            $targetRoute = 'dashboard.syariah';
+                            break;
+                        default:
+                            if (in_array($role, ['super_admin', 'admin', 'administrator'])) {
+                                $targetRoute = 'dashboard.admin';
+                            }
+                            break;
+                    }
+
+                    $dashboardRoute = Route::has($targetRoute) ? $targetRoute : 'dashboard';
+
+
+                    $isSuperAdmin = in_array($role, ['super_admin', 'admin', 'administrator']);
+                    $isBoss = ($role === 'boss');
+                    $isCC = ($role === 'cc'); 
+                    $isEO = ($role === 'eo'); 
+                    $isYB = ($role === 'yb');
+                    $isPA = ($role === 'pa');
+                    $isMidAdmin = ($isPA || $isBoss); 
+
+                    $isStaffKewPen = str_contains($bahagian, 'PENTADBIRAN') || str_contains($bahagian, 'KEWANGAN');
+
+                    $isStaffGuaman = ($bahagian === 'BAHAGIAN GUAMAN');
                     
-                    // Check Logic: Admin/Boss (PA/YB)
-                    $isAdmin = in_array($role, ['pa', 'yb']);
+                    $isStaffLaporanPenasihat = in_array($bahagian, ['BAHAGIAN PENASIHAT', 'BAHAGIAN SEMAKAN', 'BAHAGIAN SYARIAH', 'BAHAGIAN PENDAKWAAN']); 
+                    
+                    $showKewangan = ($isSuperAdmin || $isStaffKewPen || $isMidAdmin || $isYB || $isCC || $isEO);
+                    $showPentadbiran = ($isSuperAdmin || $isStaffKewPen || $isMidAdmin || $isYB || $isCC || $isEO);
+                    
+                    $showModulGuaman = ($isSuperAdmin || $isYB || $isBoss || $isStaffGuaman);
+
+                    $showModulLaporanPenasihat = ($isSuperAdmin || $isYB || $isBoss || $isStaffLaporanPenasihat || ($isPA && $isStaffLaporanPenasihat)); 
+
+                    $showDbus = ($isSuperAdmin || (in_array($role, ['cc', 'eo']) && $isStaffKewPen));
+
+                    $showUrusAgensi = ($isSuperAdmin || $isMidAdmin); 
+                    $showTetapanPengguna = ($isSuperAdmin || $isMidAdmin || $isCC || $isEO);
+                    $showMenuTetapan = ($showTetapanPengguna || $showUrusAgensi);
+                    
+                    $showLaporanPenuh = ($isSuperAdmin || $isYB || $isBoss || $isPA) || $isStaffLaporanPenasihat;
                 @endphp
 
-                <h5 class="fw-bold text-primary"><i class="fas fa-bars mr-2"></i> MENU</h5>
-                <hr>
-                <div class="text-center mb-4">
-                    <img src="{{ asset('images/logo.png') }}" alt="Logo" class="img-fluid w-50 mb-2">
-                    <p class="mb-0 small fw-bold text-uppercase text-dark" style="line-height: 1.2;">JABATAN PEGUAM NEGARA</p>
+                @if(Auth::check())
+                <div class="user-profile-compact">
+                    <div class="avatar-circle">{{ substr($user->name, 0, 1) }}</div>
+                    <div class="user-info text-start">
+                        <h6 title="{{ $user->name }}">{{ $user->name }}</h6>
+                        <span>{{ Str::limit($user->bahagian ?? 'Umum', 20) }}</span>
+                    </div>
                 </div>
 
-                @if(Auth::check())
-                <div class="alert alert-light border text-center p-2 mb-3">
-                    <small class="text-muted d-block">Selamat Datang,</small>
-                    <strong>{{ $user->name }}</strong>
-                    <form method="POST" action="{{ route('logout') }}" class="mt-2">
+                <div class="px-3 mb-4">
+                    <form method="POST" action="{{ route('logout') }}">
                         @csrf
-                        <button class="btn btn-sm btn-outline-danger w-100"><i class="fas fa-sign-out-alt mr-1"></i> Log Keluar</button>
+                        <button class="btn btn-sm btn-danger w-100 fw-bold d-flex align-items-center justify-content-center gap-2" style="border-radius: 8px;">
+                            <i class="fas fa-power-off"></i> LOG KELUAR
+                        </button>
                     </form>
                 </div>
-                @endif
+                @endif 
 
-                <ul class="nav flex-column">
-                    <li class="nav-item"><a class="nav-link {{ Route::is('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}"><i class="fas fa-home mr-2"></i> Utama</a></li>
-                    <li class="nav-item"><a class="nav-link {{ Route::is('profile.*') ? 'active' : '' }}" href="{{ route('profile.show') }}"><i class="fas fa-user mr-2"></i> Profil</a></li>
-                    <li class="nav-item"><a class="nav-link {{ Route::is('pergerakan.*') ? 'active' : '' }}" href="{{ route('pergerakan.index') }}"><i class="fas fa-walking mr-2"></i> Pergerakan Pegawai</a></li>
+                <div style="flex-grow: 1; padding-bottom: 20px;">
                     
-                    <li class="nav-item my-2"><hr class="m-0"></li>
-                    <li class="nav-item mb-2"><small class="text-uppercase text-muted fw-bold pl-3">Modul Laporan</small></li>
-                    
-                    {{-- === GROUP A: PENTADBIRAN & KEWANGAN === --}}
-                    {{-- Logic: Admin Nampak, EO Nampak, ATAU User Pentadbiran Nampak --}}
-                    
-                    @if(Auth::check() && ($isAdmin || $role === 'eo' || $isUserPentadbiran || $bahagian === 'Bahagian Kewangan'))
+                    <div class="menu-label">Menu Utama</div>
+                    <ul class="nav flex-column mb-3">
                         
-                        {{-- Menu Pentadbiran --}}
                         <li class="nav-item">
-                            <a class="nav-link {{ Route::is('pentadbiran.*') ? 'active' : '' }}" href="{{ route('pentadbiran.index') }}">
-                                <i class="fas fa-cogs mr-2"></i> Pentadbiran
+                            <a class="nav-link {{ Route::is($dashboardRoute) || Route::is('dashboard.*') ? 'active' : '' }}" 
+                               href="{{ route($dashboardRoute) }}">
+                                <i class="fas fa-chart-pie"></i> Dashboard
                             </a>
                         </li>
-                        
-                        {{-- Menu Kewangan --}}
-                        <li class="nav-item">
-                            <a class="nav-link {{ Route::is('kewangan.*') ? '' : 'collapsed' }} d-flex justify-content-between align-items-center" 
-                               href="#collapseKewangan" 
-                               data-bs-toggle="collapse" 
-                               role="button" 
-                               aria-expanded="{{ Route::is('kewangan.*') ? 'true' : 'false' }}" 
-                               aria-controls="collapseKewangan">
-                                <span><i class="fas fa-coins mr-2"></i> Kewangan</span>
-                                <i class="fas fa-caret-down text-muted small"></i>
-                            </a>
 
-                            <div id="collapseKewangan" class="collapse {{ Route::is('kewangan.*') ? 'show' : '' }}">
-                                <div class="collapse-inner mt-1">
-                                    <h6 class="collapse-header">Laporan Prestasi:</h6>
-                                    <a class="collapse-item {{ Route::is('kewangan.index') ? 'active' : '' }}" href="{{ route('kewangan.index') }}">Prestasi Keseluruhan</a>
-                                    <a class="collapse-item {{ Route::is('kewangan.suku_tahun') ? 'active' : '' }}" href="{{ route('kewangan.suku_tahun') }}">Prestasi Suku Tahun</a>
-                                    <a class="collapse-item {{ Route::is('kewangan.perbandingan') ? 'active' : '' }}" href="{{ route('kewangan.perbandingan') }}">Perbandingan Tahunan</a>
-                                </div>
-                            </div>
-                        </li>
-                    @endif
-                    
-                    {{-- === GROUP B: MODUL TEKNIKAL (Legal, Mahkamah, dll) === --}}
-                    {{-- Logic: User Pentadbiran TAK BOLEH NAMPAK INI --}}
-                    
-                    @if(Auth::check() && $role !== 'eo' && !$isUserPentadbiran)
-                        
-                        <li class="nav-item"><a class="nav-link {{ Route::is('laporanpandanganundang.*') ? 'active' : '' }}" href="{{ route('laporanpandanganundang.index') }}"><i class="fas fa-gavel mr-2"></i> Pandangan Undang-Undang</a></li>
-                        
                         <li class="nav-item">
-                            <a class="nav-link {{ Route::is('laporankesmahkamah.*') ? 'active' : '' }}" href="{{ route('laporankesmahkamah.index') }}"><i class="fas fa-balance-scale mr-2"></i> Kes Mahkamah</a>
+                            <a class="nav-link {{ Route::is('profile.*') ? 'active' : '' }}" href="{{ route('profile.show') }}">
+                                <i class="fas fa-id-card"></i> Profil Saya
+                            </a>
                         </li>
-                        
-                        @if($role === 'pa')
-                            <li class="nav-item ml-3">
-                                <a class="nav-link text-secondary small {{ Route::is('lampiran.*') ? 'active' : '' }}" href="{{ route('lampiran.index') }}">
-                                    <i class="fas fa-angle-right mr-1"></i> Lampiran II - Kes Mahkamah
+                        <li class="nav-item">
+                            <a class="nav-link {{ Route::is('pergerakan.index') && !Route::is('pergerakan.borang') ? 'active' : '' }}" 
+                               href="{{ route('pergerakan.index') }}">
+                                <i class="fas fa-walking"></i> Kalendar Pergerakan
+                            </a>
+                        </li>
+                    </ul>
+
+                    @if($showPentadbiran)
+                        <div class="menu-label">Pentadbiran</div>
+                        <ul class="nav flex-column mb-3">
+                            <li class="nav-item">
+                                <a class="nav-link {{ Route::is('pentadbiran.laporan_prestasi.*') ? 'active' : '' }}" href="{{ route('pentadbiran.laporan_prestasi.index') }}">
+                                    <i class="fas fa-chart-line"></i> Laporan PPUUN
                                 </a>
                             </li>
-                        @endif
+                            <li class="nav-item">
+                                <a class="nav-link {{ Route::is('pentadbiran.waran.*') ? 'active' : '' }}" href="{{ route('pentadbiran.waran.index') }}">
+                                    <i class="fas fa-file-invoice"></i> Waran Perjawatan
+                                </a>
+                            </li>
+                            @if($showDbus)
+                            <li class="nav-item">
+                                <a class="nav-link {{ Route::is('pentadbiran.dbus.*') ? 'active' : '' }}" href="{{ route('pentadbiran.dbus.index') }}">
+                                    <i class="fas fa-money-check-alt"></i> D'BUS (OBB)
+                                </a>
+                            </li>
+                            @endif
+                        </ul>
+                    @endif
 
-                        <li class="nav-item"><a class="nav-link {{ Route::is('laporangubalanundang.*') ? 'active' : '' }}" href="{{ route('laporangubalanundang.index') }}"><i class="fas fa-pen-fancy mr-2"></i> Gubalan Undang-Undang</a></li>
-                        <li class="nav-item"><a class="nav-link {{ Route::is('laporanpindaanundang.*') ? 'active' : '' }}" href="{{ route('laporanpindaanundang.index') }}"><i class="fas fa-edit mr-2"></i> Pindaan Undang-Undang</a></li>
-                        <li class="nav-item"><a class="nav-link {{ Route::is('laporansemakanundang.*') ? 'active' : '' }}" href="{{ route('laporansemakanundang.index') }}"><i class="fas fa-search mr-2"></i> Semakan Undang-Undang</a></li>
-                        <li class="nav-item"><a class="nav-link {{ Route::is('laporanmesyuarat.*') ? 'active' : '' }}" href="{{ route('laporanmesyuarat.index') }}"><i class="fas fa-users mr-2"></i> Mesyuarat</a></li>
-                        <li class="nav-item"><a class="nav-link {{ Route::is('kestatatertib.*') ? 'active' : '' }}" href="{{ route('kestatatertib.index') }}"><i class="fas fa-exclamation-circle mr-2"></i> Kes Tatatertib</a></li>
-                        <li class="nav-item"><a class="nav-link {{ Route::is('lainlaintugasan.*') ? 'active' : '' }}" href="{{ route('lainlaintugasan.index') }}"><i class="fas fa-tasks mr-2"></i> Lain-lain Tugasan</a></li>
-                        
-                        @if($isAdmin)
-                            <li class="nav-item mt-2"><a class="nav-link btn btn-outline-primary text-left {{ Route::is('laporan.index') ? 'active text-white bg-primary' : '' }}" href="{{ route('laporan.index') }}"><i class="fas fa-file-alt mr-2"></i> Laporan Penuh</a></li>
-                        @endif
+                    {{-- BAHAGIAN KEWANGAN DITUKAR KEPADA PAPARAN STATIK --}}
+                    @if($showKewangan)
+                        <div class="menu-label">Kewangan</div>
+                        <ul class="nav flex-column mb-3">
+                            {{-- Modul Kewangan Utama (Senarai Rekod) --}}
+                            <li class="nav-item">
+                                <a class="nav-link {{ Route::is('kewangan.index') ? 'active' : '' }}" 
+                                   href="{{ route('kewangan.index') }}">
+                                    <i class="fas fa-coins"></i> Senarai Rekod
+                                </a>
+                            </li>
+                            {{-- Sub-modul 1 --}}
+                            <li class="nav-item">
+                                <a class="nav-link {{ Route::is('kewangan.suku_tahun') ? 'active' : '' }}" 
+                                   href="{{ route('kewangan.suku_tahun') }}">
+                                    <i class="far fa-calendar-alt"></i> Prestasi Suku Tahun
+                                </a>
+                            </li>
+                            {{-- Sub-modul 2 --}}
+                            <li class="nav-item">
+                                <a class="nav-link {{ Route::is('kewangan.perbandingan') ? 'active' : '' }}" 
+                                   href="{{ route('kewangan.perbandingan') }}">
+                                    <i class="fas fa-chart-bar"></i> Perbandingan Tahunan
+                                </a>
+                            </li>
+                        </ul>
+                    @endif
 
-                    @endif 
-                    </ul>
+                    @if($showModulGuaman)
+                        <div class="menu-label">Modul Guaman</div>
+                        <ul class="nav flex-column mb-3">
+                            <li class="nav-item">
+                                <a class="nav-link {{ Route::is('guaman.*') ? 'active' : '' }}" href="{{ route('guaman.index') }}">
+                                    <i class="fas fa-landmark"></i> Kes Guaman
+                                </a>
+                            </li>
+                        </ul>
+                    @endif
+
+                    @if($showModulLaporanPenasihat)
+                        <div class="menu-label">Modul Laporan</div>
+                        <ul class="nav flex-column mb-3">
+                            <li class="nav-item">
+                                <a class="nav-link {{ Route::is('laporanpandanganundang.*') ? 'active' : '' }}" href="{{ route('laporanpandanganundang.index') }}">
+                                    <i class="fas fa-gavel"></i> Pandangan Undang
+                                </a>
+                            </li>
+                            <li class="nav-item"><a class="nav-link {{ Route::is('laporankesmahkamah.*') ? 'active' : '' }}" href="{{ route('laporankesmahkamah.index') }}"><i class="fas fa-balance-scale"></i> Kes Mahkamah</a></li>
+                            
+                            @if($role === 'pa')
+                            <li class="nav-item"><a class="nav-link {{ Route::is('lampiran.*') ? 'active' : '' }}" href="{{ route('lampiran.index') }}"><i class="fas fa-file-contract"></i> Lampiran II</a></li>
+                            @endif
+                            
+                            <li class="nav-item"><a class="nav-link {{ Route::is('laporangubalanundang.*') ? 'active' : '' }}" href="{{ route('laporangubalanundang.index') }}"><i class="fas fa-pen-nib"></i> Gubalan</a></li>
+                            <li class="nav-item"><a class="nav-link {{ Route::is('laporanpindaanundang.*') ? 'active' : '' }}" href="{{ route('laporanpindaanundang.index') }}"><i class="fas fa-file-pen"></i> Pindaan</a></li>
+                            <li class="nav-item"><a class="nav-link {{ Route::is('laporansemakanundang.*') ? 'active' : '' }}" href="{{ route('laporansemakanundang.index') }}"><i class="fas fa-magnifying-glass"></i> Semakan</a></li>
+                            <li class="nav-item"><a class="nav-link {{ Route::is('laporanmesyuarat.*') ? 'active' : '' }}" href="{{ route('laporanmesyuarat.index') }}"><i class="fas fa-handshake"></i> Mesyuarat</a></li>
+                            <li class="nav-item"><a class="nav-link {{ Route::is('kestatatertib.*') ? 'active' : '' }}" href="{{ route('kestatatertib.index') }}"><i class="fas fa-triangle-exclamation"></i> Tatatertib</a></li>
+                            <li class="nav-item"><a class="nav-link {{ Route::is('lainlaintugasan.*') ? 'active' : '' }}" href="{{ route('lainlaintugasan.index') }}"><i class="fas fa-list-check"></i> Lain-lain</a></li>
+                            
+                            @if($showLaporanPenuh)
+                                <li class="nav-item mt-2">
+                                    <a class="nav-link btn btn-primary text-white text-center mx-2" href="{{ route('laporan.index') }}" style="justify-content: center;">
+                                        <i class="fas fa-book-open me-2"></i> Laporan Penuh
+                                    </a>
+                                </li>
+                            @endif
+                        </ul>
+                    @endif
+
+                    @if($showMenuTetapan)
+                        <div class="menu-label text-warning">Tetapan</div>
+                        <ul class="nav flex-column mb-5">
+                            @if($showUrusAgensi)
+                            <li class="nav-item">
+                                <a class="nav-link {{ Route::is('agensi.*') ? 'active' : '' }}" href="{{ route('agensi.index') }}">
+                                    <i class="fas fa-building"></i> Urus Agensi
+                                </a>
+                            </li>
+                            @endif
+
+                            @if($showTetapanPengguna)
+                            <li class="nav-item">
+                                <a class="nav-link {{ Route::is('tetapan.pengguna.*') ? 'active' : '' }}" href="{{ route('tetapan.pengguna.index') }}">
+                                    <i class="fas fa-users-cog"></i> Urus Pengguna
+                                </a>
+                            </li>
+                            @endif
+                        </ul>
+                    @endif
+
+                </div>
+                <div class="sidebar-footer"></div>
             </aside>
-
-            <main class="col-md-10 p-4 ml-auto">
+            
+            <main class="col-md-10 ms-auto py-4 px-4 bg-light" style="min-height: 100vh;">
+                @if(session('success'))
+                    <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 border-start border-4 border-success mb-4">
+                        <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                @endif
+                @if(session('error'))
+                    <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 border-start border-4 border-danger mb-4">
+                        <i class="fas fa-exclamation-circle me-2"></i> {{ session('error') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                @endif
+                
                 @yield('content')
+                
+                <div class="text-center mt-5 text-muted small">
+                    &copy; {{ date('Y') }} Sistem Laporan Pejabat Penasihat Undang-Undang.
+                </div>
             </main>
         </div>
     </div>

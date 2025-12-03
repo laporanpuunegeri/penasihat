@@ -3,85 +3,69 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth; // <-- 1. TAMBAH INI
+use App\Models\WaranPerjawatan;
 
 class PentadbiranController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        // 2. TAMBAH LOGIK KESELAMATAN & VIEW
+        return redirect()->route('dashboard.pentadbiran');
+    }
+    
+    public function indexWaran(Request $request)
+    {
+        $waranData = WaranPerjawatan::orderBy('id')->get();
+        // Memuatkan resources/views/pentadbiran/waran.blade.php
+        return view('pentadbiran.waran', compact('waranData')); 
+    }
+
+    public function editWaran(Request $request)
+    {
+        $waranData = WaranPerjawatan::orderBy('id')->get();
         
-        // Semak kebenaran (PA, YB, atau Bahagian Pentadbiran)
-        if (!Auth::check() || 
-            (strtolower(Auth::user()->role) !== 'pa' && 
-             strtolower(Auth::user()->role) !== 'yb' && 
-             Auth::user()->bahagian !== 'Bahagian Pentadbiran')) 
-        {
-            abort(403, 'Anda tiada kebenaran untuk akses modul ini.');
+        // 🔥 PEMBETULAN UTAMA: Menggunakan view 'pentadbiran.waran-edit' 
+        // Ini adalah cara yang paling biasa untuk Laravel membaca fail bernama 'waran.edit.blade.php'
+        // tanpa subfolder, iaitu dengan menukarkan titik (selepas folder) kepada sempang.
+        // ATAU, jika ralat berterusan, cuba nama fail penuh:
+        // return view('pentadbiran.waran.edit', compact('waranData')); 
+        
+        // Kita akan anggap anda telah menamakan semula fail kepada 'waran-edit.blade.php' 
+        // untuk mengikut konvensyen dot notation Laravel:
+        return view('pentadbiran.waran-edit', compact('waranData')); 
+    }
+
+    public function updateWaran(Request $request)
+    {
+        // Pengesahan data yang masuk dari borang
+        $validatedData = $request->validate([
+            'waran' => 'required|array',
+            
+            // PEMBETULAN NAMA JADUAL DARI RALAT SEBELUM INI (waran_perjawatans)
+            'waran.*.id' => 'required|integer|exists:waran_perjawatans,id', 
+            
+            'waran.*.persekutuan' => 'required|integer|min:0',
+            'waran.*.negeri' => 'required|integer|min:0',
+            'waran.*.nota' => 'nullable|string|max:255',
+        ]);
+
+        foreach ($validatedData['waran'] as $id => $data) {
+            $waran = WaranPerjawatan::find($data['id']); 
+            if ($waran) {
+                $bil_waran = $waran->bil;
+                $bil_isi = $data['persekutuan'] + $data['negeri'];
+                $bil_kosong = $bil_waran - $bil_isi;
+                
+                $waran->update([
+                    'persekutuan' => $data['persekutuan'],
+                    'negeri' => $data['negeri'],
+                    'isi' => $bil_isi,
+                    'kosong' => $bil_kosong,
+                    'nota' => $data['nota'],
+                ]);
+            }
         }
 
-        // Papar fail view
-        return view('pentadbiran.index');
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        // KESELAMATAN TAMBAHAN (Hanya Bahagian Pentadbiran boleh 'isi')
-        if (!Auth::check() || Auth::user()->bahagian !== 'Bahagian Pentadbiran') {
-            abort(403, 'Hanya Bahagian Pentadbiran boleh mencipta rekod baru.');
-        }
-
-        return view('pentadbiran.create'); // Papar borang
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        // KESELAMATAN TAMBAHAN
-        if (!Auth::check() || Auth::user()->bahagian !== 'Bahagian Pentadbiran') {
-            abort(403, 'Hanya Bahagian Pentadbiran boleh menyimpan rekod baru.');
-        }
-
-        // ... (Letak logik untuk simpan data borang di sini) ...
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        // ... (Letak logik keselamatan anda di sini) ...
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        // ... (Letak logik keselamatan anda di sini) ...
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        // ... (Letak logik keselamatan anda di sini) ...
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        // ... (Letak logik keselamatan anda di sini) ...
+        // Kembali ke route edit waran, yang kini menggunakan view 'waran-edit'
+        return redirect()->route('pentadbiran.waran.edit')->with('success', 'Waran Perjawatan berjaya dikemaskini.');
     }
 }

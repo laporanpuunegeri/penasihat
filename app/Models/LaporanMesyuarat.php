@@ -4,13 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LaporanMesyuarat extends Model
 {
     use HasFactory;
-
-    protected $table = 'laporan_mesyuarats';
 
     protected $fillable = [
         'mesyuarat',
@@ -20,20 +17,11 @@ class LaporanMesyuarat extends Model
         'pandangan',
         'user_id',
         'negeri',
-        'created_at',
-        'updated_at',
     ];
 
-    protected $casts = [
-        'tarikh_mesyuarat' => 'date',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-    ];
-
-    public function user(): BelongsTo
+    // Optional: relation to user
+    public function user()
     {
-        return $this->belongsTo(User::class)->withDefault([
-            'name' => '-'
-        ]);
+        return $this->belongsTo(User::class);
     }
 }

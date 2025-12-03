@@ -1,105 +1,251 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid px-4">
-    <h3 class="mb-4">Senarai Laporan Pandangan Undang-Undang</h3>
 
-    {{-- Tapisan ikut bulan --}}
-    <form method="GET" class="row g-3 mb-3 align-items-end">
-        <div class="col-md-3">
-            <label for="bulan" class="form-label">Tapis Ikut Bulan:</label>
-            <select name="bulan" id="bulan" class="form-select" onchange="this.form.submit()">
-                <option value="">-- Pilih Bulan --</option>
-                @foreach ([1 => 'Januari', 2 => 'Februari', 3 => 'Mac', 4 => 'April', 5 => 'Mei', 6 => 'Jun',
-                           7 => 'Julai', 8 => 'Ogos', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Disember']
-                           as $num => $nama)
-                    <option value="{{ $num }}" {{ request('bulan') == $num ? 'selected' : '' }}>{{ $nama }}</option>
-                @endforeach
-            </select>
-        </div>
+{{-- CSS Tambahan --}}
+<style>
+    .page-header {
+        background: #fff;
+        padding: 20px 25px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+        margin-bottom: 25px;
+        border-left: 5px solid #0f172a;
+    }
+    
+    .table-card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        overflow: hidden;
+        border: 1px solid #f1f5f9;
+    }
 
-        <div class="col-md-3">
-            <a href="{{ route('laporanpandanganundang.index') }}" class="btn btn-outline-secondary">Reset</a>
-        </div>
+    .table thead th {
+        background-color: #1e293b;
+        color: #fff;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+        border: none;
+        vertical-align: middle;
+    }
 
-        <div class="col-md-6 text-end">
-            <a href="{{ route('laporanpandanganundang.create') }}" class="btn btn-success">+ Daftar Baharu</a>
+    .category-row {
+        background-color: #f8fafc;
+        color: #334155;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+        letter-spacing: 0.5px;
+    }
+
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+    
+    .status-badge {
+        font-size: 0.75rem;
+        padding: 4px 10px;
+        border-radius: 50px;
+        font-weight: 600;
+    }
+</style>
+
+<div class="container-fluid px-4 py-4">
+
+    {{-- HEADER & BUTTON --}}
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div>
+            <h3 class="mb-1 fw-bold text-dark">Laporan Pandangan Undang-Undang</h3>
+            <p class="text-muted small mb-0">Senarai rekod pandangan undang-undang mengikut kategori.</p>
         </div>
-    </form>
+        
+        <div class="d-flex gap-2">
+            @if(auth()->user()->role == 'pa' || auth()->user()->role == 'admin')
+                <a href="{{ route('agensi.index') }}" class="btn btn-outline-secondary shadow-sm">
+                    <i class="fas fa-building-cog me-2"></i> Urus Agensi
+                </a>
+            @endif
+
+            <a href="{{ route('laporanpandanganundang.create') }}" class="btn btn-primary shadow-sm">
+                <i class="fas fa-plus me-2"></i> Daftar Baharu
+            </a>
+        </div>
+    </div>
+
+    {{-- FILTER CARD --}}
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body py-3 px-4">
+            <form method="GET" class="row align-items-center g-3">
+                <div class="col-auto">
+                    <label for="bulan" class="col-form-label fw-bold text-secondary small text-uppercase">
+                        <i class="fas fa-filter me-1"></i> Paparan Bulan:
+                    </label>
+                </div>
+                <div class="col-auto">
+                    <select name="bulan" id="bulan" class="form-select form-select-sm fw-bold border-primary" style="min-width: 200px;" onchange="this.form.submit()">
+                        <option value="all" {{ request('bulan') == 'all' ? 'selected' : '' }}>-- Semua Bulan --</option>
+                        @foreach ([1 => 'Januari', 2 => 'Februari', 3 => 'Mac', 4 => 'April', 5 => 'Mei', 6 => 'Jun',
+                                   7 => 'Julai', 8 => 'Ogos', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Disember']
+                                   as $num => $nama)
+                            <option value="{{ $num }}" {{ request('bulan', date('n')) == $num ? 'selected' : '' }}>
+                                {{ $nama }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
 
     @php
         $kategori_list = [
-            'Perlembagaan',
-            'Tanah / PBT',
-            'Undang-Undang Pentadbiran / Perkhidmatan',
-            'Perjanjian / MOU',
-            'Penswastaan',
-            'Lain-lain'
+            'Perlembagaan', 'Tanah / PBT', 'Undang-Undang Pentadbiran / Perkhidmatan',
+            'Perjanjian / MOU', 'Penswastaan', 'Lain-lain'
         ];
         $currentUser = auth()->user();
     @endphp
 
-    <div class="table-responsive">
-        <table class="table table-bordered table-striped align-middle text-center">
-            <thead class="table-dark">
-                <tr>
-                    <th>Tarikh Daftar</th>
-                    <th>Tarikh Terima</th>
-                    <th>Agensi</th>
-                    <th>Fakta Ringkasan</th>
-                    <th>Isu</th>
-                    <th>Ringkasan Pandangan</th>
-                    <th colspan="2">Jenis Pandangan</th>
-                    <th>Status / Tarikh Selesai</th>
-                    <th>Tindakan</th>
-                </tr>
-            </thead>
-
-            @foreach ($kategori_list as $kategori)
-                @php $filtered = $data->where('kategori', $kategori); @endphp
-
-                <tbody>
-                    <tr class="table-secondary">
-                        <td colspan="10"><strong>({{ $loop->iteration }}) {{ strtoupper($kategori) }}</strong></td>
+    {{-- TABLE CONTENT --}}
+    <div class="table-card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle text-center mb-0">
+                <thead>
+                    <tr>
+                        <th width="10%">Tarikh Terima</th>
+                        <th width="12%">Agensi</th>
+                        <th width="20%">Fakta / Isu</th>
+                        <th width="20%">Ringkasan Pandangan</th>
+                        <th width="5%">Lisan</th>
+                        <th width="5%">Bertulis</th>
+                        <th width="12%">Status</th>
+                        <th width="6%">Dokumen</th> {{-- 🔥 DIPINDAHKAN KE SINI --}}
+                        <th width="10%">Tindakan</th>
                     </tr>
+                </thead>
 
-                    @forelse ($filtered as $item)
-                        <tr>
-                            <td>{{ $item->created_at->format('d/m/Y H:i') }}</td>
-                            <td>{{ optional($item->tarikh_terima)->format('d/m/Y') }}</td>
-                            <td>{{ $item->agensi }}</td>
-                            <td class="text-start">{{ $item->fakta_ringkasan }}</td>
-                            <td class="text-start">{{ $item->isu_detail }}</td>
-                            <td class="text-start">{{ $item->ringkasan_pandangan }}</td>
-                            <td>{{ $item->jenis_pandangan === 'Lisan' ? '✔' : '' }}</td>
-                            <td>{{ $item->jenis_pandangan === 'Bertulis' ? '✔' : '' }}</td>
-                            <td class="text-start">{{ $item->status }}</td>
-                            <td>
-                                <div class="text-muted small fst-italic mb-1">
-                                    {{ optional($item->creator)->name ?? 'Pegawai tidak dikenalpasti' }}
-                                </div>
+                @foreach ($kategori_list as $kategori)
+                    @php $filtered = $data->where('kategori', $kategori); @endphp
 
-                                {{-- Semua role boleh Edit --}}
-                                <a href="{{ route('laporanpandanganundang.edit', $item->id) }}" class="btn btn-warning btn-sm">Edit</a>
-
-                                {{-- Hanya user yang cipta boleh Padam --}}
-                                @if ($currentUser->id === $item->user_id)
-                                    <form action="{{ route('laporanpandanganundang.destroy', $item->id) }}" method="POST" class="d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Padam laporan ini?')">Padam</button>
-                                    </form>
-                                @endif
+                    <tbody>
+                        {{-- Row Kategori --}}
+                        <tr class="category-row">
+                            <td colspan="9" class="text-start ps-4 border-top border-bottom">
+                                <i class="fas fa-folder-open me-2 text-primary"></i> {{ $loop->iteration }}. {{ strtoupper($kategori) }}
                             </td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="10" class="text-muted">Tiada rekod untuk kategori ini.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            @endforeach
-        </table>
+
+                        @forelse ($filtered as $item)
+                            <tr>
+                                {{-- Tarikh --}}
+                                <td>
+                                    <div class="fw-bold text-dark">{{ optional($item->tarikh_terima)->format('d/m/Y') }}</div>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Daftar: {{ $item->created_at->format('d/m/Y') }}</small>
+                                </td>
+
+                                {{-- Agensi --}}
+                                <td><span class="badge bg-light text-dark border">{{ Str::limit($item->agensi, 20) }}</span></td>
+
+                                {{-- Fakta & Isu --}}
+                                <td class="text-start">
+                                    <div class="small text-dark mb-1"><strong>Fakta:</strong> {{ Str::limit($item->fakta_ringkasan, 60) }}</div>
+                                    <div class="small text-secondary"><strong>Isu:</strong> {{ Str::limit($item->isu_detail, 60) }}</div>
+                                </td>
+
+                                {{-- Pandangan --}}
+                                <td class="text-start small text-muted">
+                                    {{ Str::limit($item->ringkasan_pandangan, 80) }}
+                                </td>
+
+                                {{-- Checklist Jenis --}}
+                                <td>
+                                    @if($item->jenis_pandangan === 'Lisan') 
+                                        <i class="fas fa-check-circle text-success fs-5"></i> 
+                                    @else 
+                                        <span class="text-muted">-</span> 
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($item->jenis_pandangan === 'Bertulis') 
+                                        <i class="fas fa-check-circle text-primary fs-5"></i> 
+                                    @else 
+                                        <span class="text-muted">-</span> 
+                                    @endif
+                                </td>
+
+                                {{-- Status --}}
+                                <td>
+                                    @if($item->tarikh_selesai)
+                                        <span class="badge bg-success status-badge">Selesai</span>
+                                        <div class="small text-muted mt-1" style="font-size: 0.65rem;">
+                                            {{ \Carbon\Carbon::parse($item->tarikh_selesai)->format('d/m/Y') }}
+                                        </div>
+                                    @else
+                                        <span class="badge bg-warning text-dark status-badge">Dalam Tindakan</span>
+                                        <div class="small text-muted mt-1 fst-italic" style="font-size: 0.65rem;">
+                                            {{ Str::limit($item->status ?? 'Aktif', 20) }}
+                                        </div>
+                                    @endif
+                                </td>
+
+                                {{-- 🔥 KOLUM DOKUMEN (SELEPAS STATUS) 🔥 --}}
+                                <td>
+                                    @if($item->dokumen_path)
+                                        <a href="{{ asset('storage/' . $item->dokumen_path) }}" target="_blank" class="btn btn-sm btn-outline-info btn-icon" title="Lihat Dokumen">
+                                            <i class="fas fa-file-alt"></i>
+                                        </a>
+                                    @else
+                                        <span class="text-muted small">-</span>
+                                    @endif
+                                </td>
+
+                                {{-- Tindakan --}}
+                                <td>
+                                    <div class="d-flex justify-content-center gap-1">
+                                        <a href="{{ route('laporanpandanganundang.edit', $item->id) }}" 
+                                           class="btn btn-outline-warning btn-icon btn-sm" 
+                                           title="Kemaskini">
+                                            <i class="fas fa-pen"></i>
+                                        </a>
+
+                                        @if ($currentUser->id === $item->user_id)
+                                            <form action="{{ route('laporanpandanganundang.destroy', $item->id) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" 
+                                                        class="btn btn-outline-danger btn-icon btn-sm" 
+                                                        onclick="return confirm('Adakah anda pasti mahu memadam laporan ini?')"
+                                                        title="Padam">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                    
+                                    <div class="mt-1 text-muted" style="font-size: 0.65rem;">
+                                        Oleh: {{ Str::limit(optional($item->creator)->name ?? '?', 10) }}
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="9" class="text-center py-3 text-muted fst-italic bg-light">
+                                    Tiada rekod pada bulan ini.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                @endforeach
+            </table>
+        </div>
     </div>
 </div>
 @endsection

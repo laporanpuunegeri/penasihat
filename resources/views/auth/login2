@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Penasihat Laporan - Log Masuk</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* Gaya Asas dan Latar Belakang */
+        body {
+            font-family: 'Inter', sans-serif; /* Menggunakan font Inter dari CDN */
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a2e; /* Warna latar belakang gelap */
+            color: #ffffff;
+            display: flex;
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+        }
+
+        /* Kontena Utama untuk Kedua-dua Bahagian */
+        .main-container {
+            display: flex;
+            background-color: #1a1a2e;
+            width: 80%; 
+            max-width: 1200px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        /* Bahagian Logo (Kiri) */
+        .left-panel {
+            flex: 1; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            background-color: #1a1a2e; 
+            text-align: center;
+            border-right: 1px solid rgba(255, 255, 255, 0.1); 
+        }
+
+        /* LOGO CONTAIANER & IMAGE - DIPERBESAR */
+        .logo-container {
+            z-index: 2;
+            margin-bottom: 30px;
+            position: relative;
+            /* Saiz bulatan di sekeliling logo */
+            width: 200px; /* Lebar lebih besar */
+            height: 200px; /* Ketinggian lebih besar */
+            background-color: #1f2a40; /* Latar belakang bulatan */
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 25px rgba(0, 150, 255, 0.7); /* Kesan cahaya yang lebih terang */
+        }
+        
+        .brand-logo {
+            width: 140px; /* Saiz imej logo di dalam bulatan (kecilkan sedikit dari container) */
+            height: 140px; 
+            object-fit: contain; /* Pastikan logo kelihatan penuh */
+            border-radius: 50%; /* Jika logo anda bulatan, ini memastikan ia kekal bulatan */
+            /* filter: brightness(0) invert(1); Jika logo asal hitam dan anda mahu ia putih */
+        }
+
+        /* FALLBACK LOGO (Font Awesome) - Juga diperbesar */
+        .logo-fallback-icon {
+            font-size: 100px; /* Saiz ikon Font Awesome yang lebih besar */
+            color: #00ffff; /* Warna cyan */
+            text-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
+            display: none; /* Sembunyikan secara lalai, hanya muncul jika imej gagal dimuat */
+        }
+
+        .system-title {
+            font-size: 2.8em; /* Saiz tajuk lebih besar */
+            font-weight: 800; /* Lebih tebal */
+            margin-bottom: 10px;
+            letter-spacing: 1.5px;
+            color: #e0f7fa; /* Warna lebih cerah */
+        }
+
+        .department-name {
+            font-size: 1.3em; /* Saiz jabatan lebih besar */
+            color: #cccccc;
+            margin-bottom: 30px;
+        }
+
+        .version-tag {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px; /* Padding lebih besar */
+            border-radius: 25px; /* Bulatan lebih licin */
+            font-size: 1em; /* Saiz teks lebih besar */
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        /* Bahagian Borang Log Masuk (Kanan) */
+        .login-section {
+            flex: 1; 
+            padding: 50px;
+            background-color: #24243e; 
+        }
+
+        .greeting {
+            font-size: 2em; /* Salam lebih besar */
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+
+        .instruction {
+            color: #bbbbbb;
+            margin-bottom: 40px;
+            font-size: 1.1em; /* Arahan lebih besar */
+        }
+
+        /* Gaya Borang */
+        .form-group {
+            margin-bottom: 25px; /* Jarak antara kumpulan input lebih besar */
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px; /* Jarak label dari input */
+            font-weight: bold;
+            font-size: 1em; /* Label lebih besar */
+            color: #cccccc;
+        }
+
+        .form-group input[type="email"],
+        .form-group input[type="password"] {
+            width: 100%;
+            padding: 15px; /* Padding input lebih besar */
+            border: 1px solid #444;
+            border-radius: 8px; /* Sudut lebih bulat */
+            background-color: #33334d; 
+            color: white;
+            box-sizing: border-box; 
+            font-size: 1.1em; /* Saiz teks input lebih besar */
+        }
+        .form-group input:focus {
+             border-color: #00ffff;
+             outline: none;
+        }
+
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            margin-bottom: 35px; /* Jarak dari butang log masuk */
+            font-size: 1em; /* Pilihan lebih besar */
+        }
+
+        .remember-me input {
+            margin-right: 8px; /* Jarak checkbox dari label */
+            transform: scale(1.2); /* Besarkan checkbox */
+        }
+        .remember-me label {
+            font-size: 1em; /* Label 'Ingat saya' lebih besar */
+            color: #bbbbbb;
+            vertical-align: middle; /* Selaraskan dengan checkbox */
+        }
+
+        .forgot-password {
+            color: #8ab4f8; 
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 18px; /* Padding butang lebih besar */
+            background-color: #007bff; 
+            color: white;
+            border: none;
+            border-radius: 8px; /* Sudut lebih bulat */
+            font-size: 1.2em; /* Saiz teks butang lebih besar */
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .login-button:hover {
+            background-color: #0056b3;
+        }
+
+        .copyright {
+            margin-top: 60px; /* Jarak dari butang */
+            text-align: center;
+            font-size: 0.9em; /* Hak cipta lebih besar */
+            color: #888888;
+        }
+
+        /* Responsive Design (Mobile Adjustments) */
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column; /* Susun menegak di mobile */
+                width: 95%; /* Lebar penuh di mobile */
+            }
+            .left-panel, .login-section {
+                padding: 30px;
+                border-right: none; /* Tiada border kanan */
+            }
+            .logo-container {
+                width: 150px; /* Logo lebih kecil di mobile */
+                height: 150px;
+                box-shadow: 0 0 15px rgba(0, 150, 255, 0.5);
+            }
+            .brand-logo {
+                width: 100px; /* Imej logo di mobile */
+                height: 100px;
+            }
+            .logo-fallback-icon {
+                font-size: 70px; /* Ikon fallback di mobile */
+            }
+            .system-title { font-size: 2em; }
+            .department-name { font-size: 1em; }
+            .version-tag { padding: 8px 15px; font-size: 0.9em; }
+            .greeting { font-size: 1.5em; }
+            .instruction { font-size: 0.9em; }
+            .form-group { margin-bottom: 20px; }
+            .login-button { padding: 15px; font-size: 1.1em; }
+            .copyright { margin-top: 30px; font-size: 0.8em; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <div class="left-panel">
+            
+            <div class="logo-container">
+                {{-- CARA 1: Menggunakan fail imej dari public/images --}}
+                <img src="{{ asset('images/logo-ai.png') }}" 
+                     onerror="this.style.display='none'; document.getElementById('logo-fallback-display').style.display='flex';" 
+                     alt="Sistem Laporan Logo" 
+                     class="brand-logo">
+
+                {{-- CARA 2: FALLBACK jika 'logo-ai.png' tidak dapat dimuat --}}
+                <div id="logo-fallback-display" class="logo-fallback-icon" style="display: none;">
+                    <i class="fas fa-balance-scale-left"></i> 
+                    {{-- Pastikan Font Awesome CSS dilink di head --}}
+                </div>
+            </div>
+
+            <div class="system-title">PENASIHAT LAPORAN</div>
+            <div class="department-name">Jabatan Peguam Negara</div>
+            
+            <div class="version-tag">
+                <i class="fas fa-robot me-2"></i> Versi 2.0 (AI Integrated)
+                {{-- Nota: Ikon 'me-2' memerlukan Bootstrap atau CSS tersuai --}}
+            </div>
+        </div>
+
+        <div class="login-section">
+            <div class="greeting">Selamat Kembali</div>
+            <div class="instruction">Sila masukkan kelayakan anda untuk akses sistem.</div>
+            
+            {{-- Mesej ralat (Contoh untuk Laravel) --}}
+            @if ($errors->any())
+                <div style="background-color: #ffcccc; color: #cc0000; padding: 10px; border-radius: 4px; margin-bottom: 20px; font-size: 0.9em;">
+                    Sila betulkan ralat berikut:
+                    <ul style="margin: 5px 0 0 15px; padding: 0;">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <form action="{{ route('login') }}" method="POST">
+                @csrf 
+
+                <div class="form-group">
+                    <label for="email">ID PENGGUNA / EMEL</label>
+                    <input type="email" id="email" name="email" value="{{ old('email', 'khairul.azreem@agc.gov.my') }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">KATA LALUAN</label>
+                    <input type="password" id="password" name="password" placeholder="••••••••" required>
+                </div>
+
+                <div class="form-options">
+                    <div class="remember-me">
+                        <input type="checkbox" id="remember" name="remember">
+                        <label for="remember" style="font-weight: normal; color: #bbbbbb;">Ingat saya</label>
+                    </div>
+                    @if (Route::has('password.request'))
+                        <a href="{{ route('password.request') }}" class="forgot-password">Lupa Kata Laluan?</a>
+                    @else
+                        <a href="#" class="forgot-password">Lupa Kata Laluan?</a>
+                    @endif
+                </div>
+
+                <button type="submit" class="login-button">LOG MASUK SISTEM</button>
+            </form>
+
+            <div class="copyright">
+                © {{ date('Y') }} KuEzyAlpha. Hak Cipta Terpelihara.
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

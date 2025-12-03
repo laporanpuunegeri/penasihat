@@ -4,8 +4,23 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 
-// ===================== CONTROLLERS =====================
-use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PergerakanController;
+use App\Http\Controllers\PentadbiranController;
+use App\Http\Controllers\KewanganController;
+use App\Http\Controllers\AgensiController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\LaporanPPUUNController;
+use App\Http\Controllers\DbusController;
+use App\Http\Controllers\DbusPecahanController;
+use App\Http\Controllers\GuamanController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\CustomPasswordResetController;
+
+use App\Http\Controllers\DashboardBahagian\GuamanDashboardController;
+use App\Http\Controllers\DashboardBahagian\KewanganPentadbiranDashboardController; 
+use App\Http\Controllers\DashboardBahagian\PenasihatDashboardController;
+
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\LaporanPandanganUndangController;
 use App\Http\Controllers\LaporanKesMahkamahController;
@@ -15,124 +30,192 @@ use App\Http\Controllers\LaporanSemakanUndangController;
 use App\Http\Controllers\LaporanMesyuaratController;
 use App\Http\Controllers\KestatatertibController;
 use App\Http\Controllers\LaporanLainLainController;
-use App\Http\Controllers\LaporanBulananController;
-use App\Http\Controllers\PergerakanController;
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PdfController;
-use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\LampiranKesMahkamahController;
-use App\Http\Controllers\CustomPasswordResetController;
-use App\Http\Controllers\PentadbiranController;
-use App\Http\Controllers\KewanganController;
 
-// ===================== ROOT REDIRECT =====================
+
 Route::get('/', fn() => redirect()->route('dashboard'))->name('utama');
 
-// ===================== RESET PASSWORD (Default) =====================
+
 Route::middleware('guest')->group(function () {
     Route::get('/reset-password', [PasswordResetLinkController::class, 'create'])->name('password.request');
     Route::post('/reset-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
-});
-
-// ===================== RESET PASSWORD (Custom) =====================
-Route::middleware('guest')->group(function () {
-    Route::get('/custom-forgot-password', function () {
-        return view('auth.check-user');
-    })->name('custom.password.request');
-
+    
+    Route::get('/custom-forgot-password', fn() => view('auth.check-user'))->name('custom.password.request');
     Route::post('/custom-verify', [CustomPasswordResetController::class, 'verifyUser'])->name('custom.password.verify');
     Route::get('/custom-reset-password/{email}', [CustomPasswordResetController::class, 'showResetForm'])->name('custom.password.form');
     Route::post('/custom-reset-password', [CustomPasswordResetController::class, 'updatePassword'])->name('custom.password.update');
 });
 
-// ===================== DASHBOARD =====================
-Route::middleware('auth')->get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-// ===================== PROFIL PENGGUNA =====================
-Route::middleware('auth')->prefix('profile')->name('profile.')->group(function () {
-    Route::get('/', [ProfileController::class, 'show'])->name('show');
-    Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
-    Route::put('/update', [ProfileController::class, 'update'])->name('update');
-});
-
-// ===================== LOGOUT =====================
-Route::post('/logout', function (Request $request) {
-    Auth::logout();
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
-    return redirect('/login');
-})->name('logout');
-
-// ===================== PERGERAKAN PEGAWAI =====================
-Route::middleware('auth')->prefix('pergerakan')->name('pergerakan.')->group(function () {
-    Route::get('/create', [PergerakanController::class, 'create'])->name('create');
-    Route::post('/', [PergerakanController::class, 'store'])->name('store');
-    Route::resource('/', PergerakanController::class)->parameters(['' => 'pergerakan']);
-});
-
-// ===================== MODUL PENTADBIRAN =====================
 Route::middleware('auth')->group(function () {
-    Route::resource('/pentadbiran', PentadbiranController::class);
-    // ⚠️ SAYA DAH PADAM 'Route::resource' KEWANGAN DARI SINI SEBAB IA BERGADUH DENGAN BAWAH
-});
 
-// ===================== MODUL KEWANGAN (MANUAL ROUTING) =====================
-Route::middleware('auth')->prefix('kewangan')->name('kewangan.')->group(function () {
-    
-    // --- 1. HALAMAN KHAS (Letak di ATAS supaya tidak dianggap ID) ---
-    Route::get('/suku-tahun', [KewanganController::class, 'sukuTahun'])->name('suku_tahun');
-    Route::get('/perbandingan', [KewanganController::class, 'perbandingan'])->name('perbandingan');
-    Route::get('/waran', [KewanganController::class, 'waran'])->name('waran');
-    Route::get('/prestasi', [KewanganController::class, 'prestasi'])->name('prestasi');
-    
-    // --- 2. HALAMAN UTAMA ---
-    Route::get('/', [KewanganController::class, 'index'])->name('index');
+    Route::get('/dashboard', function () {
+        $user = Auth::user();
+        $bahagian = strtoupper(trim($user->bahagian ?? ''));
 
-    // --- 3. CRUD (Create, Store, Edit, Update, Destroy) ---
-    Route::get('/create', [KewanganController::class, 'create'])->name('create');
-    Route::post('/', [KewanganController::class, 'store'])->name('store');
-    
-    // Route yang ada {id} mesti duduk paling BAWAH
-    Route::get('/{id}/edit', [KewanganController::class, 'edit'])->name('edit');
-    Route::put('/{id}', [KewanganController::class, 'update'])->name('update');
-    Route::delete('/{id}', [KewanganController::class, 'destroy'])->name('destroy');
+        switch ($bahagian) {
+            case 'BAHAGIAN PENTADBIRAN':
+                return redirect()->route('dashboard.pentadbiran');
+            case 'BAHAGIAN KEWANGAN':
+                return redirect()->route('dashboard.kewangan');
+            case 'BAHAGIAN PENTADBIRAN & KEWANGAN':
+            case 'BAHAGIAN PENTADBIRAN DAN KEWANGAN':
+                return redirect()->route('dashboard.pentadbirandankewangan');
+            case 'BAHAGIAN GUAMAN':
+                return redirect()->route('dashboard.guaman');
+            case 'BAHAGIAN PENASIHAT':
+                return redirect()->route('dashboard.penasihat');
+            case 'BAHAGIAN PENDAKWAAN':
+                return redirect()->route('dashboard.pendakwaan');
+            case 'BAHAGIAN SEMAKAN':
+                return redirect()->route('dashboard.semakan');
+            case 'BAHAGIAN SYARIAH':
+                return redirect()->route('dashboard.syariah');
+            default:
+                return view('dashboard.index', ['title' => 'Dashboard Utama']);
+        }
+    })->name('dashboard');
 
-// ROUTE UTK PDF (Letak di bahagian atas bersama route spesifik lain)
-Route::get('/pdf/{type}', [KewanganController::class, 'exportPdf'])->name('export_pdf');
-});
-Route::get('/kewangan/cetak-pdf', [KewanganController::class, 'cetakPdf'])
-    ->name('kewangan.cetak_pdf');
 
-// ===================== MODUL LAPORAN =====================
-Route::middleware('auth')->group(function () {
-    // === RINGKASAN LAPORAN & PDF ===
+    Route::prefix('dashboard')->group(function () {
+        
+        Route::get('/pentadbiran', [KewanganPentadbiranDashboardController::class, 'dashboard'])->name('dashboard.pentadbiran');
+        Route::get('/kewangan', [KewanganPentadbiranDashboardController::class, 'dashboard'])->name('dashboard.kewangan');
+        Route::get('/pentadbiran-kewangan', [KewanganPentadbiranDashboardController::class, 'dashboard'])->name('dashboard.pentadbirandankewangan');
+
+        Route::get('/guaman', [GuamanDashboardController::class, 'dashboard'])->name('dashboard.guaman');
+        
+        Route::get('/penasihat', [PenasihatDashboardController::class, 'index'])->name('dashboard.penasihat');
+        
+        Route::view('/pendakwaan', 'dashboard.pendakwaan')->name('dashboard.pendakwaan');
+        Route::view('/semakan', 'dashboard.semakan')->name('dashboard.semakan');
+        Route::view('/syariah', 'dashboard.syariah')->name('dashboard.syariah');
+    });
+
+
+    Route::prefix('profile')->name('profile.')->group(function () {
+        Route::get('/', [ProfileController::class, 'show'])->name('show');
+        Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
+        Route::put('/update', [ProfileController::class, 'update'])->name('update');
+    });
+
+    Route::post('/logout', function(Request $request) {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect('/login');
+    })->name('logout');
+
+
+    Route::prefix('pergerakan')->name('pergerakan.')->group(function () {
+        Route::get('/', [PergerakanController::class, 'index'])->name('index');
+        Route::get('/create', [PergerakanController::class, 'create'])->name('create');
+        Route::post('/', [PergerakanController::class, 'store'])->name('store');
+        Route::get('/borang', [PergerakanController::class, 'showBorang'])->name('borang');
+        Route::get('/inbox', [PergerakanController::class, 'index'])->name('inbox');
+        Route::get('/kalendar-individu-pdf', [PergerakanController::class, 'cetakKalendarIndividuPDF'])->name('cetak_kalendar_individu');
+        Route::get('/kalendar-keseluruhan-pdf', [PergerakanController::class, 'cetakKalendarKeseluruhan'])->name('cetak_kalendar_keseluruhan');
+        Route::delete('/{id}', [PergerakanController::class, 'destroy'])->name('destroy');
+        Route::put('/{pergerakan}/cc-review', [PergerakanController::class, 'cc_review'])->name('cc_review');
+        Route::get('/{id}/lulus-cc', [PergerakanController::class, 'lulusCc'])->name('lulus_cc');
+        Route::get('/{id}/tolak-cc', [PergerakanController::class, 'tolakCc'])->name('tolak_cc');
+        Route::get('/{id}/lulus-yb', [PergerakanController::class, 'lulusYb'])->name('lulus_yb');
+        Route::get('/{id}/tolak-yb', [PergerakanController::class, 'tolakYb'])->name('tolak_yb');
+        Route::get('/sokong/{id}', [PergerakanController::class, 'sokong'])->name('sokong');
+        Route::get('/lulus/{id}', [PergerakanController::class, 'lulus'])->name('lulus');
+        Route::get('/tolak/{id}', [PergerakanController::class, 'tolak'])->name('tolak');
+        Route::get('/cetak/{id}', [PergerakanController::class, 'cetakBorang'])->name('cetak');
+    });
+
+
+    Route::prefix('pentadbiran')->name('pentadbiran.')->group(function () {
+        Route::resource('/', PentadbiranController::class)->names(['index' => 'dashboard']); 
+        
+        Route::get('/waran', [PentadbiranController::class, 'indexWaran'])->name('waran.index'); 
+        Route::get('/waran/edit', [PentadbiranController::class, 'editWaran'])->name('waran.edit');
+        Route::post('/waran/update', [PentadbiranController::class, 'updateWaran'])->name('waran.update');
+
+        Route::prefix('dbus')->name('dbus.')->group(function () {
+            Route::get('/', [DbusController::class, 'index'])->name('index');
+            Route::get('/create', [DbusController::class, 'create'])->name('create');
+            Route::post('/store', [DbusController::class, 'store'])->name('store');
+            Route::get('/edit', [DbusController::class, 'edit'])->name('edit');
+
+            Route::get('/pecahan/{kod}/{tahun}', [DbusPecahanController::class, 'editPegawai'])->name('pecahan');
+            Route::post('/pecahan/store', [DbusPecahanController::class, 'storePegawai'])->name('pecahan.store');
+            
+            Route::get('/edit-ol14101/{kod}/{tahun}', [DbusPecahanController::class, 'editOt'])->name('edit_ol14101');
+            Route::post('/update-ol14101', [DbusPecahanController::class, 'updateOt'])->name('update_ol14101');
+            
+            Route::get('/edit-os15000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs15'])->name('edit_os15000');
+            Route::post('/update-os15000', [DbusPecahanController::class, 'updateOs15'])->name('update_os15000');
+        });
+
+        Route::prefix('laporan-prestasi')->name('laporan_prestasi.')->group(function () {
+            Route::get('/', [LaporanPPUUNController::class, 'index'])->name('index');
+            Route::get('/cetak', [LaporanPPUUNController::class, 'cetak'])->name('cetak');
+            Route::get('/daftar', [LaporanPPUUNController::class, 'create'])->name('create');
+            Route::post('/simpan', [LaporanPPUUNController::class, 'store'])->name('store');
+        });
+    });
+
+
+    Route::prefix('kewangan')->name('kewangan.')->group(function () {
+        Route::get('/', [KewanganController::class, 'index'])->name('index');
+        Route::get('/create', [KewanganController::class, 'create'])->name('create');
+        Route::post('/', [KewanganController::class, 'store'])->name('store');
+        Route::get('/edit/{id}', [KewanganController::class, 'edit'])->name('edit');
+        Route::put('/update/{id}', [KewanganController::class, 'update'])->name('update');
+        Route::delete('/destroy/{id}', [KewanganController::class, 'destroy'])->name('destroy');
+        Route::get('/suku-tahun', [KewanganController::class, 'sukuTahun'])->name('suku_tahun');
+        Route::get('/perbandingan', [KewanganController::class, 'perbandingan'])->name('perbandingan');
+        Route::get('/cetak-pdf-bulanan', [KewanganController::class, 'cetakPdfBulanan'])->name('cetak_pdf_bulanan');
+        Route::get('/cetak-pdf-suku', [KewanganController::class, 'cetakPdfSuku'])->name('cetak_pdf_suku');
+    });
+
+
+    Route::prefix('guaman')->name('guaman.')->group(function () {
+        Route::get('/', [GuamanController::class, 'index'])->name('index');
+        Route::get('/create', [GuamanController::class, 'create'])->name('create');
+        Route::post('/', [GuamanController::class, 'store'])->name('store');
+        Route::get('/{guaman_case}/edit', [GuamanController::class, 'edit'])->name('edit');
+        Route::put('/{guaman_case}', [GuamanController::class, 'update'])->name('update');
+        Route::get('/cetak-laporan-pdf', [GuamanController::class, 'cetakLaporanPdf'])->name('cetak_laporan_pdf');
+    });
+
+
     Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
     Route::get('/laporan/pdf', [PdfController::class, 'laporan'])->name('laporan.pdf');
 
-    // === LAMPIRAN AM ===
-    Route::get('/laporan/lampiran', [LaporanController::class, 'lampiranForm'])->name('lampiran.form');
-    Route::post('/laporan/lampiran-simpan', [LaporanController::class, 'simpanLampiran'])->name('lampiran.simpan');
-
-    // === LAMPIRAN II ===
-    Route::prefix('lampiran')->name('lampiran.')->middleware('auth')->group(function () {
-        Route::get('/', [LampiranKesMahkamahController::class, 'index'])->name('index');
-        Route::post('/simpan', [LampiranKesMahkamahController::class, 'store'])->name('store');
-    });
-
-    // === LAPORAN INDIVIDU ===
     Route::resources([
         'laporanpandanganundang' => LaporanPandanganUndangController::class,
         'laporankesmahkamah'     => LaporanKesMahkamahController::class,
-        'laporangubalanundang'   => LaporanGubalanUndangController::class,
-        'laporanpindaanundang'   => LaporanPindaanUndangController::class,
-        'laporansemakanundang'   => LaporanSemakanUndangController::class,
-        'laporanmesyuarat'       => LaporanMesyuaratController::class,
-        'kestatatertib'          => KestatatertibController::class,
-        'lainlaintugasan'        => LaporanLainLainController::class,
+        'laporangubalanundang'  => LaporanGubalanUndangController::class,
+        'laporanpindaanundang'  => LaporanPindaanUndangController::class,
+        'laporansemakanundang'  => LaporanSemakanUndangController::class,
+        'laporanmesyuarat'      => LaporanMesyuaratController::class,
+        'kestatatertib'         => KestatatertibController::class,
+        'lainlaintugasan'       => LaporanLainLainController::class,
     ]);
 
-    // === LAPORAN BULANAN ===
-    Route::get('/laporan-bulanan', [LaporanBulananController::class, 'index'])->name('laporanbulanan.index');
+
+    Route::prefix('tetapan')->group(function () {
+        Route::get('/agensi', [AgensiController::class, 'index'])->name('agensi.index');
+        Route::post('/agensi', [AgensiController::class, 'store'])->name('agensi.store');
+        Route::delete('/agensi/{id}', [AgensiController::class, 'destroy'])->name('agensi.destroy');
+        
+        Route::prefix('pengguna')->name('tetapan.pengguna.')->group(function () {
+            Route::get('/', [UserController::class, 'index'])->name('index');
+            Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy');
+        });
+    });
+
+});
+
+
+Route::middleware('auth')->group(function () {
+    Route::get('/register', [UserController::class, 'create'])->name('register');
+    Route::post('/register', [UserController::class, 'store'])->name('register.store');
 });
 
 require __DIR__.'/auth.php';

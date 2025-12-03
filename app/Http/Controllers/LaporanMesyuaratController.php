@@ -7,38 +7,50 @@ use App\Models\LaporanMesyuarat;
 use App\Models\Pergerakan;
 use Illuminate\Support\Facades\Auth;
 
-class LaporanmesyuaratController extends Controller
+class LaporanMesyuaratController extends Controller
 {
+    /**
+     * Papar senarai laporan mesyuarat
+     */
     public function index(Request $request)
     {
         $user = Auth::user();
         $query = LaporanMesyuarat::query();
 
+        // Filter ikut role
         if ($user->role === 'pa' || $user->role === 'yb') {
             $query->where('negeri', $user->negeri);
         } else {
             $query->where('user_id', $user->id);
         }
 
+        // Filter bulan
         if ($request->filled('bulan')) {
-            $query->whereMonth('created_at', $request->bulan)
-                  ->whereYear('created_at', now()->year);
+            $query->whereMonth('tarikh_mesyuarat', $request->bulan)
+                  ->whereYear('tarikh_mesyuarat', now()->year);
         }
 
+        // Filter status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        $data = $query->orderBy('tarikh_mesyuarat', 'desc')->get();
+        $laporanMesyuarat = $query->orderBy('tarikh_mesyuarat', 'desc')->get();
 
-        return view('laporanmesyuarat.index', compact('data', 'user'));
+        return view('laporanmesyuarat.index', compact('laporanMesyuarat', 'user'));
     }
 
+    /**
+     * Papar form create
+     */
     public function create()
     {
         return view('laporanmesyuarat.create');
     }
 
+    /**
+     * Simpan laporan mesyuarat baru
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -50,25 +62,31 @@ class LaporanmesyuaratController extends Controller
         ]);
 
         $user = Auth::user();
-
         $validated['user_id'] = $user->id;
         $validated['negeri'] = $user->negeri;
 
+        // Simpan laporan mesyuarat
         $laporan = LaporanMesyuarat::create($validated);
 
-        // ✅ Tambah pergerakan automatik
+        // Tambah pergerakan automatik (semua field wajib)
         Pergerakan::create([
-            'user_id' => $user->id,
-            'tarikh' => $validated['tarikh_mesyuarat'],
-            'jenis' => 'Mesyuarat',
-            'catatan' => $validated['mesyuarat'],
-            'negeri' => $user->negeri,
+            'user_id'     => $user->id,
+            'tarikh'      => $validated['tarikh_mesyuarat'],
+            'tarikh_mula' => $validated['tarikh_mesyuarat'],   // wajib
+            'tarikh_akhir'=> $validated['tarikh_mesyuarat'],   // ikut logic
+            'jenis'       => 'Mesyuarat',
+            'catatan'     => $validated['mesyuarat'],
+            'negeri'      => $user->negeri,
+            'kenderaan'   => '',   // ✅ default kosong supaya tidak error NOT NULL
         ]);
 
         return redirect()->route('laporanmesyuarat.index')
                          ->with('success', 'Laporan mesyuarat & pergerakan berjaya disimpan.');
     }
 
+    /**
+     * Papar form edit
+     */
     public function edit($id)
     {
         $laporan = LaporanMesyuarat::findOrFail($id);
@@ -80,6 +98,9 @@ class LaporanmesyuaratController extends Controller
         return view('laporanmesyuarat.edit', compact('laporan'));
     }
 
+    /**
+     * Update laporan mesyuarat
+     */
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
@@ -102,6 +123,9 @@ class LaporanmesyuaratController extends Controller
                          ->with('success', 'Laporan mesyuarat berjaya dikemaskini.');
     }
 
+    /**
+     * Hapus laporan mesyuarat
+     */
     public function destroy($id)
     {
         $laporan = LaporanMesyuarat::findOrFail($id);
@@ -117,12 +141,12 @@ class LaporanmesyuaratController extends Controller
     }
 
     /**
-     * Tentukan jika pengguna boleh edit/padam
+     * Tentukan jika user boleh edit/padam
      */
     protected function canEdit(LaporanMesyuarat $laporan)
     {
         $user = Auth::user();
-        return $user->role === 'pa' && $user->negeri === $laporan->negeri
-            || $laporan->user_id === $user->id;
+        return ($user->role === 'pa' && $user->negeri === $laporan->negeri)
+            || ($laporan->user_id === $user->id);
     }
 }

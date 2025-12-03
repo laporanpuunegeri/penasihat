@@ -2,15 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage; 
+use Illuminate\Validation\Rules\Password;
 
 class ProfileController extends Controller
 {
     public function show()
     {
-        $user = Auth::user();
-        return view('profile.show', compact('user'));
+        return redirect()->route('profile.edit');
     }
 
     public function edit()
@@ -21,23 +24,50 @@ class ProfileController extends Controller
 
     public function update(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'no_telefon' => 'nullable|string|max:20',
-            'negeri' => 'nullable|string|max:100',
-            'nama_jawatan' => 'nullable|string|max:255',
-            'gred_jawatan' => 'nullable|string|max:50',
-            'bahagian' => 'nullable|string|max:255',
-            'role' => 'required|in:user,pa,yb',
-        ]);
-
         $user = Auth::user();
-        $user->update($request->only([
-            'name', 'email', 'no_telefon', 'negeri',
-            'nama_jawatan', 'gred_jawatan', 'bahagian', 'role'
-        ]));
 
-        return redirect()->route('profile.show')->with('success', 'Profil berjaya dikemaskini.');
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id], 
+            'no_telefon' => ['required', 'string', 'max:20'],
+            'negeri' => ['required', 'string'],
+            'bahagian' => ['required', 'string'],
+            'nama_jawatan' => ['required', 'string', 'max:255'],
+            'gred_jawatan' => ['required', 'string', 'max:50'],
+            
+            // Validasi Tandatangan (Optional bila update)
+            'signature_file' => ['nullable', 'file', 'mimes:png', 'max:2048'], 
+            
+            'current_password' => ['nullable', 'required_with:new_password', 'current_password:web'],
+            'new_password' => ['nullable', 'min:8', 'max:12', 'confirmed', 'exclude_if:current_password,null', Password::default()],
+        ]);
+        
+        $user->fill([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'no_telefon' => $validated['no_telefon'],
+            'negeri' => $validated['negeri'],
+            'bahagian' => $validated['bahagian'],
+            'nama_jawatan' => $validated['nama_jawatan'],
+            'gred_jawatan' => $validated['gred_jawatan'],
+        ]);
+        
+        // Proses Tukar Tandatangan
+        if ($request->hasFile('signature_file')) {
+            if ($user->signature_file && Storage::disk('public')->exists($user->signature_file)) {
+                Storage::disk('public')->delete($user->signature_file);
+            }
+
+            $path = $request->file('signature_file')->store('signatures', 'public');
+            $user->signature_file = $path;
+        }
+
+        if ($request->filled('new_password')) {
+            $user->password = Hash::make($validated['new_password']);
+        }
+        
+        $user->save();
+
+        return redirect()->route('profile.edit')->with('success', 'Profil dan Tandatangan berjaya dikemaskini.');
     }
 }

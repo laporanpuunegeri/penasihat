@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Masuk - Sistem Laporan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* Tetapan Asas */
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a2e; 
+            color: #ffffff;
+        }
+        .h-100 { height: 100vh !important; }
+        .row.h-100 { min-height: 100vh; }
+
+        /* --- BAHAGIAN KIRI (BRANDING AREA) --- */
+        .left-panel {
+            background: #1a1a2e; 
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Corak Litar Halus */
+        .left-panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            opacity: 0.3;
+            z-index: 1;
+        }
+
+        /* Logo Kontena */
+        .logo-container { z-index: 2; margin-bottom: 30px; position: relative; }
+        
+        /* Gambar Logo (Perubahan Utama di sini) */
+        .brand-logo {
+            width: 180px; 
+            height: 180px;
+            object-fit: cover; 
+            border-radius: 50%;
+            background-color: #0f172a; 
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.4); 
+            transition: transform 0.5s ease;
+            /* Pastikan imej mempunyai latar belakang gelap */
+            filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.3));
+        }
+
+        /* Jika anda menggunakan ikon Font Awesome dalam bulatan */
+        .logo-icon-wrapper {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background-color: #0f172a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
+            z-index: 2;
+        }
+        .logo-icon-wrapper i {
+            font-size: 80px;
+            color: #00ffff; /* Warna cyan/biru */
+            text-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
+        }
+
+        /* Teks Tajuk */
+        .main-title { font-weight: 800; font-size: 3rem; letter-spacing: 2px; text-transform: uppercase; text-shadow: 0 4px 10px rgba(0,0,0,0.5); z-index: 2; margin-bottom: 5px; color: #e0f7fa; }
+        .sub-title { font-size: 1.4rem; font-weight: 300; color: #a0aec0; z-index: 2; letter-spacing: 1px; }
+
+        /* Badge Versi */
+        .version-badge {
+            background: rgba(0, 255, 255, 0.1); 
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            padding: 5px 20px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 25px;
+            z-index: 2;
+            backdrop-filter: blur(5px);
+        }
+
+        /* --- BAHAGIAN KANAN (FORM LOGIN) --- */
+        .right-panel {
+            background: #24243e; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            padding: 40px;
+        }
+
+        /* Input Fields */
+        .form-control {
+            background-color: #33334d; 
+            color: #ffffff; 
+            border: 2px solid transparent;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+        .form-control::placeholder { color: #a0aec0; }
+        .form-control:focus {
+            background-color: #33334d;
+            border-color: #00ffff; 
+            box-shadow: 0 0 0 4px rgba(0, 255, 255, 0.1);
+            color: #ffffff;
+        }
+        
+        /* Form Label */
+        .form-label { color: #cccccc !important; }
+        
+        /* Input Group Icon */
+        .input-group-text {
+            background-color: transparent !important;
+            border-color: transparent !important;
+            color: #00ffff !important; 
+        }
+
+        /* Login Button */
+        .btn-login {
+            background: linear-gradient(135deg, #00ffff 0%, #00bcd4 100%); 
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+            box-shadow: 0 10px 20px rgba(0, 255, 255, 0.2);
+            transition: transform 0.2s;
+            color: #1a1a2e !important; 
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(0, 255, 255, 0.3);
+            background: linear-gradient(135deg, #00e5e5 0%, #00aacc 100%);
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            .left-panel { min-height: 300px; }
+            .main-title { font-size: 2rem; }
+            .brand-logo, .logo-icon-wrapper { width: 100px; height: 100px; }
+            .logo-icon-wrapper i { font-size: 40px; }
+            .left-panel::before { display: none; } 
+            .right-panel { background-color: #1a1a2e; } 
+            .login-card { padding: 30px 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container-fluid h-100">
+        <div class="row h-100">
+            
+            <div class="col-md-7 left-panel">
+                
+                <div class="logo-container">
+                    {{-- CARA 1: Jika anda mempunyai logo-ai.png di folder public/images --}}
+                    <img src="{{ asset('images/logo-ai.png') }}" 
+                         onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='flex';" 
+                         alt="Sistem Laporan Logo" 
+                         class="brand-logo">
+
+                    {{-- CARA 2: FALLBACK / ALTERNATIF (Menggunakan Ikon Font Awesome) --}}
+                    <div id="logo-fallback" class="logo-icon-wrapper" style="display: none;">
+                        <i class="fas fa-balance-scale-left"></i>
+                    </div>
+                </div>
+
+                <h1 class="main-title">SISTEM LAPORAN</h1>
+                <p class="sub-title">Jabatan Peguam Negara</p>
+                
+                <div class="version-badge">
+                    <i class="fas fa-robot me-2"></i> Versi 2.0 (AI Integrated)
+                </div>
+            </div>
+
+            <div class="col-md-5 right-panel">
+                <div class="login-card">
+                    
+                    <div class="mb-5">
+                        <h3 class="fw-bold text-white mb-2">Selamat Kembali</h3>
+                        <p class="text-muted">Sila masukkan kelayakan anda untuk akses sistem.</p>
+                    </div>
+
+                    {{-- Mesej Ralat Laravel --}}
+                    @if ($errors->any())
+                        <div class="alert alert-danger small mb-4">
+                            <ul class="mb-0 ps-3">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    {{-- FORM LOGIN (PASTIKAN @csrf ADA DI SINI!) --}}
+                    <form method="POST" action="{{ route('login') }}">
+                        @csrf 
+                        
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-uppercase">ID Pengguna / Emel</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user-circle fa-lg"></i></span>
+                                <input type="email" name="email" class="form-control" placeholder="Contoh: ali@agc.gov.my" value="{{ old('email') }}" required autofocus>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-uppercase">Kata Laluan</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock fa-lg"></i></span>
+                                <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-5">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                                <label class="form-check-label small text-muted" for="remember">Ingat saya</label>
+                            </div>
+                            @if (Route::has('password.request'))
+                                <a href="{{ route('password.request') }}" class="small forgot-password text-decoration-none fw-bold">Lupa Kata Laluan?</a>
+                            @endif
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-login w-100">
+                            LOG MASUK SISTEM
+                        </button>
+
+                    </form>
+                    
+                    <div class="text-center mt-5 copyright">
+                        <small>
+                            &copy; {{ date('Y') }} KuEzyAlpha. Hak Cipta Terpelihara.<br>
+                        </small>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
