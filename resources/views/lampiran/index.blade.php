@@ -72,6 +72,17 @@
         text-align: left;
         padding-left: 15px;
     }
+    
+    /* Style Khas untuk Header Kumpulan Baru */
+    .group-header {
+        background-color: #e3f2fd !important; /* Biru cair */
+        font-weight: 700;
+        color: #0d47a1; /* Biru gelap */
+        text-align: left !important;
+        padding: 8px 15px !important;
+        font-size: 0.9rem;
+        border-bottom: 2px solid #bbdefb;
+    }
 </style>
 
 <div class="container-fluid px-4 py-4">
@@ -141,12 +152,39 @@
                         </tr>
                     </thead>
                     <tbody>
+                        @php $currentGroup = ''; @endphp
                         @foreach ($kategori_list as $kategori)
-                            @php $item = $lampiran[$kategori] ?? null; @endphp
+                            @php 
+                                $item = $lampiran[$kategori] ?? null;
+                                $groupName = '';
+                                
+                                // Logic untuk Header Kumpulan (Grouping)
+                                if (str_contains($kategori, 'Tanah (Sivil)')) {
+                                    $groupName = 'TANAH';
+                                } elseif (str_contains($kategori, 'Lain-lain (Sivil)')) {
+                                    $groupName = 'LAIN-LAIN (SIVIL / GUAMAN)';
+                                }
+
+                                if ($groupName !== '' && $currentGroup !== $groupName) {
+                                    $currentGroup = $groupName;
+                                    echo '<tr class="group-header"><td colspan="8">' . $groupName . '</td></tr>';
+                                } else if ($groupName === '' && ($currentGroup === 'TANAH' || $currentGroup === 'LAIN-LAIN (SIVIL / GUAMAN)')) {
+                                    // Reset group header jika kategori bukan sebahagian dari kumpulan
+                                    $currentGroup = '';
+                                }
+
+                                // Bersihkan label untuk paparan (buang (Sivil) atau (Guaman) untuk baris utama)
+                                $displayKategori = preg_replace('/\s\((Sivil|Guaman)\)/', '', $kategori);
+                            @endphp
+
                             <tr>
                                 {{-- Nama Kategori --}}
                                 <td class="category-cell">
-                                    {{ $kategori }}
+                                    @if(str_contains($kategori, '(Sivil)') || str_contains($kategori, '(Guaman)'))
+                                        <span class="ps-4 text-muted">{{ $kategori }}</span>
+                                    @else
+                                        {{ $kategori }}
+                                    @endif
                                 </td>
 
                                 {{-- Input Nombor --}}

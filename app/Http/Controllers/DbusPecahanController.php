@@ -5,10 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Dbus; 
 use App\Models\DbusPegawai; 
-use App\Models\DbusPecahanOS21;
 use App\Models\DbusPecahanOs14; 
 use App\Models\DbusPecahanOs15;
-use App\Models\DbusPecahanOS22; 
+use App\Models\DbusPecahanOS21;
+use App\Models\DbusPecahanOS22;
+use App\Models\DbusPecahanOS23; 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -510,6 +511,191 @@ class DbusPecahanController extends Controller
 
         return redirect()->route('pentadbiran.dbus.index', ['tahun' => $tahun])
                          ->with('success', 'Anggaran OS22000 berjaya dikemaskini. Jumlah: RM' . number_format($grandTotal, 2));
+    }
+
+    // --- 6. PERHUBUNGAN DAN UTILITI (OS23000) - GABUNGAN 3 PDF ---
+
+    public function editOs23000($kod, $tahun)
+    {
+        // 1. Setup Induk
+        $dbusData = Dbus::where('kod_objek', $kod)->where('tahun', $tahun)->first();
+        if (!$dbusData) {
+            $info = $this->findObjekInfo($kod);
+            $dbusData = Dbus::create([
+                'kod_objek' => $kod,
+                'tahun' => $tahun,
+                'perkara' => $info['perkara'] ?? 'PERHUBUNGAN DAN UTILITI',
+                'jenis' => 'OS',
+                'jumlah' => 0.00
+            ]);
+        }
+
+        // 2. Ambil data sedia ada
+        $pecahanData = DbusPecahanOS23::where('dbus_id', $dbusData->id)->get();
+        $pecahanMap = $pecahanData->keyBy('sub_kod')->toArray();
+
+        // 3. Definisi Item Mengikut PDF
+
+        // A. POS (OS23101) - Rujuk PDF OS23101
+       // A. POS (OS23101) - Rujuk PDF OS23101 Penuh
+        $itemsPos = [
+            'POS BIASA' => [
+                ['sub' => 'OL23101_POS_L_M',  'butiran' => 'Sampul (Flyer) Pos Laju bersaiz M', 'unit' => 'pack', 'kod_ol' => 'OL23101'],
+                ['sub' => 'OL23101_POS_L_L',  'butiran' => 'Sampul (Flyer) Pos Laju bersaiz L', 'unit' => 'pack', 'kod_ol' => 'OL23101'],
+                ['sub' => 'OL23101_POS_L_XL', 'butiran' => 'Sampul (Flyer) Pos Laju bersaiz XL', 'unit' => 'pack', 'kod_ol' => 'OL23101'],
+                ['sub' => 'OL23101_STM_100',  'butiran' => 'Setem RM1.00', 'unit' => 'keping', 'kod_ol' => 'OL23101'],
+                ['sub' => 'OL23101_STM_060',  'butiran' => 'Setem RM0.60', 'unit' => 'keping', 'kod_ol' => 'OL23101'],
+                ['sub' => 'OL23101_STM_050',  'butiran' => 'Setem RM0.50', 'unit' => 'keping', 'kod_ol' => 'OL23101'], // Item Baru
+            ],
+            'MEL UDARA' => [
+                ['sub' => 'OL23101_MEL_UD',   'butiran' => 'RM5.00 per gram', 'unit' => 'keping', 'kod_ol' => 'OL23101'],
+                ['sub' => 'OL23101_MEL_LAIN', 'butiran' => 'Lain-Lain (Mel Udara)', 'unit' => 'keping', 'kod_ol' => 'OL23101'], // Item Baru
+            ],
+            'MEL BERDAFTAR & EKSPRESS' => [
+                ['sub' => 'OL23101_MEL_D_AR', 'butiran' => 'Mel Berdaftar (Kad AR)', 'unit' => 'keping', 'kod_ol' => 'OL23101'],
+                ['sub' => 'OL23101_POS_05',   'butiran' => 'Mel Berdaftar Pos Laju <0.50kg', 'unit' => 'keping', 'kod_ol' => 'OL23101'],
+                ['sub' => 'OL23101_POS_075',  'butiran' => 'Mel Berdaftar Pos Laju <0.75kg', 'unit' => 'keping', 'kod_ol' => 'OL23101'], // Item Baru
+                ['sub' => 'OL23101_POS_10',   'butiran' => 'Mel Berdaftar Pos Laju <1.0kg', 'unit' => 'keping', 'kod_ol' => 'OL23101'],
+                ['sub' => 'OL23101_POS_125',  'butiran' => 'Mel Berdaftar Pos Laju <1.25kg', 'unit' => 'keping', 'kod_ol' => 'OL23101'], // Item Baru
+                ['sub' => 'OL23101_POS_15',   'butiran' => 'Mel Berdaftar Pos Laju <1.5kg', 'unit' => 'keping', 'kod_ol' => 'OL23101'], // Item Baru
+                ['sub' => 'OL23101_POS_175',  'butiran' => 'Mel Berdaftar Pos Laju <1.75kg', 'unit' => 'keping', 'kod_ol' => 'OL23101'], // Item Baru
+                ['sub' => 'OL23101_POS_20_DOC', 'butiran' => 'Mel Berdaftar Pos Laju <2.0kg', 'unit' => 'keping', 'kod_ol' => 'OL23101'], // Item Baru
+                ['sub' => 'OL23101_POS_30',   'butiran' => 'Mel Berdaftar Pos Laju <3.0kg', 'unit' => 'keping', 'kod_ol' => 'OL23101'], // Item Baru
+            ],
+            'POS BUNGKUSAN' => [
+                ['sub' => 'OL23101_KOTAK_2',  'butiran' => 'Pos Laju 2.0kg (Kotak Oren)', 'unit' => 'unit', 'kod_ol' => 'OL23101'],
+                ['sub' => 'OL23101_KOTAK_5',  'butiran' => 'Pos Laju 5.0kg (Kotak Oren)', 'unit' => 'unit', 'kod_ol' => 'OL23101'],
+                ['sub' => 'OL23101_KOTAK_10', 'butiran' => 'Pos Laju 10.0kg (Kotak Oren)', 'unit' => 'unit', 'kod_ol' => 'OL23101'], // Item Baru
+            ]
+        ];
+
+        // B. KOMUNIKASI (OS23102 & OS23103) - Rujuk PDF OS23102 Penuh
+        $itemsKom = [
+            'TELEFON (OL23102) - Sewaan & Pemasangan' => [
+                ['sub' => 'OL23102_TM_PEJ',   'butiran' => 'Bil TM Pejabat', 'unit' => 'Unit', 'kod_ol' => 'OL23102'],
+                ['sub' => 'OL23102_KB',       'butiran' => 'Ketua Bahagian', 'unit' => 'orang', 'kod_ol' => 'OL23102'],
+                ['sub' => 'OL23102_TKB',      'butiran' => 'Timbalan Ketua Bahagian', 'unit' => 'orang', 'kod_ol' => 'OL23102'], // Item Baru
+                ['sub' => 'OL23102_KU',       'butiran' => 'Ketua Unit', 'unit' => 'orang', 'kod_ol' => 'OL23102'], // Item Baru
+            ],
+            'TELEX, TELEGRAF, WIRELESS (OL23103)' => [
+                ['sub' => 'OL23103_KB',       'butiran' => 'Ketua Bahagian', 'unit' => 'orang', 'kod_ol' => 'OL23103'],
+                ['sub' => 'OL23103_TKB',      'butiran' => 'Timbalan Ketua Bahagian', 'unit' => 'orang', 'kod_ol' => 'OL23103'], // Item Baru
+                ['sub' => 'OL23103_KU',       'butiran' => 'Ketua Unit', 'unit' => 'orang', 'kod_ol' => 'OL23103'], // Item Baru
+                ['sub' => 'OL23103_PKA',      'butiran' => 'Pem. Khidmat Am (H1)', 'unit' => 'orang', 'kod_ol' => 'OL23103'],
+            ],
+            'PERKHIDMATAN LAIN (OL23199)' => [
+                ['sub' => 'OL23199_LAIN_1',   'butiran' => 'Lain-lain 1', 'unit' => 'orang', 'kod_ol' => 'OL23199'],
+                ['sub' => 'OL23199_LAIN_2',   'butiran' => 'Lain-lain 2', 'unit' => 'orang', 'kod_ol' => 'OL23199'], // Item Baru
+            ]
+        ];
+
+        // C. UTILITI (OS23200) - Rujuk PDF OS23200 Penuh
+        $itemsUtil = [
+            'ELEKTRIK (OL23201)' => [
+                ['sub' => 'OL23201_1', 'butiran' => 'Sila Nyatakan 1', 'kod_ol' => 'OL23201'],
+                ['sub' => 'OL23201_2', 'butiran' => 'Sila Nyatakan 2', 'kod_ol' => 'OL23201'],
+                ['sub' => 'OL23201_3', 'butiran' => 'Sila Nyatakan 3', 'kod_ol' => 'OL23201'],
+            ],
+            'AIR (OL23202)' => [
+                ['sub' => 'OL23202_1', 'butiran' => 'Sila Nyatakan 1', 'kod_ol' => 'OL23202'],
+                ['sub' => 'OL23202_2', 'butiran' => 'Sila Nyatakan 2', 'kod_ol' => 'OL23202'],
+                ['sub' => 'OL23202_3', 'butiran' => 'Sila Nyatakan 3', 'kod_ol' => 'OL23202'],
+            ],
+            'PEMBENTUNGAN (OL23204)' => [
+                ['sub' => 'OL23204_1', 'butiran' => 'Sila Nyatakan 1', 'kod_ol' => 'OL23204'],
+                ['sub' => 'OL23204_2', 'butiran' => 'Sila Nyatakan 2', 'kod_ol' => 'OL23204'],
+            ],
+            'PERKHIDMATAN UTILITI LAIN (OL23299)' => [
+                ['sub' => 'OL23299_1', 'butiran' => 'Sila Nyatakan 1', 'kod_ol' => 'OL23299'],
+                ['sub' => 'OL23299_2', 'butiran' => 'Sila Nyatakan 2', 'kod_ol' => 'OL23299'],
+                ['sub' => 'OL23299_3', 'butiran' => 'Sila Nyatakan 3', 'kod_ol' => 'OL23299'],
+                ['sub' => 'OL23299_4', 'butiran' => 'Sila Nyatakan 4', 'kod_ol' => 'OL23299'],
+                ['sub' => 'OL23299_5', 'butiran' => 'Sila Nyatakan 5', 'kod_ol' => 'OL23299'],
+            ]
+        ];
+        return view('pentadbiran.dbus.pecahan_OS23000', compact(
+            'dbusData', 'pecahanMap', 'kod', 'tahun', 
+            'itemsPos', 'itemsKom', 'itemsUtil'
+        ));
+    }
+
+    public function updateOs23000(Request $request)
+    {
+        $masterId = $request->input('master_id');
+        $dbusMaster = Dbus::findOrFail($masterId);
+        $tahun = $dbusMaster->tahun;
+        $pecahanInput = $request->input('data'); 
+        $grandTotal = 0;
+
+        DB::transaction(function () use ($dbusMaster, $pecahanInput, &$grandTotal, $tahun) {
+            
+            DbusPecahanOS23::where('dbus_id', $dbusMaster->id)->delete();
+
+            if ($pecahanInput) {
+                foreach ($pecahanInput as $subKod => $data) {
+                    
+                    // Logic pengiraan: Kuantiti x Bulan x Kadar(Anggaran)
+                    // Jika Utiliti (tiada kuantiti), kita set default 1
+                    $kuantiti = isset($data['kuantiti']) ? (int)$data['kuantiti'] : 1;
+                    $anggaran = isset($data['anggaran']) ? (float)$data['anggaran'] : 0;
+                    $bilBulan = isset($data['bulan']) ? (int)$data['bulan'] : 12;
+                    
+                    $unit = $data['unit'] ?? null;
+                    $noAkaun = $data['akaun'] ?? null;
+                    $kodOl = $data['kod_ol'] ?? substr($subKod, 0, 7);
+                    $butiran = $data['butiran'] ?? '';
+
+                    $jumlah = $anggaran * $bilBulan * $kuantiti;
+
+                    if ($jumlah > 0 || $anggaran > 0) {
+                        DbusPecahanOS23::create([
+                            'dbus_id' => $dbusMaster->id,
+                            'kod_ol' => $kodOl,
+                            'sub_kod' => $subKod,
+                            'butiran' => $butiran,
+                            'no_akaun' => $noAkaun,
+                            'kuantiti' => $kuantiti,
+                            'unit' => $unit,
+                            'anggaran_sebulan' => $anggaran, // Ini adalah Kadar
+                            'bil_bulan' => $bilBulan,
+                            'tahun' => $tahun,
+                            'jumlah' => $jumlah
+                        ]);
+                        $grandTotal += $jumlah;
+                    }
+                }
+            }
+
+            // Update Master & OL Sums
+            $dbusMaster->jumlah = $grandTotal;
+            $dbusMaster->save();
+
+            $olSums = DbusPecahanOS23::where('dbus_id', $dbusMaster->id)
+                        ->select('kod_ol', DB::raw('SUM(jumlah) as total'))
+                        ->groupBy('kod_ol')
+                        ->get();
+
+            foreach($olSums as $sum) {
+                // Mapping nama OL ikut PDF
+                $perkara = 'Lain-lain';
+                if($sum->kod_ol == 'OL23101') $perkara = 'Pos Biasa, Mel Udara & Berdaftar';
+                if($sum->kod_ol == 'OL23102') $perkara = 'Telefon & Kos Pemasangan';
+                if($sum->kod_ol == 'OL23103') $perkara = 'Telex, Telegraf & Wireless';
+                if($sum->kod_ol == 'OL23199') $perkara = 'Perkhidmatan Perhubungan Lain';
+                if($sum->kod_ol == 'OL23201') $perkara = 'Elektrik';
+                if($sum->kod_ol == 'OL23202') $perkara = 'Air';
+                if($sum->kod_ol == 'OL23204') $perkara = 'Pembentungan';
+                if($sum->kod_ol == 'OL23299') $perkara = 'Utiliti Lain';
+
+                Dbus::updateOrCreate(
+                    ['kod_objek' => $sum->kod_ol, 'tahun' => $tahun],
+                    ['perkara' => $perkara, 'jenis' => 'OL', 'jumlah' => $sum->total]
+                );
+            }
+        });
+
+        return redirect()->route('pentadbiran.dbus.index', ['tahun' => $tahun])
+                         ->with('success', 'OS23000 berjaya dikemaskini. Jumlah: RM' . number_format($grandTotal, 2));
     }
 
     // --- HELPER FUNCTIONS ---

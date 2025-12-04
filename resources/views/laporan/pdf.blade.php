@@ -8,7 +8,7 @@
         body {
             font-family: DejaVu Sans, sans-serif;
             font-size: 11px;
-            line-height: 1.3; /* Rapatkan sikit line height */
+            line-height: 1.3; 
             color: #000;
         }
 
@@ -46,40 +46,47 @@
             margin-bottom: 20px;
         }
 
-        /* --- TABLES (THE FIX) --- */
+        /* --- TABLES & GROUPING (TERKEMAS) --- */
         table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 15px;
-            page-break-inside: auto; /* Benarkan table putus */
+            page-break-inside: auto; 
         }
 
         th, td {
             border: 1px solid #000;
             padding: 6px 8px;
-            vertical-align: top;
+            vertical-align: middle;
             word-wrap: break-word;
         }
 
         th {
-            background-color: #f0f0f0;
+            background-color: #1e293b; /* Dark Navy for High Contrast */
+            color: #ffffff;
             font-weight: bold;
             text-transform: uppercase;
             font-size: 10px;
-            vertical-align: middle;
             text-align: center;
         }
 
-        /* INI PENTING: Paksa baris jadual untuk membenarkan pemotongan */
         tr {
             page-break-inside: auto; 
             page-break-after: auto;
         }
         
-        /* Kadang-kadang 'thead' menyebabkan isu gap jika row terlalu panjang */
-        /* Kita set row-group supaya dia layan header macam row biasa jika perlu */
         thead {
             display: table-header-group; 
+        }
+        
+        /* STYLE BARU UNTUK GROUPING */
+        .group-header-pdf {
+            background-color: #e3f2fd !important; /* Biru cair */
+            font-weight: bold;
+            color: #1e293b !important; /* Tulisan Dark Navy */
+            text-align: left !important;
+            padding: 8px !important;
+            border-top: 1px solid #000;
         }
 
         /* Info Pegawai Table */
@@ -88,22 +95,10 @@
             padding: 5px;
         }
 
-        /* --- LISTS --- */
-        ul {
-            margin: 5px 0 15px 0;
-            padding-left: 20px;
-        }
-        li {
-            margin-bottom: 5px;
-            text-align: justify;
-        }
-
-        /* --- SPACER --- */
-        .section-spacer {
-            margin-top: 30px;
-            display: block;
-            width: 100%;
-            height: 1px; /* Bagi height sikit */
+        /* Gaya Indent untuk Pecahan (Sivil/Guaman) */
+        .sub-category-label {
+            margin-left: 15px;
+            display: inline-block;
         }
     </style>
 </head>
@@ -140,7 +135,7 @@
     </tr>
 </table>
 
-<h5 class="fw-bold mb-3">1. PANDANGAN UNDANG-UNDANG 
+<h5 class="section-title">1. PANDANGAN UNDANG-UNDANG 
     <small class="fw-normal" style="font-size: 10px;">(Laporan lengkap adalah seperti di <strong>LAMPIRAN I</strong>)</small>
 </h5>
 
@@ -192,7 +187,7 @@
     </tbody>
 </table>
 
-<h5 class="fw-bold mb-3 mt-4">2. KES MAHKAMAH 
+<h5 class="section-title">2. KES MAHKAMAH 
     <small class="fw-normal" style="font-size: 10px;">(Laporan lengkap adalah seperti di <strong>LAMPIRAN II</strong>)</small>
 </h5>
 
@@ -215,31 +210,87 @@
         </tr>
     </thead>
     <tbody>
-    @foreach ($kategori_kes as $kategori)
-        @php
-            $key = $kategori['key'];
-            $label = $kategori['label'];
-            $rekod = $lampiran_kesmahkamah[$key] ?? [
-                'bil_aktif' => 0, 'majistret' => 0, 'sesi' => 0, 'tinggi' => 0, 'rayuan' => 0, 'persk' => 0, 'status' => '-'
+        @php 
+            $groupedData = [];
+            $masterList = [
+                'Perlembagaan', 'Tanah (Sivil)', 'Tanah (Guaman)', 'Rujukan tanah',
+                'Undang-Undang Pentadbiran / Perkhidmatan', 'Kemalangan',
+                'Perjanjian / Penswastaan', 'Pendakwaan', 
+                'Lain-lain (Sivil)', 'Lain-lain (Guaman)', 
             ];
-            $jumlah['bil_aktif'] += $rekod['bil_aktif'];
-            $jumlah['majistret'] += $rekod['majistret'];
-            $jumlah['sesi'] += $rekod['sesi'];
-            $jumlah['tinggi'] += $rekod['tinggi'];
-            $jumlah['rayuan'] += $rekod['rayuan'];
-            $jumlah['persk'] += $rekod['persk'];
+
+            // Proses dan susun data mengikut grouping yang baru (sama seperti sebelum ini)
+            foreach ($masterList as $kategori) {
+                $key = $kategori;
+                
+                // Ambil rekod dari $lampiran_kesmahkamah (yang sepatutnya keyed by kategori)
+                $rekod = $lampiran_kesmahkamah[$key] ?? [
+                    'bil_aktif' => 0, 'majistret' => 0, 'sesi' => 0, 'tinggi' => 0, 'rayuan' => 0, 'persk' => 0, 'status' => '-'
+                ];
+
+                // Tentukan Nama Kumpulan Utama dan Label Paparan
+                $mainGroupName = str_contains($kategori, '(') ? trim(explode('(', $kategori)[0]) : $kategori;
+                $displayLabel = str_contains($kategori, '(') ? substr($kategori, strpos($kategori, '(')) : $kategori;
+
+                // Simpan data dalam struktur yang sedia untuk looping
+                $groupedData[] = [
+                    'kategori' => $kategori,
+                    'main_group' => $mainGroupName,
+                    'display_label' => $displayLabel,
+                    'rekod' => $rekod
+                ];
+            }
         @endphp
-        <tr>
-            <td class="text-start">{{ $label }}</td>
-            <td>{{ $rekod['bil_aktif'] }}</td>
-            <td>{{ $rekod['majistret'] }}</td>
-            <td>{{ $rekod['sesi'] }}</td>
-            <td>{{ $rekod['tinggi'] }}</td>
-            <td>{{ $rekod['rayuan'] }}</td>
-            <td>{{ $rekod['persk'] }}</td>
-            <td>{{ $rekod['status'] ?? '-' }}</td>
-        </tr>
-    @endforeach
+
+        @php $groupCounter = 1; $currentGroup = ''; @endphp
+        @foreach ($groupedData as $item)
+            @php
+                $rekod = $item['rekod'];
+                $mainGroupName = $item['main_group'];
+                $displayLabel = $item['display_label'];
+                $isSplit = str_contains($item['kategori'], '(');
+                
+                // 1. MENCIPTA HEADER BARU JIKA KUMPULAN BERUBAH
+                if ($mainGroupName !== $currentGroup) {
+                    // Header Row 
+                    echo '<tr class="group-header-pdf">
+                            <td colspan="8" class="text-start" style="padding: 8px 8px;">
+                                '. $groupCounter . '. ' . strtoupper($mainGroupName) . '
+                            </td>
+                        </tr>';
+                    $currentGroup = $mainGroupName;
+                    $groupCounter++;
+                }
+
+                // Kira Jumlah Keseluruhan (dipindahkan ke dalam loop data)
+                $jumlah['bil_aktif'] += $rekod['bil_aktif'];
+                $jumlah['majistret'] += $rekod['majistret'];
+                $jumlah['sesi'] += $rekod['sesi'];
+                $jumlah['tinggi'] += $rekod['tinggi'];
+                $jumlah['rayuan'] += $rekod['rayuan'];
+                $jumlah['persk'] += $rekod['persk'];
+            @endphp
+            
+            {{-- 2. ROW DATA --}}
+            <tr>
+                <td class="text-start">
+                    @if ($isSplit)
+                        <span class="sub-category-label">{{ $displayLabel }}</span>
+                    @else
+                        {{ $displayLabel }}
+                    @endif
+                </td>
+                <td>{{ $rekod['bil_aktif'] }}</td>
+                <td>{{ $rekod['majistret'] }}</td>
+                <td>{{ $rekod['sesi'] }}</td>
+                <td>{{ $rekod['tinggi'] }}</td>
+                <td>{{ $rekod['rayuan'] }}</td>
+                <td>{{ $rekod['persk'] }}</td>
+                <td>{{ $rekod['status'] ?? '-' }}</td>
+            </tr>
+        @endforeach
+        
+        {{-- JUMLAH KESELURUHAN --}}
         <tr style="background-color: #f9f9f9; font-weight: bold;">
             <td class="text-end">JUMLAH KESELURUHAN</td>
             <td>{{ $jumlah['bil_aktif'] }}</td>
@@ -253,28 +304,28 @@
     </tbody>
 </table>
 
-<h5 class="fw-bold mb-3 mt-4">3. PERUNDANGAN SUBSIDIARI SUBSTANTIF</h5>
+<h5 class="section-title">3. PERUNDANGAN SUBSIDIARI SUBSTANTIF</h5>
 <ul>
     <li>Rang Undang-Undang / Perundangan Subsidiari Substantif yang digubal (Laporan lengkap di <strong>LAMPIRAN III</strong>)</li>
     <li>Rang Undang-Undang / Perundangan Subsidiari Substantif yang dipinda (Laporan lengkap di <strong>LAMPIRAN IV</strong>)</li>
     <li>Rang Undang-Undang / Perundangan Subsidiari Substantif yang disemak di bawah Akta Penyelenggaraan Undang-Undang 1968 <strong>[Akta 1]</strong> (Laporan lengkap di <strong>LAMPIRAN V</strong>)</li>
 </ul>
 
-<h5 class="fw-bold mb-3 mt-4">4. MESYUARAT YANG DIHADIRI</h5>
+<h5 class="section-title">4. MESYUARAT YANG DIHADIRI</h5>
 <ul>
     <li>Mesyuarat yang dihadiri (Laporan lengkap di <strong>LAMPIRAN VI</strong>)</li>
 </ul>
 
-<h5 class="fw-bold mb-3 mt-4">5. KES TATATERTIB</h5>
+<h5 class="section-title">5. KES TATATERTIB</h5>
 <ul><li>Laporan lengkap adalah seperti di <strong>LAMPIRAN VII</strong></li></ul>
 
-<h5 class="fw-bold mb-3 mt-4">6. LAIN-LAIN TUGASAN</h5>
+<h5 class="section-title">6. LAIN-LAIN TUGASAN</h5>
 <ul><li>Laporan lengkap adalah seperti di <strong>LAMPIRAN VIII</strong></li></ul>
 
 
 <div class="section-spacer"></div>
 
-<h5 class="fw-bold mb-3">LAMPIRAN I: SENARAI PANDANGAN UNDANG-UNDANG TERPERINCI</h5>
+<h5 class="section-title">LAMPIRAN I: SENARAI PANDANGAN UNDANG-UNDANG TERPERINCI</h5>
 
 <table>
     <thead>
@@ -321,7 +372,7 @@
 
 <div class="section-spacer"></div>
 
-<h5 class="fw-bold mb-3">LAMPIRAN II: LAPORAN KES MAHKAMAH TERPERINCI</h5> 
+<h5 class="section-title">LAMPIRAN II: LAPORAN KES MAHKAMAH TERPERINCI</h5> 
 <table>
     <thead>
         <tr>
@@ -363,7 +414,7 @@
 
 <div class="section-spacer"></div>
 
-<h5 class="fw-bold mb-3">LAMPIRAN III: PENGGUBALAN RANG UNDANG-UNDANG</h5>
+<h5 class="section-title">LAMPIRAN III: PENGGUBALAN RANG UNDANG-UNDANG</h5>
 <table>
     <thead>
         <tr>
@@ -389,7 +440,7 @@
 
 <div class="section-spacer"></div>
 
-<h5 class="fw-bold mb-3">LAMPIRAN IV: PINDAAN RANG UNDANG-UNDANG</h5>
+<h5 class="section-title">LAMPIRAN IV: PINDAAN RANG UNDANG-UNDANG</h5>
 <table>
     <thead>
         <tr>
@@ -415,7 +466,7 @@
 
 <div class="section-spacer"></div>
 
-<h5 class="fw-bold mb-3">LAMPIRAN V: SEMAKAN RANG UNDANG-UNDANG</h5>
+<h5 class="section-title">LAMPIRAN V: SEMAKAN RANG UNDANG-UNDANG</h5>
 <table>
     <thead>
         <tr>
@@ -441,7 +492,7 @@
 
 <div class="section-spacer"></div>
 
-<h5 class="fw-bold mb-3">LAMPIRAN VI: LAPORAN MESYUARAT</h5>
+<h5 class="section-title">LAMPIRAN VI: LAPORAN MESYUARAT</h5>
 <p class="fst-italic mb-3" style="font-size: 10px;">(*Sila nyatakan rujukan jika berkaitan dengan Lampiran I)</p>
 
 <table>
@@ -473,7 +524,7 @@
 
 <div class="section-spacer"></div>
 
-<h5 class="fw-bold mb-3">LAMPIRAN VII: KES TATATERTIB</h5>
+<h5 class="section-title">LAMPIRAN VII: KES TATATERTIB</h5>
 <table>
     <thead>
         <tr>
@@ -522,7 +573,7 @@
 
 <div class="section-spacer"></div>
 
-<h5 class="fw-bold mb-3">LAMPIRAN VIII: LAIN-LAIN TUGASAN</h5>
+<h5 class="section-title">LAMPIRAN VIII: LAIN-LAIN TUGASAN</h5>
 <table>
     <thead>
         <tr>

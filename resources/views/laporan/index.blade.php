@@ -60,6 +60,18 @@
     .bg-soft-success { background-color: #dcfce7; color: #166534; }
     .bg-soft-warning { background-color: #fef9c3; color: #854d0e; }
     .bg-soft-secondary { background-color: #f1f5f9; color: #475569; }
+    
+    /* STYLE BARU UNTUK GROUPING */
+    .group-header-row {
+        background-color: #e3f2fd !important; 
+        font-weight: 700;
+        color: #0d47a1 !important; 
+        text-align: left !important;
+        padding: 8px 15px !important;
+        font-size: 0.9rem !important;
+        border-bottom: 2px solid #bbdefb !important;
+        border-top: 2px solid #bbdefb !important;
+    }
 </style>
 
 <div class="container-fluid px-4 py-4">
@@ -176,73 +188,96 @@
     </div>
 
 
-    {{-- BAHAGIAN 2: STATISTIK KES MAHKAMAH --}}
-    <div class="report-card">
-        <div class="report-header">
-            <h5 class="report-title">
-                <i class="fas fa-balance-scale me-2 text-primary"></i> Ringkasan Kes Mahkamah
-            </h5>
-            <small class="text-muted">Rujuk Lampiran II untuk perincian</small>
-        </div>
-
-        <div class="table-responsive">
-            <table class="table table-custom table-hover mb-0 text-center">
-                <thead>
-                    <tr>
-                        <th rowspan="2" class="text-start ps-4">Kategori Kes</th>
-                        <th rowspan="2">Masih Aktif</th>
-                        <th colspan="5" class="bg-secondary bg-opacity-10 text-dark">Peringkat Mahkamah</th>
-                    </tr>
-                    <tr>
-                        <th>Majistret</th>
-                        <th>Sesyen</th>
-                        <th>Tinggi</th>
-                        <th>Rayuan</th>
-                        <th>Persekutuan</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @php $jum = ['aktif' => 0, 'maj' => 0, 'sesi' => 0, 'tinggi' => 0, 'rayuan' => 0, 'persk' => 0]; @endphp
-
-                    @forelse ($lampiran_kesmahkamah as $row)
-                        <tr>
-                            <td class="text-start ps-4 fw-semibold">{{ $row->kategori }}</td>
-                            <td><span class="badge bg-warning text-dark rounded-pill">{{ $row->bil_aktif }}</span></td>
-                            <td>{{ $row->majistret }}</td>
-                            <td>{{ $row->sesi }}</td>
-                            <td>{{ $row->tinggi }}</td>
-                            <td>{{ $row->rayuan }}</td>
-                            <td>{{ $row->persk }}</td>
-                        </tr>
-                        @php
-                            $jum['aktif'] += $row->bil_aktif; $jum['maj'] += $row->majistret;
-                            $jum['sesi'] += $row->sesi; $jum['tinggi'] += $row->tinggi;
-                            $jum['rayuan'] += $row->rayuan; $jum['persk'] += $row->persk;
-                        @endphp
-                    @empty
-                        <tr>
-                            <td colspan="7" class="text-center py-4 text-muted">
-                                <i class="fas fa-folder-open mb-2 d-block fa-2x opacity-25"></i>
-                                Tiada data ringkasan kes mahkamah.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-                <tfoot class="bg-light fw-bold">
-                    <tr>
-                        <td class="text-end pe-4">JUMLAH BESAR</td>
-                        <td class="text-primary">{{ $jum['aktif'] }}</td>
-                        <td>{{ $jum['maj'] }}</td>
-                        <td>{{ $jum['sesi'] }}</td>
-                        <td>{{ $jum['tinggi'] }}</td>
-                        <td>{{ $jum['rayuan'] }}</td>
-                        <td>{{ $jum['persk'] }}</td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
+    {{-- BAHAGIAN 2: STATISTIK KES MAHKAMAH (DENGAN GROUPING BARU) --}}
+<div class="report-card">
+    <div class="report-header">
+        <h5 class="report-title">
+            <i class="fas fa-balance-scale me-2 text-primary"></i> Ringkasan Kes Mahkamah
+        </h5>
+        <small class="text-muted">Rujuk Lampiran II untuk perincian</small>
     </div>
 
+    <div class="table-responsive">
+        <table class="table table-custom table-hover mb-0 text-center">
+            <thead>
+                <tr>
+                    <th rowspan="2" class="text-start ps-4">Kategori Kes</th>
+                    <th rowspan="2">Masih Aktif</th>
+                    <th colspan="5" class="bg-secondary bg-opacity-10 text-dark">Peringkat Mahkamah</th>
+                </tr>
+                <tr>
+                    <th>Majistret</th>
+                    <th>Sesyen</th>
+                    <th>Tinggi</th>
+                    <th>Rayuan</th>
+                    <th>Persekutuan</th>
+                </tr>
+            </thead>
+            <tbody>
+                @php $jum = ['aktif' => 0, 'maj' => 0, 'sesi' => 0, 'tinggi' => 0, 'rayuan' => 0, 'persk' => 0]; @endphp
+                @php $groupCounter = 0; $currentGroup = ''; @endphp
+
+                @forelse ($lampiran_kesmahkamah as $row)
+                    @php
+                        $kategori = $row->kategori;
+                        
+                        // 1. Dapatkan nama kumpulan utama (cth: 'Tanah' dari 'Tanah (Sivil)' atau 'Perlembagaan' dari 'Perlembagaan')
+                        $mainGroupName = str_contains($kategori, '(') ? trim(explode('(', $kategori)[0]) : $kategori;
+                        
+                        // 2. Dapatkan label pecahan (cth: (Sivil), atau nama penuh jika tidak pecah)
+                        $displayLabel = str_contains($kategori, '(') ? substr($kategori, strpos($kategori, '(')) : $kategori;
+                    @endphp
+                    
+                    {{-- FIX: MENCIPTA HEADER BARU JIKA KUMPULAN BERUBAH --}}
+                    @if ($mainGroupName !== $currentGroup)
+                        {{-- Increment counter dan update currentGroup --}}
+                        @php $groupCounter++; $currentGroup = $mainGroupName; @endphp
+                        
+                        <tr class="group-header-row">
+                            <td colspan="7" class="text-start ps-3">{{ $groupCounter }}. {{ $mainGroupName }}</td>
+                        </tr>
+                    @endif
+
+                    {{-- ROW DATA UTAMA --}}
+                    <tr>
+                        <td class="text-start ps-{{ str_contains($kategori, '(') ? '5' : '4' }} fw-semibold text-muted">
+                            {{ $displayLabel }}
+                        </td>
+                        <td><span class="badge bg-warning text-dark rounded-pill">{{ $row->bil_aktif }}</span></td>
+                        <td>{{ $row->majistret }}</td>
+                        <td>{{ $row->sesi }}</td>
+                        <td>{{ $row->tinggi }}</td>
+                        <td>{{ $row->rayuan }}</td>
+                        <td>{{ $row->persk }}</td>
+                    </tr>
+                    @php
+                        $jum['aktif'] += $row->bil_aktif; $jum['maj'] += $row->majistret;
+                        $jum['sesi'] += $row->sesi; $jum['tinggi'] += $row->tinggi;
+                        $jum['rayuan'] += $row->rayuan; $jum['persk'] += $row->persk;
+                    @endphp
+                @empty
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            <i class="fas fa-folder-open mb-2 d-block fa-2x opacity-25"></i>
+                            Tiada data ringkasan kes mahkamah.
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+            <tfoot class="bg-light fw-bold">
+                <tr>
+                    <td class="text-end pe-4">JUMLAH BESAR</td>
+                    <td class="text-primary">{{ $jum['aktif'] }}</td>
+                    <td>{{ $jum['maj'] }}</td>
+                    <td>{{ $jum['sesi'] }}</td>
+                    <td>{{ $jum['tinggi'] }}</td>
+                    <td>{{ $jum['rayuan'] }}</td>
+                    <td>{{ $jum['persk'] }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
 
     {{-- BAHAGIAN 3: SENARAI TERPERINCI (Pandangan Undang-undang) --}}
     <div class="report-card">

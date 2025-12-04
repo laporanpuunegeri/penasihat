@@ -9,10 +9,6 @@
             <h3 class="fw-bold text-dark mb-0">D'BUS (OBB) - Anggaran Belanja</h3>
             <p class="text-muted small">BAHAGIAN/PUUN : PENASIHAT UNDANG-UNDANG NEGERI MELAKA</p>
         </div>
-        <div class="d-flex gap-2">
-            <button onclick="window.print()" class="btn btn-secondary shadow-sm"><i class="fas fa-print me-2"></i> Cetak</button>
-            <a href="{{ route('pentadbiran.dbus.create') }}" class="btn btn-primary shadow-sm"><i class="fas fa-plus me-2"></i> Daftar Baru</a>
-        </div>
     </div>
 
     {{-- FILTER TAHUN --}}
@@ -104,8 +100,14 @@
                                             <a href="{{ route('pentadbiran.dbus.edit_os22000', ['kod'=>$osKey, 'tahun'=>$tahun]) }}" class="btn btn-sm btn-info py-0 px-2" title="Kemaskini Pengangkutan">
                                                 <i class="fas fa-truck small"></i>
                                             </a>
+                                        
+                                        {{-- 6. PERHUBUNGAN DAN UTILITI (OS23000) - BARU! --}}
+                                        @elseif($osKey == 'OS23000')
+                                            <a href="{{ route('pentadbiran.dbus.edit_os23000', ['kod'=>$osKey, 'tahun'=>$tahun]) }}" class="btn btn-sm btn-info py-0 px-2" title="Kemaskini Utiliti">
+                                                <i class="fas fa-lightbulb small"></i>
+                                            </a>
                                             
-                                        {{-- 6. SEMUA OS LAIN --}}
+                                        {{-- 7. SEMUA OS LAIN --}}
                                         @else
                                             <a href="{{ route('pentadbiran.dbus.edit', ['tahun'=>$tahun, 'kategori'=>$osKey]) }}" class="btn btn-sm btn-warning py-0 px-2" title="Kemaskini">
                                                 <i class="fas fa-edit small"></i>

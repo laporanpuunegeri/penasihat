@@ -10,15 +10,17 @@ use App\Models\LampiranKesMahkamah;
 class LampiranKesMahkamahController extends Controller
 {
     // Senarai kategori yang tetap (supaya konsisten)
-    private $kategori_list = [
+ private $kategori_list = [
         'Perlembagaan', 
-        'Tanah / PBT', 
+        'Tanah (Sivil)',            
+        'Tanah (Guaman)',           
         'Rujukan tanah',
         'Undang-Undang Pentadbiran / Perkhidmatan', 
         'Kemalangan',
         'Perjanjian / Penswastaan', 
         'Pendakwaan', 
-        'Lain-lain',
+        'Lain-lain (Sivil)',        
+        'Lain-lain (Guaman)',       
     ];
 
     public function __construct()

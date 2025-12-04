@@ -29,7 +29,7 @@ use App\Http\Controllers\LaporanMesyuaratController;
 use App\Http\Controllers\KestatatertibController;
 use App\Http\Controllers\LaporanLainLainController;
 use App\Http\Controllers\PdfController;
-
+use App\Http\Controllers\LampiranKesMahkamahController; // Model/Controller Lampiran yang baru disahkan
 
 Route::get('/', fn() => redirect()->route('dashboard'))->name('utama');
 
@@ -152,9 +152,13 @@ Route::middleware('auth')->group(function () {
             Route::get('/edit-os21000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs21000'])->name('edit_os21000');
             Route::post('/update-os21000', [DbusPecahanController::class, 'updateOs21000'])->name('update_os21000');
 
-            // --- PECAHAN OS22000 (PENGANGKUTAN BARANG) <--- TAMBAHAN UNTUK FIX ROUTE ERROR
+            // --- PECAHAN OS22000 (PENGANGKUTAN BARANG) ---
             Route::get('/edit-os22000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs22000'])->name('edit_os22000');
             Route::post('/update-os22000', [DbusPecahanController::class, 'updateOs22000'])->name('update_os22000');
+
+            // --- PECAHAN OS23000 (PERHUBUNGAN DAN UTILITI) ---
+            Route::get('/os23000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs23000'])->name('edit_os23000');
+            Route::post('/update-os23000', [DbusPecahanController::class, 'updateOs23000'])->name('update_os23000');
         });
 
         Route::prefix('laporan-prestasi')->name('laporan_prestasi.')->group(function () {
@@ -189,10 +193,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/cetak-laporan-pdf', [GuamanController::class, 'cetakLaporanPdf'])->name('cetak_laporan_pdf');
     });
 
-
+    // --- BAHAGIAN LAPORAN UTAMA ---
     Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
     Route::get('/laporan/pdf', [PdfController::class, 'laporan'])->name('laporan.pdf');
 
+    // --- FIX ROUTE NOT FOUND [lampiran.index] ---
+    Route::prefix('lampiran')->name('lampiran.')->group(function () {
+        Route::get('/', [LampiranKesMahkamahController::class, 'index'])->name('index'); 
+        Route::post('/', [LampiranKesMahkamahController::class, 'store'])->name('store');
+    });
+    
     Route::resources([
         'laporanpandanganundang' => LaporanPandanganUndangController::class,
         'laporankesmahkamah'     => LaporanKesMahkamahController::class,
@@ -217,7 +227,6 @@ Route::middleware('auth')->group(function () {
     });
 
 });
-
 
 Route::middleware('auth')->group(function () {
     Route::get('/register', [UserController::class, 'create'])->name('register');
