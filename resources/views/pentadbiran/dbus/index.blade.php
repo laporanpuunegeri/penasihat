@@ -7,7 +7,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h3 class="fw-bold text-dark mb-0">D'BUS (OBB) - Anggaran Belanja</h3>
-            <p class="text-muted small">BAHAGIAN/PUUN/JPN : PENASIHAT UNDANG-UNDANG NEGERI MELAKA</p>
+            <p class="text-muted small">BAHAGIAN/PUUN : PENASIHAT UNDANG-UNDANG NEGERI MELAKA</p>
         </div>
         <div class="d-flex gap-2">
             <button onclick="window.print()" class="btn btn-secondary shadow-sm"><i class="fas fa-print me-2"></i> Cetak</button>
@@ -22,8 +22,7 @@
                 <label class="fw-bold text-secondary me-3 mb-0">TAHUN ANGGARAN:</label>
                 <form action="{{ route('pentadbiran.dbus.index') }}" method="GET">
                     <select name="tahun" class="form-select form-select-sm fw-bold border-primary text-primary" style="width: 150px;" onchange="this.form.submit()">
-                        {{-- Mula dari 2026 hingga 2030 --}}
-                        @for ($y = 2026; $y <= 2030; $y++)
+                        @for ($y = 2027; $y <= 2030; $y++)
                             <option value="{{ $y }}" {{ $tahun == $y ? 'selected' : '' }}>{{ $y }}</option>
                         @endfor
                     </select>
@@ -51,13 +50,13 @@
                     </thead>
                     <tbody>
                         @foreach($structure as $oaKey => $oa)
+                            {{-- BARIS OA (INDUK) --}}
                             <tr class="table-secondary border-bottom-2 border-dark">
                                 <td class="fw-bold text-dark">{{ $oaKey }} {{ $oa['perkara'] }}</td>
                                 <td></td>
                                 <td></td>
                                 <td class="text-end fw-bold">{{ number_format($oa['jumlah'], 2) }}</td>
                                 <td class="text-center">
-                                    {{-- PERATURAN WARNA OA --}}
                                     @php
                                         $oaColor = ($oaKey == 'OA10000') ? 'btn-primary' : 'btn-warning';
                                     @endphp
@@ -68,6 +67,7 @@
                             </tr>
 
                             @foreach($oa['items'] as $osKey => $os)
+                                {{-- BARIS OS (SUB-INDUK) --}}
                                 <tr class="fw-bold text-primary bg-light">
                                     <td class="ps-4">{{ $osKey }} {{ $os['perkara'] }}</td>
                                     <td></td>
@@ -75,25 +75,37 @@
                                     <td></td>
                                     <td class="text-center">
                                         
-                                        {{-- LOGIK PECAHAN OS (Gaji, Elaun, KWSP) - KEKAL BIRU MUDA (INFO) --}}
-                                        @if($osKey == 'OS11000' || $osKey == 'OS12000' || $osKey == 'OS13000')
-                                            <a href="{{ route('pentadbiran.dbus.pecahan', ['kod'=>$osKey, 'tahun'=>$tahun]) }}" class="btn btn-sm btn-info py-0 px-2 text-white" title="Pecahan Pegawai/Gaji">
-                                                <i class="fas fa-users small"></i>
+                                        {{-- 1. PECAHAN PEGAWAI (OS11, OS12, OS13) --}}
+                                        @if(in_array($osKey, ['OS11000', 'OS12000', 'OS13000']))
+                                            <a href="{{ route('pentadbiran.dbus.pecahan', ['kod'=>$osKey, 'tahun'=>$tahun]) }}" class="btn btn-sm btn-warning py-0 px-2" title="Kemaskini Pecahan">
+                                                <i class="fas fa-user small"></i>
                                             </a>
                                         
-                                        {{-- LOGIK PECAHAN KHAS OS14000 (Bayaran Lebih Masa) - KUNING --}}
+                                        {{-- 2. BAYARAN LEBIH MASA (OS14000) --}}
                                         @elseif($osKey == 'OS14000')
-                                            <a href="{{ route('pentadbiran.dbus.edit_ol14101', ['kod'=>'OL14101', 'tahun'=>$tahun]) }}" class="btn btn-sm btn-warning py-0 px-2" title="Kemaskini Bayaran Lebih Masa">
+                                            <a href="{{ route('pentadbiran.dbus.edit_ol14101', ['kod'=>'OL14101', 'tahun'=>$tahun]) }}" class="btn btn-sm btn-warning py-0 px-2" title="Kemaskini OT">
                                                 <i class="fas fa-edit small"></i>
                                             </a>
 
-                                        {{-- LOGIK PECAHAN KHAS OS15000 (Faedah Kewangan Lain) - KUNING --}}
+                                        {{-- 3. FAEDAH KEWANGAN LAIN (OS15000) --}}
                                         @elseif($osKey == 'OS15000')
-                                            <a href="{{ route('pentadbiran.dbus.edit_os15000', ['kod'=>$osKey, 'tahun'=>$tahun]) }}" class="btn btn-sm btn-warning py-0 px-2" title="Kemaskini Faedah Kewangan">
+                                            <a href="{{ route('pentadbiran.dbus.edit_os15000', ['kod'=>$osKey, 'tahun'=>$tahun]) }}" class="btn btn-sm btn-warning py-0 px-2" title="Kemaskini Faedah">
                                                 <i class="fas fa-edit small"></i>
                                             </a>
                                             
-                                        {{-- BUTANG EDIT OS LAIN (OS21000 ke atas, yang tiada pecahan khas) - KUNING --}}
+                                        {{-- 4. PERJALANAN & SARA HIDUP (OS21000) --}}
+                                        @elseif($osKey == 'OS21000')
+                                            <a href="{{ route('pentadbiran.dbus.edit_os21000', ['kod'=>$osKey, 'tahun'=>$tahun]) }}" class="btn btn-sm btn-info py-0 px-2" title="Kemaskini Pecahan Perjalanan">
+                                                <i class="fas fa-edit small"></i>
+                                            </a>
+                                            
+                                        {{-- 5. PENGANGKUTAN BARANG (OS22000) --}}
+                                        @elseif($osKey == 'OS22000')
+                                            <a href="{{ route('pentadbiran.dbus.edit_os22000', ['kod'=>$osKey, 'tahun'=>$tahun]) }}" class="btn btn-sm btn-info py-0 px-2" title="Kemaskini Pengangkutan">
+                                                <i class="fas fa-truck small"></i>
+                                            </a>
+                                            
+                                        {{-- 6. SEMUA OS LAIN --}}
                                         @else
                                             <a href="{{ route('pentadbiran.dbus.edit', ['tahun'=>$tahun, 'kategori'=>$osKey]) }}" class="btn btn-sm btn-warning py-0 px-2" title="Kemaskini">
                                                 <i class="fas fa-edit small"></i>
@@ -103,19 +115,14 @@
                                 </tr>
 
                                 @foreach($os['items'] as $olKey => $ol)
+                                    {{-- BARIS OL (DETAIL) - KOSONGKAN BUTANG --}}
                                     <tr>
                                         <td class="ps-5 text-muted">{{ $olKey }} {{ $ol['perkara'] }}</td>
                                         <td class="text-end">{{ number_format($ol['jumlah'], 2) }}</td>
                                         <td></td>
                                         <td></td>
                                         <td class="text-center">
-                                            {{-- BUTANG EDIT OL --}}
-                                            {{-- KITA SEKAT EDIT PADA OL YANG DIURUS OLEH INDUK OS KHAS (OS14000, OS15000) --}}
-                                            @if(!in_array($osKey, ['OS14000', 'OS15000']))
-                                                <a href="{{ route('pentadbiran.dbus.edit', ['tahun'=>$tahun, 'kategori'=>$olKey]) }}" class="btn btn-sm btn-warning py-0 px-2" title="Kemaskini">
-                                                    <i class="fas fa-edit small"></i>
-                                                </a>
-                                            @endif
+                                            {{-- Tiada butang di sini --}}
                                         </td>
                                     </tr>
                                 @endforeach

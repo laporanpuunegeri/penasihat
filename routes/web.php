@@ -12,15 +12,13 @@ use App\Http\Controllers\AgensiController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\LaporanPPUUNController;
 use App\Http\Controllers\DbusController;
-use App\Http\Controllers\DbusPecahanController;
+use App\Http\Controllers\DbusPecahanController; 
 use App\Http\Controllers\GuamanController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\CustomPasswordResetController;
-
 use App\Http\Controllers\DashboardBahagian\GuamanDashboardController;
 use App\Http\Controllers\DashboardBahagian\KewanganPentadbiranDashboardController; 
 use App\Http\Controllers\DashboardBahagian\PenasihatDashboardController;
-
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\LaporanPandanganUndangController;
 use App\Http\Controllers\LaporanKesMahkamahController;
@@ -149,6 +147,14 @@ Route::middleware('auth')->group(function () {
             
             Route::get('/edit-os15000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs15'])->name('edit_os15000');
             Route::post('/update-os15000', [DbusPecahanController::class, 'updateOs15'])->name('update_os15000');
+        
+            // --- PECAHAN OS21000 (SARA HIDUP) ---
+            Route::get('/edit-os21000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs21000'])->name('edit_os21000');
+            Route::post('/update-os21000', [DbusPecahanController::class, 'updateOs21000'])->name('update_os21000');
+
+            // --- PECAHAN OS22000 (PENGANGKUTAN BARANG) <--- TAMBAHAN UNTUK FIX ROUTE ERROR
+            Route::get('/edit-os22000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs22000'])->name('edit_os22000');
+            Route::post('/update-os22000', [DbusPecahanController::class, 'updateOs22000'])->name('update_os22000');
         });
 
         Route::prefix('laporan-prestasi')->name('laporan_prestasi.')->group(function () {

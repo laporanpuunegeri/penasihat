@@ -620,6 +620,7 @@ class ComposerStaticInit913ffacc2afa8c7864dabe01a92b0e45
         'App\\Http\\Requests\\ProfileUpdateRequest' => __DIR__ . '/../..' . '/app/Http/Requests/ProfileUpdateRequest.php',
         'App\\Models\\Agensi' => __DIR__ . '/../..' . '/app/Models/Agensi.php',
         'App\\Models\\Dbus' => __DIR__ . '/../..' . '/app/Models/Dbus.php',
+        'App\\Models\\DbusPecahanOS21' => __DIR__ . '/../..' . '/app/Models/DbusPecahanOS21.php',
         'App\\Models\\DbusPecahanOs14' => __DIR__ . '/../..' . '/app/Models/DbusPecahanOs14.php',
         'App\\Models\\DbusPecahanOs15' => __DIR__ . '/../..' . '/app/Models/DbusPecahanOs15.php',
         'App\\Models\\DbusPegawai' => __DIR__ . '/../..' . '/app/Models/DbusPegawai.php',

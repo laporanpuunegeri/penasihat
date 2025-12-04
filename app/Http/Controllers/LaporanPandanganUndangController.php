@@ -8,7 +8,7 @@ use App\Models\Agensi;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage; // Penting untuk fungsi fail
+use Illuminate\Support\Facades\Storage; 
 
 class LaporanPandanganUndangController extends Controller
 {
@@ -39,82 +39,14 @@ class LaporanPandanganUndangController extends Controller
     {
         $user = Auth::user();
 
+        // Kita guna version Database (HEAD) sebab ia lebih dinamik
         $agensiList = Agensi::where('negeri', $user->negeri)
                             ->orWhere('negeri', 'Persekutuan')
                             ->orderBy('nama_agensi', 'ASC')
                             ->pluck('nama_agensi');
 
-<<<<<<< HEAD
         return view('laporanpandanganundang.create', compact('agensiList'));
     }
-=======
-    // Senarai agensi tetap
-    $agensiTetap = [
-        "AKCC (Ayer Keroh Country Club)",
-        "Bahagian Teknologi Maklumat Dan Komunikasi (BTMK)", 
-        "BADSA (Bhg. Audit Dalam & Siasatan Awam)",
-        "BKP, JKMM (Bhg. Khidmat Pengurusan / Pengurusan Aset)",
-        "BKSA (Badan Kawal Selia Air)",
-        "BPSM, JKMM (Bhg. Pengurusan Sumber Manusia)",
-        "CMI (Pejabat Ketua Menteri)",
-        "CUCKOO INTERNATIONAL (MAL) BERHAD",
-        "DUN / Unit Dewan",
-        "FR Fariza Enterprise",
-        "Hospital Putra",
-        "ITPS Marketing S/B",
-        "Invest Melaka Berhad",
-        "Jabatan Kebajikan Masyarakat Negeri Melaka (JKM)", 
-        "Jabatan Kewangan & Perbendaharaan Negeri Melaka",
-        "Jabatan Mufti Melaka",
-        "Jabatan Pendakwaan Syariah",
-        "Jabatan Pertanian",
-        "Jabatan Perkhidmatan Veterinar Negeri Melaka",
-        "Jabatan Pengairan dan Saliran Negeri Melaka",
-        "Jabatan Perhutanan Negeri Melaka",
-        "JAIM (Jabatan Agama Islam Melaka)",
-        "JKR",
-        "JPBD (Jab. Perancangan Bandar & Desa)",
-        "Kertas Jemaah Pengampunan",
-        "KMB (Kumpulan Melaka Berhad)",
-        "Kompleks Falak Al-Khawarizmi",
-        "LPM (Lembaga Perumahan Melaka)",
-        "LTAM (Lembaga Tabung Amanah Melaka)",
-        "Melaka International College of Science and Texhnology (MiCoST)",
-        "Melaka Bekal Sdn Bhd",
-        "Majlis Mesyuarat Kerajaan Negeri Melaka",
-        "Mahkamah Syariah Melaka",
-        "MAIM (Majlis Agama Islam Melaka)",
-        "MCORP",
-        "MITC",
-        "MITCH (Melaka ICT Holding)",
-        "M-WEZ (Melaka Waterfront Economic Zone)",
-        "Panorama Melaka",
-        "PBT (MBMB)",
-        "PBT (MPAG)",
-        "PBT (MPJ)",
-        "PBT (MPTHJ)",
-        "Pejabat T.Y.T",
-        "Perbadanan Biokteknologi Melaka",
-        "PERTAM (Perbadanan Kemajuan Tanah Adat Melaka)",
-        "PERZIM (Perbadanan Muzium Melaka)",
-        "PPSPM (Perbadanan Pembangunan Sungai & Pantai Melaka)",
-        "PTD A/GAJAH",
-        "PTD JASIN",
-        "PTD M/TGH",
-        "PTG Negeri Melaka",
-        "PTHM (Perbadanan Teknologi Hijau Melaka)",
-        "PUTARAN SEMASA SDN BHD",
-        "SAMB (Syarikat Air Melaka)",
-        "Setiausaha Kerajaan Negeri (suk)",
-        "TAPEM (Tabung Amanah Pendidikan Melaka)",
-        "UKT, JKMM (Unit Kerajaan Tempatan)",
-        "UNIMEL / KUIM (Kolej Universiti Islam Melaka)",
-        "Unit Integriti",
-        "UTC Melaka",
-        "UPEN (Unit Perancangan Ekonomi)",
-        "Yayasan Melaka",
-    ];
->>>>>>> a0c472fb933f28f5e7ce2499cc289ee4f1126ec1
 
     /**
      * 3. STORE: Simpan Data & Fail
@@ -133,7 +65,7 @@ class LaporanPandanganUndangController extends Controller
             'belum_selesai' => 'nullable|boolean',
             'dirujuk_jpn' => 'nullable|boolean',
             'agensi' => 'required|string',
-            'dokumen' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240', // Validasi Fail
+            'dokumen' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png|max:10240', 
         ]);
 
         $user = Auth::user();
@@ -142,7 +74,6 @@ class LaporanPandanganUndangController extends Controller
         // Proses Fail
         $dokumenPath = null;
         if ($request->hasFile('dokumen')) {
-            // Simpan dalam storage/app/public/dokumen_pandangan
             $dokumenPath = $request->file('dokumen')->store('dokumen_pandangan', 'public');
         }
 
@@ -163,7 +94,7 @@ class LaporanPandanganUndangController extends Controller
             'boss_id' => $bossId,
             'user_id' => $user->id,
             'negeri' => $user->negeri,
-            'dokumen_path' => $dokumenPath, // Simpan path fail
+            'dokumen_path' => $dokumenPath, 
         ]);
 
         return redirect()->route('laporanpandanganundang.index')->with('success', 'Laporan berjaya disimpan.');
@@ -195,7 +126,7 @@ class LaporanPandanganUndangController extends Controller
             'tarikh_terima' => 'required|date',
             'fakta_ringkasan' => 'required|string',
             'isu_detail' => 'required|string',
-            'ringkasan_pandangan' => 'nullable|string', // Boleh nullable
+            'ringkasan_pandangan' => 'nullable|string', 
             'jenis_pandangan' => 'nullable|string',
             'status' => 'required|string',
             'tarikh_selesai' => 'nullable|date',
@@ -233,7 +164,6 @@ class LaporanPandanganUndangController extends Controller
             'dirujuk_jpn' => $request->has('dirujuk_jpn'),
             'agensi' => $request->agensi,
             'boss_id' => $bossId,
-            // dokumen_path sudah diupdate secara manual di atas jika ada fail baru
         ]);
 
         return redirect()->route('laporanpandanganundang.index')->with('success', 'Laporan berjaya dikemaskini.');

@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class Dbus extends Model
 {
     use HasFactory;
-    
-    protected $table = 'dbus'; 
+ 
+    protected $table = 'dbuses'; 
     
     protected $fillable = ['kod_objek', 'perkara', 'jenis', 'jumlah', 'tahun'];
 }

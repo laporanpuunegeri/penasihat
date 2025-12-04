@@ -61,6 +61,7 @@ return array(
     'App\\Http\\Requests\\ProfileUpdateRequest' => $baseDir . '/app/Http/Requests/ProfileUpdateRequest.php',
     'App\\Models\\Agensi' => $baseDir . '/app/Models/Agensi.php',
     'App\\Models\\Dbus' => $baseDir . '/app/Models/Dbus.php',
+    'App\\Models\\DbusPecahanOS21' => $baseDir . '/app/Models/DbusPecahanOS21.php',
     'App\\Models\\DbusPecahanOs14' => $baseDir . '/app/Models/DbusPecahanOs14.php',
     'App\\Models\\DbusPecahanOs15' => $baseDir . '/app/Models/DbusPecahanOs15.php',
     'App\\Models\\DbusPegawai' => $baseDir . '/app/Models/DbusPegawai.php',
