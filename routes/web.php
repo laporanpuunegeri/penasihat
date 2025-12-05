@@ -159,6 +159,9 @@ Route::middleware('auth')->group(function () {
             // --- PECAHAN OS23000 (PERHUBUNGAN DAN UTILITI) ---
             Route::get('/os23000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs23000'])->name('edit_os23000');
             Route::post('/update-os23000', [DbusPecahanController::class, 'updateOs23000'])->name('update_os23000');
+        
+            Route::get('/edit-os24000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs24000'])->name('edit_os24000');
+            Route::post('/update-os24000', [DbusPecahanController::class, 'updateOs24000'])->name('update_os24000');
         });
 
         Route::prefix('laporan-prestasi')->name('laporan_prestasi.')->group(function () {

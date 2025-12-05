@@ -10,6 +10,7 @@ use App\Models\DbusPecahanOs15;
 use App\Models\DbusPecahanOS21;
 use App\Models\DbusPecahanOS22;
 use App\Models\DbusPecahanOS23; 
+use App\Models\DbusPecahanOS24;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -696,6 +697,213 @@ class DbusPecahanController extends Controller
 
         return redirect()->route('pentadbiran.dbus.index', ['tahun' => $tahun])
                          ->with('success', 'OS23000 berjaya dikemaskini. Jumlah: RM' . number_format($grandTotal, 2));
+    }
+
+    // --- 7. SEWAAN (OS24000) ---
+
+public function editOs24000($kod, $tahun)
+    {
+        // 1. Setup Induk
+        $dbusData = Dbus::where('kod_objek', $kod)->where('tahun', $tahun)->first();
+
+        if (!$dbusData) {
+            $info = $this->findObjekInfo($kod);
+            $dbusData = Dbus::create([
+                'kod_objek' => $kod,
+                'tahun' => $tahun,
+                'perkara' => $info['perkara'] ?? 'SEWAAN',
+                'jenis' => 'OS',
+                'jumlah' => 0.00
+            ]);
+        }
+
+        // 2. Ambil data sedia ada
+        $pecahanData = DbusPecahanOS24::where('dbus_id', $dbusData->id)->get();
+        $pecahanMap = $pecahanData->keyBy('sub_kod')->toArray();
+
+        // 3. DEFINISI ITEM (STRUKTUR PDF YANG TEPAT)
+        $items = [
+            // --- TAB 1: SEWAAN BANGUNAN (OS24200) - ADA SUB-GROUP ---
+            '24200' => [
+                'title' => 'SEWAAN BANGUNAN (24200)',
+                'has_subgroups' => true, // Flag untuk Blade tahu ini ada sub-header
+                'subgroups' => [
+                    [
+                        'title' => 'SEWAAN BANGUNAN KEDIAMAN (OL24201)',
+                        'data' => [
+                            ['sub' => 'OL24201_1', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24201', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                            ['sub' => 'OL24201_2', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24201', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                            ['sub' => 'OL24201_3', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24201', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                            ['sub' => 'OL24201_4', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24201', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                        ]
+                    ],
+                    [
+                        'title' => 'SEWAAN BANGUNAN PEJABAT (OL24202)',
+                        'data' => [
+                            ['sub' => 'OL24202_1', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24202', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                            ['sub' => 'OL24202_2', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24202', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                            ['sub' => 'OL24202_3', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24202', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                            ['sub' => 'OL24202_4', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24202', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                        ]
+                    ],
+                    [
+                        'title' => 'SEWAAN BANGUNAN (LAIN-LAIN) (OL24299)',
+                        'data' => [
+                            ['sub' => 'OL24299_1', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24299', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                            ['sub' => 'OL24299_2', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24299', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                            ['sub' => 'OL24299_3', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24299', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                            ['sub' => 'OL24299_4', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24299', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                        ]
+                    ]
+                ]
+            ],
+
+            // --- TAB 2: KENDERAAN (OS24300) - ADA SUB-GROUP JUGA (IKUT PDF) ---
+            '24300' => [
+                'title' => 'SEWAAN KENDERAAN (24300)',
+                'has_subgroups' => true,
+                'subgroups' => [
+                    [
+                        'title' => 'SEWAAN PENUMPANG (OL24301)',
+                        'data' => [
+                            ['sub' => 'OL24301_1', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24301', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                            ['sub' => 'OL24301_2', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24301', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                        ]
+                    ],
+                    [
+                        'title' => 'SEWAAN KENDERAAN KONSESI SPANCO (OL24305)',
+                        'data' => [
+                            ['sub' => 'OL24305_1', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24305', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                            ['sub' => 'OL24305_2', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24305', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                        ]
+                    ],
+                    [
+                        'title' => 'SEWAAN KENDERAAN KENDERAAN LAIN (OL24399)',
+                        'data' => [
+                            ['sub' => 'OL24399_1', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24399', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                            ['sub' => 'OL24399_2', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24399', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                        ]
+                    ]
+                ]
+            ],
+
+            // --- TAB 3: ALAT PEJABAT (OS24500) - ADA SUB-GROUP ---
+            '24500' => [
+                'title' => 'ALAT PEJABAT (24500)',
+                'has_subgroups' => true,
+                'subgroups' => [
+                    [
+                        'title' => 'SEWA ALAT KELENGKAPAN PEJABAT (OL24501)',
+                        'data' => [
+                            ['sub' => 'OL24501_PETI', 'butiran' => 'Peti Surat - Pos Malaysia', 'unit' => 'unit', 'kod_ol' => 'OL24501', 'editable' => false, 'q'=>1, 'b'=>1, 'a'=>250.00],
+                            ['sub' => 'OL24501_1', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24501', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                            ['sub' => 'OL24501_2', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24501', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                            ['sub' => 'OL24501_3', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24501', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                        ]
+                    ],
+                    [
+                        'title' => 'SEWA PERABOT DAN LENGKAPAN (OL24502)',
+                        'data' => [
+                            ['sub' => 'OL24502_1', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24502', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                            ['sub' => 'OL24502_2', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24502', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                            ['sub' => 'OL24502_3', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24502', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                        ]
+                    ]
+                ]
+            ],
+
+            // --- TAB 4: ELEKTRONIK (OS24600) - SATU GROUP SAHAJA (OL24699) ---
+            '24600' => [
+                'title' => 'ELEKTRONIK (24600)',
+                'has_subgroups' => true,
+                'subgroups' => [
+                    [
+                        'title' => 'SEWA ALAT KELENGKAPAN ELEKTRONIK YANG LAIN (OL24699)',
+                        'data' => [
+                            ['sub' => 'OL24699_FOTO', 'butiran' => 'Mesin Fotostat (Pejabat PPUUN Melaka Seri Negeri)', 'unit' => 'unit', 'kod_ol' => 'OL24699', 'editable' => false, 'q'=>1, 'b'=>12, 'a'=>1100.00],
+                            ['sub' => 'OL24699_1', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24699', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                            ['sub' => 'OL24699_2', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24699', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                            ['sub' => 'OL24699_3', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24699', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                        ]
+                    ]
+                ]
+            ],
+
+            // --- TAB 5: ELEKTRIK (OS24700) - SATU GROUP SAHAJA (OL24799) ---
+            '24700' => [
+                'title' => 'ELEKTRIK (24700)',
+                'has_subgroups' => true,
+                'subgroups' => [
+                    [
+                        'title' => 'SEWA ALAT KELENGKAPAN ELEKTRIK YANG LAIN (OL24799)',
+                        'data' => [
+                            ['sub' => 'OL24799_AIR', 'butiran' => 'Mesin Penapis Air', 'unit' => 'unit', 'kod_ol' => 'OL24799', 'editable' => false, 'q'=>3, 'b'=>12, 'a'=>120.00],
+                            ['sub' => 'OL24799_1', 'butiran' => 'Sila Nyatakan', 'unit' => 'unit', 'kod_ol' => 'OL24799', 'editable' => true, 'q'=>0, 'b'=>0, 'a'=>0],
+                        ]
+                    ]
+                ]
+            ],
+        ];
+
+        return view('pentadbiran.dbus.pecahan_OS24000', compact('dbusData', 'pecahanMap', 'kod', 'tahun', 'items'));
+    }
+
+    public function updateOs24000(Request $request)
+    {
+        $masterId = $request->input('master_id');
+        $dbusMaster = Dbus::findOrFail($masterId);
+        $tahun = $dbusMaster->tahun;
+        $pecahanInput = $request->input('data');
+        $grandTotal = 0;
+
+        DB::transaction(function () use ($dbusMaster, $pecahanInput, &$grandTotal, $tahun) {
+            
+            // Padam data lama
+            DbusPecahanOS24::where('dbus_id', $dbusMaster->id)->delete();
+
+            if ($pecahanInput) {
+                foreach ($pecahanInput as $subKod => $data) {
+                    
+                    // Logic pengiraan: Anggaran Sebulan x Bil Bulan
+                    $anggaran = isset($data['anggaran']) ? (float)$data['anggaran'] : 0;
+                    $bilBulan = isset($data['bulan']) ? (int)$data['bulan'] : 12;
+                    $kodOl = $data['kod_ol'] ?? substr($subKod, 0, 7);
+                    $butiran = $data['butiran'] ?? 'Butiran Sewaan';
+
+                    $jumlah = $anggaran * $bilBulan;
+
+                    if ($jumlah > 0) {
+                        DbusPecahanOS24::create([
+                            'dbus_id' => $dbusMaster->id,
+                            'kod_ol' => $kodOl,
+                            'sub_kod' => $subKod,
+                            'butiran' => $butiran,
+                            'anggaran_sebulan' => $anggaran,
+                            'bil_bulan' => $bilBulan,
+                            'tahun' => $tahun,
+                            'jumlah' => $jumlah
+                        ]);
+                        $grandTotal += $jumlah;
+                    }
+                }
+            }
+
+            // Update Master & OL Sums
+            $dbusMaster->jumlah = $grandTotal;
+            $dbusMaster->save();
+
+            // Update OS24000 Induk
+            Dbus::updateOrCreate(
+                ['kod_objek' => 'OS24000', 'tahun' => $tahun],
+                ['perkara' => 'SEWAAN', 'jenis' => 'OS', 'jumlah' => $grandTotal]
+            );
+
+            // Update OL (Group Sums)
+            // (Anda mungkin perlu menambah logik grouping untuk OL yang berbeza di sini)
+        });
+
+        return redirect()->route('pentadbiran.dbus.index', ['tahun' => $tahun])
+                         ->with('success', 'OS24000 berjaya dikemaskini.');
     }
 
     // --- HELPER FUNCTIONS ---

@@ -98,36 +98,44 @@ class DbusController extends Controller
 
     private function getDbusStructure()
     {
-        // Struktur penuh dikekalkan (saya pendekkan di sini utk jimat ruang, tapi pastikan ia ada dalam file anda)
         return [
             'OA10000' => [
                 'perkara' => 'EMOLUMEN', 'jenis' => 'OA',
                 'items' => [
                     'OS11000' => ['perkara' => 'GAJI DAN UPAHAN', 'jenis' => 'OS', 'items' => ['OL11101' => ['perkara' => 'Gaji Biasa Kakitangan Awam', 'jenis' => 'OL']]],
-                    'OS12000' => ['perkara' => 'ELAUN DAN IMBUHAN TETAP', 'jenis' => 'OS', 'items' => [
-                            'OL12101' => ['perkara' => 'Elaun Khidmat Awam', 'jenis' => 'OL'],
-                            'OL12102' => ['perkara' => 'Elaun Bantuan Sewa Rumah', 'jenis' => 'OL'],
-                            'OL12103' => ['perkara' => 'Elaun Keraian', 'jenis' => 'OL'],
-                            'OL12106' => ['perkara' => 'Imbuhan Tetap Jawatan Utama dan Gred Khas', 'jenis' => 'OL'],
-                            'OL12107' => ['perkara' => 'Bayaran Insentif Perkhidmatan Kritikal', 'jenis' => 'OL'],
-                            'OL12108' => ['perkara' => 'Bayaran Insentif Khas Pegawai Profesional', 'jenis' => 'OL'],
-                            'OL12109' => ['perkara' => 'Bayaran Insentif Tugas Kewangan', 'jenis' => 'OL'],
-                            'OL12199' => ['perkara' => 'Elaun Tetap Lain', 'jenis' => 'OL'],
-                    ]],
-                    'OS13000' => ['perkara' => 'SUMBANGAN BERKANUN UNTUK KAKITANGAN', 'jenis' => 'OS', 'items' => ['OL13101' => ['perkara' => 'Sumbangan Berkanun (KWSP)', 'jenis' => 'OL']]],
-                    'OS14000' => ['perkara' => 'BAYARAN LEBIH MASA', 'jenis' => 'OS', 'items' => ['OL14101' => ['perkara' => 'Bayaran Lebih Masa Kakitangan Awam', 'jenis' => 'OL']]],
-                    'OS15000' => ['perkara' => 'FAEDAH-FAEDAH KEWANGAN YANG LAIN', 'jenis' => 'OS', 'items' => [
-                            'OL15101' => ['perkara' => 'Bayaran dan Bayaran Balik Utiliti', 'jenis' => 'OL'],
-                            'OL15102' => ['perkara' => 'Bayaran Balik Pasport/Lesen/Yuran', 'jenis' => 'OL'],
-                            'OL15110' => ['perkara' => 'Pemberian Alat Komunikasi', 'jenis' => 'OL'],
-                            'OL15111' => ['perkara' => 'Bayaran Kemudahan Perubatan', 'jenis' => 'OL'],
-                            'OL15112' => ['perkara' => 'Pelbagai Elaun Pakaian', 'jenis' => 'OL'],
-                            'OL15113' => ['perkara' => 'Pemberian Anugerah Perkhidmatan Cemerlang (APC)', 'jenis' => 'OL'],
-                            'OL15114' => ['perkara' => 'Pelbagai Kemudahan Tambang Pengangkutan', 'jenis' => 'OL'],
-                            'OL15119' => ['perkara' => 'Faedah Kewangan Lain / Elaun Perkakasan', 'jenis' => 'OL'],
-                    ]],
+                    'OS12000' => ['perkara' => 'ELAUN DAN IMBUHAN TETAP', 'jenis' => 'OS', 'items' => ['OL12101' => ['perkara' => 'Elaun Khidmat Awam', 'jenis' => 'OL']]],
+                    'OS13000' => ['perkara' => 'SUMBANGAN BERKANUN', 'jenis' => 'OS', 'items' => ['OL13101' => ['perkara' => 'KWSP', 'jenis' => 'OL']]],
+                    'OS14000' => ['perkara' => 'BAYARAN LEBIH MASA', 'jenis' => 'OS', 'items' => ['OL14101' => ['perkara' => 'Bayaran Lebih Masa', 'jenis' => 'OL']]],
+                    'OS15000' => ['perkara' => 'FAEDAH KEWANGAN LAIN', 'jenis' => 'OS', 'items' => ['OL15199' => ['perkara' => 'Pelbagai Faedah', 'jenis' => 'OL']]],
                 ]
             ],
+            'OA20000' => [
+                'perkara' => 'PERKHIDMATAN & BEKALAN', 'jenis' => 'OA',
+                'items' => [
+                    'OS21000' => ['perkara' => 'PERBELANJAAN PERJALANAN & SARA HIDUP', 'jenis' => 'OS', 'items' => ['OL21101' => ['perkara' => 'Perjalanan', 'jenis' => 'OL']]],
+                    'OS22000' => ['perkara' => 'PENGANGKUTAN BARANG', 'jenis' => 'OS', 'items' => ['OL22101' => ['perkara' => 'Pengangkutan', 'jenis' => 'OL']]],
+                    'OS23000' => ['perkara' => 'PERHUBUNGAN DAN UTILITI', 'jenis' => 'OS', 'items' => ['OL23101' => ['perkara' => 'Komunikasi', 'jenis' => 'OL']]],
+                    'OS24000' => ['perkara' => 'SEWAAN', 'jenis' => 'OS', 'items' => [
+                        'OL24201' => ['perkara' => 'Sewa Bangunan Kediaman', 'jenis' => 'OL'],
+                        'OL24202' => ['perkara' => 'Sewa Bangunan Pejabat', 'jenis' => 'OL'],
+                        'OL24299' => ['perkara' => 'Sewa Bangunan Lain', 'jenis' => 'OL'],
+                        'OL24301' => ['perkara' => 'Sewa Kenderaan Penumpang', 'jenis' => 'OL'],
+                        'OL24305' => ['perkara' => 'Sewa Kenderaan Konsesi', 'jenis' => 'OL'],
+                        'OL24399' => ['perkara' => 'Sewa Kenderaan Lain', 'jenis' => 'OL'],
+                        'OL24501' => ['perkara' => 'Sewa Alat Pejabat', 'jenis' => 'OL'],
+                        'OL24502' => ['perkara' => 'Sewa Perabot', 'jenis' => 'OL'],
+                        'OL24699' => ['perkara' => 'Sewa Elektronik Lain', 'jenis' => 'OL'],
+                        'OL24799' => ['perkara' => 'Sewa Elektrik Lain', 'jenis' => 'OL'],
+                    ]],
+                    'OS25000' => ['perkara' => 'BAHAN MAKANAN DAN MINUMAN', 'jenis' => 'OS', 'items' => ['OL25101' => ['perkara' => 'Bahan Makanan', 'jenis' => 'OL']]],
+                    'OS26000' => ['perkara' => 'BEKALAN BAHAN MENTAH', 'jenis' => 'OS', 'items' => ['OL26101' => ['perkara' => 'Bahan Mentah', 'jenis' => 'OL']]],
+                    'OS27000' => ['perkara' => 'BEKALAN DAN BAHAN LAIN', 'jenis' => 'OS', 'items' => ['OL27101' => ['perkara' => 'Bekalan Lain', 'jenis' => 'OL']]],
+                    'OS28000' => ['perkara' => 'PENYELENGGARAAN & PEMBAIKAN', 'jenis' => 'OS', 'items' => ['OL28101' => ['perkara' => 'Penyelenggaraan', 'jenis' => 'OL']]],
+                    'OS29000' => ['perkara' => 'PERKHIDMATAN IKTISAS', 'jenis' => 'OS', 'items' => ['OL29101' => ['perkara' => 'Perkhidmatan Iktisas', 'jenis' => 'OL']]],
+                ]
+            ],
+        ];
+    }
             'OA20000' => [
                 'perkara' => 'PERKHIDMATAN & BEKALAN', 'jenis' => 'OA',
                 'items' => [

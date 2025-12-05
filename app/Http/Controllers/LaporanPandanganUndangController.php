@@ -15,21 +15,37 @@ class LaporanPandanganUndangController extends Controller
     /**
      * 1. INDEX: Senarai Laporan
      */
-    public function index(Request $request)
+   public function index(Request $request)
     {
-        $bulanPilihan = $request->input('bulan', date('n'));
-        $tahunSemasa = date('Y');
+        // 1. Dapatkan pengguna semasa
+        $user = Auth::user();
 
+        // 2. Mulakan Query
+        // Pastikan Model LaporanPandanganUndang telah di-import di atas (use App\Models\LaporanPandanganUndang;)
         $query = LaporanPandanganUndang::query();
 
-        if ($bulanPilihan !== 'all') {
-            $query->whereMonth('tarikh_terima', $bulanPilihan)
-                  ->whereYear('tarikh_terima', $tahunSemasa);
+        // 3. LOGIK TAPISAN (FILTER)
+        $allowedRoles = ['super_admin', 'YB', 'PUUN']; 
+
+        if (!in_array($user->role, $allowedRoles)) {
+            // Tapis data supaya user biasa hanya nampak rekod sendiri
+            // Pastikan column 'user_id' wujud dalam table DB anda
+            $query->where('user_id', $user->id);
         }
 
-        $data = $query->latest()->get();
+        // 4. Carian / Filter tambahan (Jika ada)
+        if ($request->has('bulan') && $request->bulan != '') {
+            $query->whereMonth('tarikh_terima', $request->bulan);
+        }
+        
+        // 5. Dapatkan data (Paginate)
+        // Hasil disimpan dalam variable $senaraiLaporan
+        $senaraiLaporan = $query->latest()->paginate(10);
 
-        return view('laporanpandanganundang.index', compact('data'));
+        // PEMBETULAN: 
+        // Tukar compact('data') kepada compact('senaraiLaporan')
+        // Pastikan nama view ('laporanpandanganundang.index') adalah betul mengikut folder resources/views anda
+        return view('laporanpandanganundang.index', compact('senaraiLaporan'));
     }
 
     /**

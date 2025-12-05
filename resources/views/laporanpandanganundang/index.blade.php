@@ -127,13 +127,16 @@
                         <th width="5%">Lisan</th>
                         <th width="5%">Bertulis</th>
                         <th width="12%">Status</th>
-                        <th width="6%">Dokumen</th> {{-- 🔥 DIPINDAHKAN KE SINI --}}
+                        <th width="6%">Dokumen</th> 
                         <th width="10%">Tindakan</th>
                     </tr>
                 </thead>
 
                 @foreach ($kategori_list as $kategori)
-                    @php $filtered = $data->where('kategori', $kategori); @endphp
+                    {{-- ✅ PEMBETULAN: Guna $senaraiLaporan bukannya $data --}}
+                    @php 
+                        $filtered = $senaraiLaporan->where('kategori', $kategori); 
+                    @endphp
 
                     <tbody>
                         {{-- Row Kategori --}}
@@ -196,7 +199,7 @@
                                     @endif
                                 </td>
 
-                                {{-- 🔥 KOLUM DOKUMEN (SELEPAS STATUS) 🔥 --}}
+                                {{-- Dokumen --}}
                                 <td>
                                     @if($item->dokumen_path)
                                         <a href="{{ asset('storage/' . $item->dokumen_path) }}" target="_blank" class="btn btn-sm btn-outline-info btn-icon" title="Lihat Dokumen">
@@ -216,7 +219,8 @@
                                             <i class="fas fa-pen"></i>
                                         </a>
 
-                                        @if ($currentUser->id === $item->user_id)
+                                        {{-- Benarkan delete hanya jika user adalah pemilik atau Super Admin --}}
+                                        @if ($currentUser->id === $item->user_id || in_array($currentUser->role, ['super_admin', 'admin']))
                                             <form action="{{ route('laporanpandanganundang.destroy', $item->id) }}" method="POST" class="d-inline">
                                                 @csrf
                                                 @method('DELETE')
@@ -246,6 +250,11 @@
                 @endforeach
             </table>
         </div>
+    </div>
+    
+    {{-- Pagination Links --}}
+    <div class="mt-4">
+        {{ $senaraiLaporan->withQueryString()->links() }}
     </div>
 </div>
 @endsection
