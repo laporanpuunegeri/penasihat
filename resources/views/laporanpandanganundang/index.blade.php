@@ -86,17 +86,19 @@
         <div class="card-body py-3 px-4">
             <form method="GET" class="row align-items-center g-3">
                 <div class="col-auto">
-                    <label for="bulan" class="col-form-label fw-bold text-secondary small text-uppercase">
-                        <i class="fas fa-filter me-1"></i> Paparan Bulan:
+                    <label class="col-form-label fw-bold text-secondary small text-uppercase">
+                        <i class="fas fa-filter me-1"></i> Tapisan:
                     </label>
                 </div>
+                
+                {{-- PILIHAN BULAN --}}
                 <div class="col-auto">
-                    <select name="bulan" id="bulan" class="form-select form-select-sm fw-bold border-primary" style="min-width: 200px;" onchange="this.form.submit()">
+                    <select name="bulan" class="form-select form-select-sm fw-bold border-primary" style="min-width: 150px;" onchange="this.form.submit()">
                         <option value="all" {{ request('bulan') == 'all' ? 'selected' : '' }}>-- Semua Bulan --</option>
                         @foreach ([1 => 'Januari', 2 => 'Februari', 3 => 'Mac', 4 => 'April', 5 => 'Mei', 6 => 'Jun',
                                    7 => 'Julai', 8 => 'Ogos', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Disember']
                                    as $num => $nama)
-                            <option value="{{ $num }}" {{ request('bulan', date('n')) == $num ? 'selected' : '' }}>
+                            <option value="{{ $num }}" {{ request('bulan') == $num ? 'selected' : '' }}>
                                 {{ $nama }}
                             </option>
                         @endforeach
@@ -133,7 +135,7 @@
                 </thead>
 
                 @foreach ($kategori_list as $kategori)
-                    {{-- ✅ PEMBETULAN: Guna $senaraiLaporan bukannya $data --}}
+                    {{-- FILTER DATA MENGIKUT KATEGORI --}}
                     @php 
                         $filtered = $senaraiLaporan->where('kategori', $kategori); 
                     @endphp
@@ -242,7 +244,7 @@
                         @empty
                             <tr>
                                 <td colspan="9" class="text-center py-3 text-muted fst-italic bg-light">
-                                    Tiada rekod pada bulan ini.
+                                    Tiada rekod.
                                 </td>
                             </tr>
                         @endforelse
@@ -252,9 +254,10 @@
         </div>
     </div>
     
-    {{-- Pagination Links --}}
-    <div class="mt-4">
-        {{ $senaraiLaporan->withQueryString()->links() }}
-    </div>
+    {{-- 
+        PAGINATION DIBUANG SEBAB KITA GUNA GET() DI CONTROLLER 
+        SUPAYA SEMUA DATA KATEGORI KELUAR 
+    --}}
+    
 </div>
 @endsection

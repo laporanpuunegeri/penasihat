@@ -2,259 +2,185 @@
 
 @section('content')
 
-{{-- Custom CSS untuk Styling Moden --}}
 <style>
-    /* 1. KONTENA UTAMA */
-    .dbus-card {
-        border: none; /* Hilangkan border pada card utama */
-        border-radius: 12px; /* Sudut membulat */
-        overflow: hidden; /* Penting untuk jadual di dalamnya */
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    }
-    
-    /* 2. TAB NAVIGATION */
-    .nav-tabs .nav-link {
-        background-color: #f8f9fa; /* Lebih cerah */
-        color: #495057;
-        border: 1px solid #e9ecef;
-        margin-right: 2px;
-        font-weight: 600;
-        border-radius: 8px 8px 0 0;
-        padding: 10px 18px;
-        transition: all 0.3s;
-    }
-    .nav-tabs .nav-link.active {
-        /* Warna Korporat Gelap */
-        background-color: #1e293b !important; 
-        color: #ffffff !important;
-        border-color: #1e293b !important;
-        border-top: 3px solid #3b82f6 !important; /* Blue accent */
-        border-bottom-color: transparent !important; /* Sambungkan ke konten */
-    }
-
-    /* 3. JADUAL (Table) */
-    .table {
-        border-collapse: separate;
-        border-spacing: 0;
-    }
-    .table-dark th {
-        background-color: #343a40; /* Kekalkan gelap */
-        color: #f8f9fa;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    .table-bordered th, .table-bordered td {
-        border-color: #dee2e6; /* Border lebih lembut */
-    }
-    .table-hover tbody tr:hover {
-        background-color: #f5f5f5; /* Efek hover yang lebih lembut */
-    }
-
-    /* 4. BARIS UTAMA (OA) */
-    .oa-row, .table-secondary {
-        background-color: #e9ecef !important; /* Sedikit lebih terang */
-        border-top: 2px solid #3b82f6; /* Border tebal biru untuk pemisah */
-        font-size: 1rem !important;
-    }
-    
-    /* 5. BARIS SUB-INDUK (OS) */
-    .fw-bold.text-primary.bg-light {
-        background-color: #f0f8ff !important; /* Biru sangat muda */
-        color: #007bff !important;
-        font-size: 0.95rem;
-    }
-
-    /* 6. GRAND TOTAL FOOTER */
-    .grand-total-footer {
-        background-color: #343a40 !important; /* Kekalkan warna gelap yang profesional */
-        color: #ffffff;
-        border-radius: 0 0 12px 12px; /* Sudut membulat di bawah */
-    }
-    .grand-total-footer h4 {
-        color: #28a745; /* Hijau untuk nilai total */
-    }
+    /* FORMAT JADUAL UTAMA */
+    .table-dbus { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #dee2e6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 0.9rem; background-color: #fff; }
+    .table-dbus th, .table-dbus td { padding: 8px 12px; vertical-align: middle; border-bottom: 1px solid #dee2e6; border-right: 1px solid #dee2e6; }
+    .table-dbus thead th { background-color: #2c3e50; color: #ffffff; text-align: center; font-weight: 600; text-transform: uppercase; border: 1px solid #2c3e50; }
+    .row-oa { background-color: #34495e; color: #fff; font-weight: 700; font-size: 1rem; }
+    .row-os { background-color: #f8f9fa; color: #0d6efd; font-weight: 600; }
+    .pl-os { padding-left: 20px !important; border-left: 4px solid #0d6efd !important; }
+    .row-group td { background-color: #e6fffa; color: #006644; font-weight: 600; font-style: italic; padding-left: 40px !important; text-transform: uppercase; border-bottom: 2px solid #a3d9c9; }
+    .row-ol td { background-color: #ffffff; color: #495057; }
+    .pl-ol { padding-left: 60px !important; }
+    .nav-tabs .nav-link { font-weight: bold; color: #495057; background-color: #e9ecef; border: 1px solid #dee2e6; margin-right: 4px; padding: 10px 20px; }
+    .nav-tabs .nav-link.active { background-color: #fff; color: #0d6efd; border-bottom-color: transparent; border-top: 3px solid #0d6efd; }
+    .text-right { text-align: right; font-family: 'Consolas', monospace; }
+    .text-center { text-align: center; }
+    .editable-oa-value { cursor: pointer; border-bottom: 1px dashed #adb5bd; }
+    .editable-input { width: 100%; text-align: right; color: #000; }
 </style>
 
 <div class="container-fluid py-4">
-
+    
     {{-- HEADER --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h3 class="fw-bold text-dark mb-0">D'BUS (OBB) - Anggaran Belanja</h3>
-            <p class="text-muted small">BAHAGIAN/PUUN : PENASIHAT UNDANG-UNDANG NEGERI MELAKA</p>
+            <h3 class="fw-bold text-dark mb-0"><i class="fas fa-calculator me-2 text-primary"></i>D'BUS (OBB)</h3>
+            <p class="text-muted small mb-0">PENASIHAT UNDANG-UNDANG NEGERI MELAKA</p>
         </div>
     </div>
-
-    {{-- FILTER TAHUN --}}
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body py-2 px-4 d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center">
-                <label class="fw-bold text-secondary me-3 mb-0">TAHUN ANGGARAN:</label>
-                <form action="{{ route('pentadbiran.dbus.index') }}" method="GET">
-                    <select name="tahun" class="form-select form-select-sm fw-bold border-primary text-primary" style="width: 150px;" onchange="this.form.submit()">
-                        @for ($y = 2027; $y <= 2030; $y++)
-                            <option value="{{ $y }}" {{ $tahun == $y ? 'selected' : '' }}>{{ $y }}</option>
-                        @endfor
+    
+{{-- FILTER TAHUN & GRAND TOTAL --}}
+    <div class="card mb-4 border-0 shadow-sm" style="border-left: 5px solid #0d6efd;">
+        <div class="card-body py-3 d-flex justify-content-between align-items-center">
+            
+            <div class="d-flex align-items-center gap-3">
+                <form action="{{ route('pentadbiran.dbus.index') }}" method="GET" class="d-flex align-items-center">
+                    <label class="me-2 fw-bold text-secondary">TAHUN:</label>
+                    <select name="tahun" id="tahunSelector" class="form-select form-select-sm w-auto fw-bold text-primary border-primary" onchange="this.form.submit()">
+                        @for($y = 2027; $y <= 2030; $y++) <option value="{{ $y }}" {{ $tahun == $y ? 'selected' : '' }}>{{ $y }}</option> @endfor
                     </select>
                 </form>
+
+                {{-- BUTANG CETAK DISINI --}}
+                <a href="{{ route('pentadbiran.dbus.cetak_pdf', ['tahun' => $tahun]) }}" target="_blank" class="btn btn-danger btn-sm shadow-sm">
+                    <i class="fas fa-file-pdf me-1"></i> CETAK PDF
+                </a>
             </div>
-            <div class="text-muted small">
-                Jumlah Keseluruhan: <span class="fw-bold text-success">RM {{ number_format($grandTotal, 2) }}</span>
+
+            <div class="text-end">
+                <span class="text-muted small text-uppercase fw-bold">Jumlah Keseluruhan</span>
+                <h4 class="mb-0 text-success fw-bold" id="grandTotalDisplay">RM {{ number_format($grandTotal, 2) }}</h4>
             </div>
         </div>
     </div>
 
-    {{-- Logik untuk mendapatkan kunci OA --}}
-    @php
-        $oaKeys = array_keys($structure);
-        $oaTitles = [
-            'OA10000' => 'EMOLUMEN',
-            'OA20000' => 'PERKHIDMATAN & BEKALAN'
-        ];
-    @endphp
-
-    {{-- TAB NAVIGATION --}}
-    <ul class="nav nav-tabs" id="oaTab" role="tablist">
-        @foreach($oaKeys as $oaKey)
+    {{-- 🔥 TAB NAVIGATION (OA10 vs OA20) 🔥 --}}
+    <ul class="nav nav-tabs mb-0" id="dbusTabs" role="tablist">
+        @foreach($structure as $oaKey => $oa)
             <li class="nav-item" role="presentation">
-                <button class="nav-link fw-bold {{ $loop->first ? 'active' : '' }}" 
-                        id="{{ $oaKey }}-tab" 
-                        data-bs-toggle="tab" 
-                        data-bs-target="#panel-{{ $oaKey }}" 
-                        type="button" role="tab">
-                    {{ $oaKey }} - {{ $oaTitles[$oaKey] ?? 'LAIN-LAIN' }}
+                <button class="nav-link {{ $loop->first ? 'active' : '' }}" id="tab-{{ $oaKey }}" data-bs-toggle="tab" data-bs-target="#content-{{ $oaKey }}" type="button" role="tab">
+                    <i class="fas fa-folder-open me-2"></i> {{ $oaKey }} - {{ $oa['perkara'] }}
                 </button>
             </li>
         @endforeach
     </ul>
 
-    {{-- TAB CONTENT CONTAINER --}}
-    <div class="tab-content dbus-card p-0 rounded-0 rounded-bottom" id="oaTabContent">
-
-        {{-- Loop Structure untuk create PANELS berasingan --}}
-        @foreach($structure as $oaKey => $oa)
-            <div class="tab-pane fade {{ $loop->first ? 'show active' : '' }}" id="panel-{{ $oaKey }}" role="tabpanel">
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover mb-0" style="font-size: 0.9rem;">
-                            <thead class="table-dark text-center">
-                                <tr>
-                                    <th style="width: 50%;">BUTIRAN PERBELANJAAN</th>
-                                    <th style="width: 15%;">OL (Lanjut)</th>
-                                    <th style="width: 15%;">OS (Sebagai)</th>
-                                    <th style="width: 15%;">OA (Am)</th>
-                                    <th style="width: 5%;">AKSI</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {{-- BARIS OA (INDUK) --}}
-                                <tr class="oa-row border-bottom-2 border-dark">
-                                    <td class="fw-bold text-dark">{{ $oaKey }} {{ $oa['perkara'] }}</td>
-                                    <td></td>
-                                    <td></td>
-                                    <td class="text-end fw-bold">{{ number_format($oa['jumlah'], 2) }}</td>
-                                    <td class="text-center">
-                                        @php
-                                            $oaColor = ($oaKey == 'OA10000') ? 'btn-primary' : 'btn-warning';
-                                        @endphp
-                                        <a href="{{ route('pentadbiran.dbus.edit', ['tahun'=>$tahun, 'kategori'=>$oaKey]) }}" class="btn btn-sm {{ $oaColor }} py-0 px-2" title="Kemaskini">
-                                            <i class="fas fa-edit small"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-
-                                @foreach($oa['items'] as $osKey => $os)
-                                    {{-- BARIS OS (SUB-INDUK) --}}
-                                    <tr class="fw-bold text-primary bg-light">
-                                        <td class="ps-4">{{ $osKey }} {{ $os['perkara'] }}</td>
-                                        <td></td>
-                                        <td class="text-end">{{ number_format($os['jumlah'], 2) }}</td>
-                                        <td></td>
-                                        <td class="text-center">
-                                            
-                                            {{-- LOGIK AKSI (DIKEKALKAN SEPERTI ASAL) --}}
-                                            
-                                            @if(in_array($osKey, ['OS11000', 'OS12000', 'OS13000']))
-                                                <a href="{{ route('pentadbiran.dbus.pecahan', ['kod'=>$osKey, 'tahun'=>$tahun]) }}" class="btn btn-sm btn-warning py-0 px-2" title="Kemaskini Pecahan">
-                                                    <i class="fas fa-user small"></i>
-                                                </a>
-                                            
-                                            @elseif($osKey == 'OS14000')
-                                                <a href="{{ route('pentadbiran.dbus.edit_ol14101', ['kod'=>'OL14101', 'tahun'=>$tahun]) }}" class="btn btn-sm btn-warning py-0 px-2" title="Kemaskini OT">
-                                                    <i class="fas fa-edit small"></i>
-                                                </a>
-
-                                            @elseif($osKey == 'OS15000')
-                                                <a href="{{ route('pentadbiran.dbus.edit_os15000', ['kod'=>$osKey, 'tahun'=>$tahun]) }}" class="btn btn-sm btn-warning py-0 px-2" title="Kemaskini Faedah">
-                                                    <i class="fas fa-edit small"></i>
-                                                </a>
-                                                
-                                            @elseif($osKey == 'OS21000')
-                                                <a href="{{ route('pentadbiran.dbus.edit_os21000', ['kod'=>$osKey, 'tahun'=>$tahun]) }}" class="btn btn-sm btn-info py-0 px-2" title="Kemaskini Pecahan Perjalanan">
-                                                    <i class="fas fa-edit small"></i>
-                                                </a>
-                                                
-                                            @elseif($osKey == 'OS22000')
-                                                <a href="{{ route('pentadbiran.dbus.edit_os22000', ['kod'=>$osKey, 'tahun'=>$tahun]) }}" class="btn btn-sm btn-info py-0 px-2" title="Kemaskini Pengangkutan">
-                                                    <i class="fas fa-truck small"></i>
-                                                </a>
-                                            
-                                            @elseif($osKey == 'OS23000')
-                                                <a href="{{ route('pentadbiran.dbus.edit_os23000', ['kod'=>$osKey, 'tahun'=>$tahun]) }}" class="btn btn-sm btn-info py-0 px-2" title="Kemaskini Utiliti">
-                                                    <i class="fas fa-lightbulb small"></i>
-                                                </a>
-                                                
-                                            @elseif($osKey == 'OS24000')
-                                                <a href="{{ route('pentadbiran.dbus.edit_os24000', ['kod'=>$osKey, 'tahun'=>$tahun]) }}" class="btn btn-sm btn-info py-0 px-2" title="Kemaskini Sewaan">
-                                                    <i class="fas fa-building small"></i>
-                                                </a>
-
-                                            @else
-                                                <a href="{{ route('pentadbiran.dbus.edit', ['tahun'=>$tahun, 'kategori'=>$osKey]) }}" class="btn btn-sm btn-warning py-0 px-2" title="Kemaskini">
-                                                    <i class="fas fa-edit small"></i>
-                                                </a>
-                                            @endif
+    {{-- KAD JADUAL (ISI KANDUNGAN TAB) --}}
+    <div class="card border-0 shadow-sm border-top-0 rounded-0 rounded-bottom">
+        <div class="card-body p-3">
+            <div class="tab-content" id="dbusTabsContent">
+                
+                @foreach($structure as $oaKey => $oa)
+                    <div class="tab-pane fade {{ $loop->first ? 'show active' : '' }}" id="content-{{ $oaKey }}" role="tabpanel">
+                        
+                        <div class="table-responsive">
+                            <table class="table-dbus">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 50%">BUTIRAN PERBELANJAAN</th>
+                                        <th style="width: 12%">OL (RM)</th>
+                                        <th style="width: 12%">OS (RM)</th>
+                                        <th style="width: 12%">OA (RM)</th>
+                                        <th style="width: 14%">AKSI</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {{-- BARIS JUMLAH BESAR OA INI --}}
+                                    <tr class="row-oa">
+                                        <td>JUMLAH {{ $oaKey }} ({{ $oa['perkara'] }})</td>
+                                        <td></td><td></td>
+                                        <td class="text-right">
+                                            <div class="editable-oa-value" id="oaDisplay-{{ $oaKey }}" data-oa-kod="{{ $oaKey }}" data-value="{{ $oa['jumlah'] ?? 0 }}" onclick="enableEdit(this)">
+                                                {{ number_format($oa['jumlah'] ?? 0, 2) }}
+                                            </div>
                                         </td>
+                                        <td></td>
                                     </tr>
 
-                                    @foreach($os['items'] as $olKey => $ol)
-                                        {{-- BARIS OL (DETAIL) --}}
-                                        <tr>
-                                            <td class="ps-5 text-muted">{{ $olKey }} {{ $ol['perkara'] }}</td>
-                                            <td class="text-end">{{ number_format($ol['jumlah'], 2) }}</td>
-                                            <td></td>
-                                            <td></td>
-                                            <td class="text-center">
-                                                {{-- Tiada butang di sini --}}
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                @endforeach
-                                <tr><td colspan="5" class="bg-white border-0 py-2"></td></tr>
-                            </tbody>
-                            <tfoot class="table-light fw-bold">
-                                <tr class="border-top border-dark">
-                                    <td class="text-end text-uppercase">Jumlah Kecil ({{ $oaKey }})</td>
-                                    <td></td>
-                                    <td></td>
-                                    <td class="text-end text-success fs-5">{{ number_format($oa['jumlah'], 2) }}</td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        @endforeach
-    </div>
+                                    {{-- LOOP OS --}}
+                                    @if(isset($oa['items']) && is_array($oa['items']))
+                                        @foreach($oa['items'] as $osKey => $os)
+                                            <tr class="row-os">
+                                                <td class="pl-os">{{ $osKey }} {{ $os['perkara'] }}</td>
+                                                <td></td>
+                                                <td class="text-right text-primary">{{ number_format($os['jumlah'] ?? 0, 2) }}</td>
+                                                <td></td>
+                                                <td class="text-center">
+                                                    {{-- LOGIK BUTANG KEMASKINI --}}
+                                                    @php
+                                                        $route = 'pentadbiran.dbus.pecahan'; 
+                                                        $btnClass = 'btn-outline-secondary';
+                                                        $siap = [
+                                                            'OS14000'=>'pentadbiran.dbus.edit_ol14101', 'OS15000'=>'pentadbiran.dbus.edit_os15000',
+                                                            'OS21000'=>'pentadbiran.dbus.edit_os21000', 'OS22000'=>'pentadbiran.dbus.edit_os22000',
+                                                            'OS23000'=>'pentadbiran.dbus.edit_os23000', 'OS24000'=>'pentadbiran.dbus.edit_os24000',
+                                                            'OS25000'=>'pentadbiran.dbus.edit_os25000', 'OS26000'=>'pentadbiran.dbus.edit_os26000',
+                                                            'OS27000'=>'pentadbiran.dbus.edit_os27000', 'OS28000'=>'pentadbiran.dbus.edit_os28000',
+                                                            'OS29000'=>'pentadbiran.dbus.edit_os29000'
+                                                        ];
+                                                        if (array_key_exists($osKey, $siap)) { $route = $siap[$osKey]; $btnClass = 'btn-primary'; }
+                                                        elseif (in_array($osKey, ['OS11000', 'OS12000', 'OS13000'])) { $btnClass = 'btn-warning'; }
+                                                    @endphp
+                                                    <a href="{{ route($route, ['kod'=>$osKey, 'tahun'=>$tahun]) }}" class="btn btn-sm {{ $btnClass }} py-0 px-2 shadow-sm" title="Kemaskini">
+                                                        <i class="fas fa-edit me-1"></i> Edit
+                                                    </a>
+                                                </td>
+                                            </tr>
 
-    {{-- GRAND TOTAL KESELURUHAN --}}
-    <div class="card mt-3 grand-total-footer">
-        <div class="card-body py-2 d-flex justify-content-between align-items-center">
-            <h5 class="mb-0 fw-bold">JUMLAH KESELURUHAN ANGGARAN BELANJA</h5>
-            <h4 class="mb-0 fw-bold">RM {{ number_format($grandTotal, 2) }}</h4>
+                                            {{-- LOOP GROUP (HIJAU) - ADA 'ISSET' SUPAYA TAK ERROR --}}
+                                            @if(isset($os['items']) && is_array($os['items']))
+                                                @foreach($os['items'] as $groupKey => $group)
+                                                    
+                                                    @if(is_array($group) && isset($group['perkara']))
+                                                        <tr class="row-group">
+                                                            <td colspan="5">
+                                                                <i class="fas fa-caret-right me-2"></i> {{ $groupKey }} {{ $group['perkara'] }}
+                                                            </td>
+                                                        </tr>
+
+                                                        {{-- LOOP OL (DATA PUTIH) - ADA 'ISSET' SUPAYA TAK ERROR --}}
+                                                        @if(isset($group['items']) && is_array($group['items']))
+                                                            @foreach($group['items'] as $olKey => $ol)
+                                                                <tr class="row-ol">
+                                                                    <td class="pl-ol text-muted small">
+                                                                        <span class="badge bg-light text-dark border me-1">{{ $olKey }}</span> 
+                                                                        {{ $ol['perkara'] ?? '' }}
+                                                                    </td>
+                                                                    <td class="text-right">
+                                                                        {{ isset($ol['jumlah']) && $ol['jumlah'] > 0 ? number_format($ol['jumlah'], 2) : '-' }}
+                                                                    </td>
+                                                                    <td></td><td></td><td></td>
+                                                                </tr>
+                                                            @endforeach
+                                                        @endif
+                                                    @endif
+                                                @endforeach
+                                            @endif
+                                            
+                                            {{-- Spacer antara OS --}}
+                                            <tr><td colspan="5" style="border:none; height: 10px;"></td></tr>
+                                        @endforeach
+                                    @endif
+                                </tbody>
+                            </table>
+                        </div> {{-- End Table Responsive --}}
+                    </div> {{-- End Tab Pane --}}
+                @endforeach
+
+            </div> {{-- End Tab Content --}}
         </div>
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    function formatCurrency(num) { return parseFloat(num).toLocaleString('ms-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function enableEdit(element) { /* ... (Kekalkan fungsi JS edit yang sama) ... */ }
+    function handleEnter(e, input, oaKod) { if (e.key === 'Enter') input.blur(); }
+    function saveEdit(input, oaKod) { /* ... (Kekalkan fungsi JS save yang sama) ... */ }
+    function updateGrandTotal() { /* ... (Kekalkan fungsi JS total yang sama) ... */ }
+</script>
+@endpush

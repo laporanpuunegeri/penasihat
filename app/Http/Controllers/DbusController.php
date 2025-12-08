@@ -2,154 +2,368 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Dbus;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
+
 class DbusController extends Controller
 {
-    public function index(Request $request)
+public function index(Request $request)
     {
-        $tahun = $request->input('tahun', 2027);
-        
-        // Pastikan guna model yang betul (Dbus::class)
-        $dbData = Dbus::where('tahun', $tahun)->pluck('jumlah', 'kod_objek')->toArray();
-        $structure = $this->getDbusStructure();
+        $tahun = $request->query('tahun', date('Y'));
         $grandTotal = 0;
 
+        // 1. Dapatkan Struktur
+        $structure = $this->getDbusStructure();
+
+        // 2. Dapatkan Data dari DB
+        $dbusRecords = Dbus::where('tahun', $tahun)->get()->keyBy('kod_objek');
+
+        // 3. MAPPING DATA (FORCE CALCULATION)
         foreach ($structure as $oaKey => &$oa) {
             $oaTotal = 0;
-            foreach ($oa['items'] as $osKey => &$os) {
-                $osTotal = 0;
-                foreach ($os['items'] as $olKey => &$ol) {
-                    $amount = $dbData[$olKey] ?? 0;
-                    $ol['jumlah'] = $amount;
-                    $osTotal += $amount;
+
+            if (isset($oa['items'])) {
+                foreach ($oa['items'] as $osKey => &$os) {
+                    $osTotal = 0;
+
+                    if (isset($os['items'])) {
+                        foreach ($os['items'] as $groupKey => &$group) {
+                            $groupTotal = 0;
+
+                            if (isset($group['items'])) {
+                                foreach ($group['items'] as $olKey => &$ol) {
+                                    // Ambil nilai terus dari rekod OL dalam DBUS table
+                                    $amount = isset($dbusRecords[$olKey]) ? $dbusRecords[$olKey]->jumlah : 0;
+                                    
+                                    $ol['jumlah'] = $amount;
+                                    $groupTotal += $amount;
+                                }
+                            }
+                            // Update total Group
+                            $group['jumlah'] = $groupTotal;
+                            $osTotal += $groupTotal;
+                        }
+                    }
+                    // Update total OS
+                    $os['jumlah'] = $osTotal;
+                    $oaTotal += $osTotal;
                 }
-                $os['jumlah'] = ($dbData[$osKey] ?? 0) > 0 ? $dbData[$osKey] : $osTotal;
-                $oaTotal += $os['jumlah'];
             }
-            $oa['jumlah'] = ($dbData[$oaKey] ?? 0) > 0 ? $dbData[$oaKey] : $oaTotal;
-            $grandTotal += $oa['jumlah'];
+            // Update total OA
+            $oa['jumlah'] = $oaTotal;
+            $grandTotal += $oaTotal;
         }
 
-        return view('pentadbiran.dbus.index', compact('structure', 'tahun', 'grandTotal'));
+        return view('pentadbiran.dbus.index', compact('structure', 'grandTotal', 'tahun'));
     }
 
-    public function create()
+    // --- FUNGSI UPDATE AJAX (INLINE EDITING) ---
+    public function updateOaAm(Request $request)
     {
-        $tahun = 2027; 
-        $structure = $this->getDbusStructure();
-        $existingData = []; 
-        return view('pentadbiran.dbus.create', compact('tahun', 'structure', 'existingData'));
-    }
-
-    public function edit(Request $request)
-    {
-        $tahun = $request->tahun;
-        $kategori = $request->kategori; 
-        $structure = $this->getDbusStructure();
-        $filteredStructure = isset($structure[$kategori]) ? [$kategori => $structure[$kategori]] : [];
-        $existingData = Dbus::where('tahun', $tahun)->pluck('jumlah', 'kod_objek')->toArray();
-
-        return view('pentadbiran.dbus.create', [
-            'tahun' => $tahun,
-            'structure' => $filteredStructure,
-            'existingData' => $existingData,
-            'isEdit' => true
+        $request->validate([
+            'tahun' => 'required|integer',
+            'oa_kod' => 'required|string', 
+            'oa_am_value' => 'required|numeric|min:0',
         ]);
+
+        $tahun = $request->input('tahun');
+        $oaKod = $request->input('oa_kod');
+        $newValue = $request->input('oa_am_value');
+        
+        $info = $this->findObjekInfo($oaKod);
+        if (!$info) {
+             return response()->json(['success' => false, 'message' => 'Kod tidak sah'], 404);
+        }
+
+        try {
+            Dbus::updateOrCreate(
+                ['kod_objek' => $oaKod, 'tahun' => $tahun],
+                [
+                    'perkara' => $info['perkara'], 
+                    'jenis' => 'OA',
+                    'jumlah' => $newValue
+                ]
+            );
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Berjaya dikemaskini.",
+                'new_value' => $newValue
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
-    public function store(Request $request)
-    {
-        $tahun = $request->tahun;
-        $request->validate(['tahun' => 'required|integer', 'data' => 'array']);
-
-        DB::transaction(function () use ($request, $tahun) {
-            if ($request->has('data')) {
-                foreach ($request->data as $kod => $jumlah) {
-                    $info = $this->findObjekInfo($kod);
-                    $cleanJumlah = (float) str_replace(',', '', $jumlah ?? '0');
-
-                    Dbus::updateOrCreate(
-                        ['kod_objek' => $kod, 'tahun' => $tahun],
-                        ['perkara' => $info['perkara'] ?? 'ITEM', 'jenis' => $info['jenis'] ?? 'OL', 'jumlah' => $cleanJumlah]
-                    );
-                }
-            }
-        });
-        return redirect()->route('pentadbiran.dbus.index', ['tahun' => $tahun])->with('success', 'Data berjaya disimpan.');
-    }
-
-    // Helper functions
+    // --- HELPER: CARI INFO ---
     private function findObjekInfo($searchKod) {
         $structure = $this->getDbusStructure();
-        foreach ($structure as $oaKey => $oa) {
-            if($oaKey == $searchKod) return $oa;
-            foreach ($oa['items'] as $osKey => $os) {
-                if($osKey == $searchKod) return $os;
-                foreach ($os['items'] as $olKey => $ol) {
-                    if($olKey == $searchKod) return $ol;
-                }
+        if(isset($structure[$searchKod])) return $structure[$searchKod];
+
+        foreach ($structure as $oa) {
+            if(isset($oa['items'][$searchKod])) return $oa['items'][$searchKod];
+            foreach ($oa['items'] as $os) {
+                if(isset($os['items'][$searchKod])) return $os['items'][$searchKod];
             }
         }
         return null;
     }
 
-    private function getDbusStructure()
+    public function cetakPdf(Request $request)
+    {
+        $tahun = $request->query('tahun', date('Y'));
+        $grandTotal = 0;
+
+        // 1. Dapatkan Struktur & Data (Sama seperti Index)
+        $structure = $this->getDbusStructure();
+        $dbusRecords = Dbus::where('tahun', $tahun)->get()->keyBy('kod_objek');
+
+        // 2. MAPPING DATA (LOGIK SAMA MACAM INDEX)
+        foreach ($structure as $oaKey => &$oa) {
+            $oaTotal = 0;
+            if (isset($oa['items'])) {
+                foreach ($oa['items'] as $osKey => &$os) {
+                    $osTotal = 0;
+                    if (isset($os['items'])) {
+                        foreach ($os['items'] as $groupKey => &$group) {
+                            $groupTotal = 0;
+                            if (isset($group['items'])) {
+                                foreach ($group['items'] as $olKey => &$ol) {
+                                    $amount = isset($dbusRecords[$olKey]) ? $dbusRecords[$olKey]->jumlah : 0;
+                                    $ol['jumlah'] = $amount;
+                                    $groupTotal += $amount;
+                                }
+                            }
+                            $group['jumlah'] = $groupTotal;
+                            $osTotal += $groupTotal;
+                        }
+                    }
+                    $os['jumlah'] = $osTotal;
+                    $oaTotal += $osTotal;
+                }
+            }
+            $oa['jumlah'] = $oaTotal;
+            $grandTotal += $oaTotal;
+        }
+
+        // 3. JANA PDF
+        $pdf = \PDF::loadView('pentadbiran.dbus.cetak_pdf', compact('structure', 'grandTotal', 'tahun'));
+        
+        // Set Kertas A4 Landscape
+        $pdf->setPaper('a4', 'landscape');
+        
+        return $pdf->stream('Anggaran_Belanja_' . $tahun . '.pdf');
+    }
+private function getDbusStructure()
     {
         return [
+            // ============================================================
+            // 1. OA10000: EMOLUMEN
+            // ============================================================
             'OA10000' => [
-                'perkara' => 'EMOLUMEN', 'jenis' => 'OA',
-                'items' => [
-                    'OS11000' => ['perkara' => 'GAJI DAN UPAHAN', 'jenis' => 'OS', 'items' => ['OL11101' => ['perkara' => 'Gaji Biasa Kakitangan Awam', 'jenis' => 'OL']]],
-                    'OS12000' => ['perkara' => 'ELAUN DAN IMBUHAN TETAP', 'jenis' => 'OS', 'items' => ['OL12101' => ['perkara' => 'Elaun Khidmat Awam', 'jenis' => 'OL']]],
-                    'OS13000' => ['perkara' => 'SUMBANGAN BERKANUN', 'jenis' => 'OS', 'items' => ['OL13101' => ['perkara' => 'KWSP', 'jenis' => 'OL']]],
-                    'OS14000' => ['perkara' => 'BAYARAN LEBIH MASA', 'jenis' => 'OS', 'items' => ['OL14101' => ['perkara' => 'Bayaran Lebih Masa', 'jenis' => 'OL']]],
-                    'OS15000' => ['perkara' => 'FAEDAH KEWANGAN LAIN', 'jenis' => 'OS', 'items' => ['OL15199' => ['perkara' => 'Pelbagai Faedah', 'jenis' => 'OL']]],
-                ]
-            ],
-            'OA20000' => [
-                'perkara' => 'PERKHIDMATAN & BEKALAN', 'jenis' => 'OA',
-                'items' => [
-                    'OS21000' => ['perkara' => 'PERBELANJAAN PERJALANAN & SARA HIDUP', 'jenis' => 'OS', 'items' => ['OL21101' => ['perkara' => 'Perjalanan', 'jenis' => 'OL']]],
-                    'OS22000' => ['perkara' => 'PENGANGKUTAN BARANG', 'jenis' => 'OS', 'items' => ['OL22101' => ['perkara' => 'Pengangkutan', 'jenis' => 'OL']]],
-                    'OS23000' => ['perkara' => 'PERHUBUNGAN DAN UTILITI', 'jenis' => 'OS', 'items' => ['OL23101' => ['perkara' => 'Komunikasi', 'jenis' => 'OL']]],
-                    'OS24000' => ['perkara' => 'SEWAAN', 'jenis' => 'OS', 'items' => [
-                        'OL24201' => ['perkara' => 'Sewa Bangunan Kediaman', 'jenis' => 'OL'],
-                        'OL24202' => ['perkara' => 'Sewa Bangunan Pejabat', 'jenis' => 'OL'],
-                        'OL24299' => ['perkara' => 'Sewa Bangunan Lain', 'jenis' => 'OL'],
-                        'OL24301' => ['perkara' => 'Sewa Kenderaan Penumpang', 'jenis' => 'OL'],
-                        'OL24305' => ['perkara' => 'Sewa Kenderaan Konsesi', 'jenis' => 'OL'],
-                        'OL24399' => ['perkara' => 'Sewa Kenderaan Lain', 'jenis' => 'OL'],
-                        'OL24501' => ['perkara' => 'Sewa Alat Pejabat', 'jenis' => 'OL'],
-                        'OL24502' => ['perkara' => 'Sewa Perabot', 'jenis' => 'OL'],
-                        'OL24699' => ['perkara' => 'Sewa Elektronik Lain', 'jenis' => 'OL'],
-                        'OL24799' => ['perkara' => 'Sewa Elektrik Lain', 'jenis' => 'OL'],
+                'perkara' => 'EMOLUMEN', 'jenis' => 'OA', 'items' => [
+                    'OS11000' => ['perkara' => 'GAJI DAN UPAHAN', 'jenis' => 'OS', 'items' => [
+                        '11100' => ['perkara' => 'GAJI KAKITANGAN AWAM', 'jenis' => 'GRP', 'items' => [
+                            'OL11101' => ['perkara' => 'Gaji Biasa Kakitangan Awam'],
+                        ]]
                     ]],
-                    'OS25000' => ['perkara' => 'BAHAN MAKANAN DAN MINUMAN', 'jenis' => 'OS', 'items' => ['OL25101' => ['perkara' => 'Bahan Makanan', 'jenis' => 'OL']]],
-                    'OS26000' => ['perkara' => 'BEKALAN BAHAN MENTAH', 'jenis' => 'OS', 'items' => ['OL26101' => ['perkara' => 'Bahan Mentah', 'jenis' => 'OL']]],
-                    'OS27000' => ['perkara' => 'BEKALAN DAN BAHAN LAIN', 'jenis' => 'OS', 'items' => ['OL27101' => ['perkara' => 'Bekalan Lain', 'jenis' => 'OL']]],
-                    'OS28000' => ['perkara' => 'PENYELENGGARAAN & PEMBAIKAN', 'jenis' => 'OS', 'items' => ['OL28101' => ['perkara' => 'Penyelenggaraan', 'jenis' => 'OL']]],
-                    'OS29000' => ['perkara' => 'PERKHIDMATAN IKTISAS', 'jenis' => 'OS', 'items' => ['OL29101' => ['perkara' => 'Perkhidmatan Iktisas', 'jenis' => 'OL']]],
+                    'OS12000' => ['perkara' => 'ELAUN DAN IMBUHAN TETAP', 'jenis' => 'OS', 'items' => [
+                        '12100' => ['perkara' => 'ELAUN TETAP KAKITANGAN AWAM', 'jenis' => 'GRP', 'items' => [
+                            'OL12101' => ['perkara' => 'Elaun Khidmat Awam'],
+                            'OL12102' => ['perkara' => 'Elaun Bantuan Sewa Rumah'],
+                            'OL12103' => ['perkara' => 'Elaun Keraian'],
+                            'OL12106' => ['perkara' => 'Imbuhan Tetap Jawatan Utama'],
+                            'OL12107' => ['perkara' => 'Bayaran Insentif Perkhidmatan Kritikal'],
+                            'OL12108' => ['perkara' => 'Bayaran Insentif Khas (0.00)'],
+                            'OL12109' => ['perkara' => 'Bayaran Insentif Tugas Kewangan'],
+                            'OL12199' => ['perkara' => 'Elaun Tetap Lain'],
+                        ]]
+                    ]],
+                    'OS13000' => ['perkara' => 'SUMBANGAN BERKANUN', 'jenis' => 'OS', 'items' => [
+                        '13100' => ['perkara' => 'SUMBANGAN BERKANUN', 'jenis' => 'GRP', 'items' => [
+                            'OL13101' => ['perkara' => 'KWSP'],
+                        ]]
+                    ]],
+                    'OS14000' => ['perkara' => 'BAYARAN LEBIH MASA', 'jenis' => 'OS', 'items' => [
+                        '14100' => ['perkara' => 'BAYARAN LEBIH MASA', 'jenis' => 'GRP', 'items' => [
+                            'OL14101' => ['perkara' => 'Bayaran Lebih Masa Kakitangan Awam'],
+                        ]]
+                    ]],
+                    'OS15000' => ['perkara' => 'FAEDAH KEWANGAN LAIN', 'jenis' => 'OS', 'items' => [
+                        '15100' => ['perkara' => 'FAEDAH KEWANGAN', 'jenis' => 'GRP', 'items' => [
+                            'OL15101' => ['perkara' => 'Bayaran Utiliti (0.00)'],
+                            'OL15102' => ['perkara' => 'Bayaran Balik Pasport/Lesen'],
+                            'OL15110' => ['perkara' => 'Alat Komunikasi (0.00)'],
+                            'OL15111' => ['perkara' => 'Kemudahan Perubatan'],
+                            'OL15112' => ['perkara' => 'Elaun Pakaian'],
+                            'OL15113' => ['perkara' => 'APC (0.00)'],
+                            'OL15114' => ['perkara' => 'Tambang Pengangkutan'],
+                            'OL15119' => ['perkara' => 'Faedah Kewangan Lain'],
+                        ]]
+                    ]],
                 ]
             ],
-        ];
-    }
+
+            // ============================================================
+            // 2. OA20000: PERKHIDMATAN & BEKALAN
+            // ============================================================
             'OA20000' => [
-                'perkara' => 'PERKHIDMATAN & BEKALAN', 'jenis' => 'OA',
+                'perkara' => 'PERKHIDMATAN & BEKALAN', 'jenis' => 'OA', 'items' => [
+                    'OS21000' => ['perkara' => 'PERJALANAN & SARA HIDUP', 'jenis' => 'OS', 'items' => [
+                        '21100' => ['perkara' => 'PERJALANAN DALAM NEGERI', 'jenis' => 'GRP', 'items' => [
+                            'OL21101' => ['perkara' => 'Makanan & Minuman'],
+                            'OL21102' => ['perkara' => 'Penginapan'],
+                            'OL21104' => ['perkara' => 'Tambang Bas/Teksi'],
+                            'OL21106' => ['perkara' => 'Kapal Terbang'],
+                        ]]
+                    ]],
+                    'OS22000' => ['perkara' => 'PENGANGKUTAN BARANG', 'jenis' => 'OS', 'items' => [
+                        '22100' => ['perkara' => 'PENGANGKUTAN BARANG', 'jenis' => 'GRP', 'items' => [
+                            'OL22155' => ['perkara' => 'Elaun Perpindahan'],
+                        ]]
+                    ]],
+                    'OS23000' => ['perkara' => 'PERHUBUNGAN DAN UTILITI', 'jenis' => 'OS', 'items' => [
+                        '23100' => ['perkara' => 'PERHUBUNGAN', 'jenis' => 'GRP', 'items' => [
+                            'OL23101' => ['perkara' => 'Pos'],
+                            'OL23102' => ['perkara' => 'Telefon'],
+                            'OL23103' => ['perkara' => 'Internet/Telex'],
+                            'OL23199' => ['perkara' => 'Perkhidmatan Lain'],
+                        ]],
+                        '23200' => ['perkara' => 'UTILITI', 'jenis' => 'GRP', 'items' => [
+                            'OL23201' => ['perkara' => 'Elektrik'],
+                            'OL23202' => ['perkara' => 'Air'],
+                            'OL23204' => ['perkara' => 'Pembentungan'],
+                        ]]
+                    ]],
+                    'OS24000' => ['perkara' => 'SEWAAN', 'jenis' => 'OS', 'items' => [
+                        '24200' => ['perkara' => 'SEWAAN BANGUNAN', 'jenis' => 'GRP', 'items' => [
+                            'OL24201' => ['perkara' => 'Sewa Bangunan Kediaman'],
+                            'OL24202' => ['perkara' => 'Sewa Bangunan Pejabat'],
+                            'OL24299' => ['perkara' => 'Sewa Bangunan Lain'],
+                        ]],
+                        '24300' => ['perkara' => 'SEWAAN KENDERAAN', 'jenis' => 'GRP', 'items' => [
+                            'OL24301' => ['perkara' => 'Sewa Kenderaan Penumpang'],
+                            'OL24305' => ['perkara' => 'Sewa Kenderaan Konsesi'],
+                            'OL24399' => ['perkara' => 'Sewa Kenderaan Lain'],
+                        ]],
+                        '24500' => ['perkara' => 'SEWA ALAT PEJABAT', 'jenis' => 'GRP', 'items' => [
+                            'OL24501' => ['perkara' => 'Sewa Alat Pejabat'],
+                            'OL24502' => ['perkara' => 'Sewa Perabot'],
+                        ]],
+                        '24600' => ['perkara' => 'SEWA ALAT ELEKTRONIK', 'jenis' => 'GRP', 'items' => [
+                            'OL24699' => ['perkara' => 'Sewa Elektronik Lain'],
+                        ]],
+                        '24700' => ['perkara' => 'SEWA ALAT ELEKTRIK', 'jenis' => 'GRP', 'items' => [
+                            'OL24799' => ['perkara' => 'Sewa Elektrik Lain'],
+                        ]],
+                    ]],
+                    'OS25000' => ['perkara' => 'MAKANAN DAN MINUMAN', 'jenis' => 'OS', 'items' => [
+                        '25000' => ['perkara' => 'MAKANAN DAN MINUMAN', 'jenis' => 'GRP', 'items' => [
+                            'OL25499' => ['perkara' => 'Makanan Lain'],
+                            'OL25601' => ['perkara' => 'Minuman'],
+                        ]]
+                    ]],
+                    'OS26000' => ['perkara' => 'BAHAN MENTAH & PENYELENGGARAAN', 'jenis' => 'OS', 'items' => [
+                        '26100' => ['perkara' => 'ALAT-ALAT GANTI', 'jenis' => 'GRP', 'items' => [
+                            'OL26121' => ['perkara' => 'Alat Ganti Pejabat'],
+                            'OL26126' => ['perkara' => 'Alat Ganti Elektronik'],
+                            'OL26131' => ['perkara' => 'Alat Ganti Elektrik'],
+                        ]],
+                        '26200' => ['perkara' => 'PETROLEUM & BAHAN API', 'jenis' => 'GRP', 'items' => [
+                            'OL26201' => ['perkara' => 'Petrol'],
+                            'OL26202' => ['perkara' => 'Diesel'],
+                            'OL26206' => ['perkara' => 'Pelincir'],
+                            'OL26299' => ['perkara' => 'Bahan Api Lain'],
+                        ]],
+                        '26700' => ['perkara' => 'KIMIA & BAHAN KIMIA', 'jenis' => 'GRP', 'items' => [
+                            'OL26701' => ['perkara' => 'Bahan Pengecat'],
+                        ]]
+                    ]],
+                    'OS27000' => ['perkara' => 'BEKALAN DAN BAHAN LAIN', 'jenis' => 'OS', 'items' => [
+                        '27100' => ['perkara' => 'BEKALAN PEJABAT', 'jenis' => 'GRP', 'items' => [
+                            'OL27101' => ['perkara' => 'Surat Khabar'],
+                            'OL27102' => ['perkara' => 'Alat Tulis'],
+                            'OL27103' => ['perkara' => 'Alat Tulis Komputer'],
+                            'OL27199' => ['perkara' => 'Bekalan Pejabat Lain'],
+                        ]],
+                        '27200' => ['perkara' => 'BEKALAN AM', 'jenis' => 'GRP', 'items' => [
+                            'OL27299' => ['perkara' => 'Bekalan Am'],
+                        ]],
+                        '27400' => ['perkara' => 'PERUBATAN', 'jenis' => 'GRP', 'items' => [
+                            'OL27401' => ['perkara' => 'Ubat'],
+                            'OL27499' => ['perkara' => 'Perubatan Lain'],
+                        ]],
+                        '27600' => ['perkara' => 'PAKAIAN', 'jenis' => 'GRP', 'items' => [
+                            'OL27605' => ['perkara' => 'Pakaian Seragam'],
+                            'OL27699' => ['perkara' => 'Pakaian Lain'],
+                        ]],
+                    ]],
+                    'OS28000' => ['perkara' => 'PENYELENGGARAAN', 'jenis' => 'OS', 'items' => [
+                        '28100' => ['perkara' => 'BANGUNAN', 'jenis' => 'GRP', 'items' => [
+                            'OL28102' => ['perkara' => 'Bangunan Pejabat'],
+                            'OL28199' => ['perkara' => 'Bangunan Lain'],
+                        ]],
+                        '28300' => ['perkara' => 'KENDERAAN', 'jenis' => 'GRP', 'items' => [
+                            'OL28301' => ['perkara' => 'Kenderaan Penumpang'],
+                            'OL28307' => ['perkara' => 'Kenderaan Konsesi'],
+                        ]],
+                        '28500' => ['perkara' => 'ALAT PEJABAT', 'jenis' => 'GRP', 'items' => [
+                            'OL28501' => ['perkara' => 'Alat Pejabat'],
+                            'OL28599' => ['perkara' => 'Perabot Lain'],
+                        ]],
+                        '28600' => ['perkara' => 'ALAT ELEKTRONIK', 'jenis' => 'GRP', 'items' => [
+                            'OL28601' => ['perkara' => 'Komputer'],
+                            'OL28699' => ['perkara' => 'Elektronik Lain'],
+                        ]],
+                        '28700' => ['perkara' => 'ALAT ELEKTRIK', 'jenis' => 'GRP', 'items' => [
+                            'OL28701' => ['perkara' => 'Hawa Dingin'],
+                            'OL28799' => ['perkara' => 'Elektrik Lain'],
+                        ]],
+                        '28800' => ['perkara' => 'ALAT PERHUBUNGAN', 'jenis' => 'GRP', 'items' => [
+                            'OL28801' => ['perkara' => 'Telefon/Telex'],
+                            'OL28899' => ['perkara' => 'Perhubungan Lain'],
+                        ]],
+                        '28900' => ['perkara' => 'ASET LAIN', 'jenis' => 'GRP', 'items' => [
+                            'OL28911' => ['perkara' => 'Pembersihan'],
+                        ]],
+                    ]],
+'OS29000' => [
+                'perkara' => 'PERKHIDMATAN IKTISAS & LAIN-LAIN', 
+                'jenis' => 'OA', 
+                'jumlah' => 0, 
                 'items' => [
-                    'OS21000' => ['perkara' => 'PERBELANJAAN PERJALANAN & SARA HIDUP', 'jenis' => 'OS', 'items' => ['OL21101' => ['perkara' => 'Makanan & Minuman', 'jenis' => 'OL'], 'OL21102' => ['perkara' => 'Penginapan', 'jenis' => 'OL'], 'OL21104' => ['perkara' => 'Elaun Perjalanan', 'jenis' => 'OL'], 'OL21106' => ['perkara' => 'Bayaran Kapal Terbang', 'jenis' => 'OL']]],
-                    'OS22000' => ['perkara' => 'PENGANGKUTAN BARANG-BARANG', 'jenis' => 'OS', 'items' => ['OL22155' => ['perkara' => 'Pengangkutan Barang', 'jenis' => 'OL']]],
-                    'OS23000' => ['perkara' => 'PERHUBUNGAN DAN UTILITI', 'jenis' => 'OS', 'items' => ['OL23101' => ['perkara' => 'Bayaran Pos', 'jenis' => 'OL'], 'OL23102' => ['perkara' => 'Telefon', 'jenis' => 'OL'], 'OL23103' => ['perkara' => 'Telex', 'jenis' => 'OL'], 'OL23199' => ['perkara' => 'Perkhidmatan Lain', 'jenis' => 'OL'], 'OL23201' => ['perkara' => 'Elektrik', 'jenis' => 'OL'], 'OL23202' => ['perkara' => 'Air', 'jenis' => 'OL'], 'OL23204' => ['perkara' => 'Pembentungan', 'jenis' => 'OL']]],
-                    'OS24000' => ['perkara' => 'SEWAAN', 'jenis' => 'OS', 'items' => ['OL24201' => ['perkara' => 'Sewa Bangunan Kediaman', 'jenis' => 'OL'], 'OL24202' => ['perkara' => 'Sewa Bangunan Pejabat', 'jenis' => 'OL'], 'OL24299' => ['perkara' => 'Sewa Bangunan Lain', 'jenis' => 'OL'], 'OL24301' => ['perkara' => 'Sewa Kenderaan Penumpang', 'jenis' => 'OL'], 'OL24305' => ['perkara' => 'Sewa Kenderaan Konsesi', 'jenis' => 'OL'], 'OL24399' => ['perkara' => 'Sewa Kenderaan Lain', 'jenis' => 'OL'], 'OL24501' => ['perkara' => 'Sewa Alat Pejabat', 'jenis' => 'OL'], 'OL24502' => ['perkara' => 'Sewa Perabot', 'jenis' => 'OL'], 'OL24699' => ['perkara' => 'Sewa Elektronik Lain', 'jenis' => 'OL'], 'OL24799' => ['perkara' => 'Sewa Elektrik Lain', 'jenis' => 'OL']]],
-                    'OS25000' => ['perkara' => 'BAHAN MAKANAN DAN MINUMAN', 'jenis' => 'OS', 'items' => ['OL25499' => ['perkara' => 'Makanan Lain', 'jenis' => 'OL'], 'OL25601' => ['perkara' => 'Minuman Tidak Berkabonat', 'jenis' => 'OL']]],
-                    'OS26000' => ['perkara' => 'BEKALAN BAHAN MENTAH', 'jenis' => 'OS', 'items' => ['OL26121' => ['perkara' => 'Alat Ganti Pejabat', 'jenis' => 'OL'], 'OL26126' => ['perkara' => 'Alat Ganti Elektronik', 'jenis' => 'OL'], 'OL26131' => ['perkara' => 'Alat Ganti Elektrik', 'jenis' => 'OL'], 'OL26201' => ['perkara' => 'Petrol', 'jenis' => 'OL'], 'OL26202' => ['perkara' => 'Diesel', 'jenis' => 'OL'], 'OL26206' => ['perkara' => 'Pelincir', 'jenis' => 'OL'], 'OL26299' => ['perkara' => 'Bahan Api Lain', 'jenis' => 'OL'], 'OL26701' => ['perkara' => 'Bahan Pengecat', 'jenis' => 'OL']]],
-                    'OS27000' => ['perkara' => 'BEKALAN DAN BAHAN LAIN', 'jenis' => 'OS', 'items' => ['OL27101' => ['perkara' => 'Surat Khabar', 'jenis' => 'OL'], 'OL27102' => ['perkara' => 'Alat Tulis Pejabat', 'jenis' => 'OL'], 'OL27103' => ['perkara' => 'Alat Tulis Komputer', 'jenis' => 'OL'], 'OL27199' => ['perkara' => 'Bekalan Pejabat Lain', 'jenis' => 'OL'], 'OL27299' => ['perkara' => 'Bekalan Am Lain', 'jenis' => 'OL'], 'OL27401' => ['perkara' => 'Ubat dan Dadah', 'jenis' => 'OL'], 'OL27499' => ['perkara' => 'Bekalan Perubatan Lain', 'jenis' => 'OL'], 'OL27605' => ['perkara' => 'Pakaian Seragam', 'jenis' => 'OL'], 'OL27699' => ['perkara' => 'Pakaian Lain', 'jenis' => 'OL']]],
-                    'OS28000' => ['perkara' => 'PENYELENGGARAAN & PEMBAIKAN', 'jenis' => 'OS', 'items' => ['OL28102' => ['perkara' => 'Bangunan Pejabat', 'jenis' => 'OL'], 'OL28199' => ['perkara' => 'Bangunan Lain', 'jenis' => 'OL'], 'OL28301' => ['perkara' => 'Kenderaan Penumpang', 'jenis' => 'OL'], 'OL28307' => ['perkara' => 'Kenderaan Konsesi', 'jenis' => 'OL'], 'OL28501' => ['perkara' => 'Alat Pejabat', 'jenis' => 'OL'], 'OL28599' => ['perkara' => 'Perabot', 'jenis' => 'OL'], 'OL28601' => ['perkara' => 'Komputer', 'jenis' => 'OL'], 'OL28699' => ['perkara' => 'Elektronik Lain', 'jenis' => 'OL'], 'OL28701' => ['perkara' => 'Hawa Dingin', 'jenis' => 'OL'], 'OL28799' => ['perkara' => 'Elektrik Lain', 'jenis' => 'OL'], 'OL28801' => ['perkara' => 'Telefon/Telex', 'jenis' => 'OL'], 'OL28899' => ['perkara' => 'Perhubungan Lain', 'jenis' => 'OL'], 'OL28911' => ['perkara' => 'Pembersihan', 'jenis' => 'OL']]],
-                    'OS29000' => ['perkara' => 'PERKHIDMATAN IKTISAS', 'jenis' => 'OS', 'items' => ['OL29107' => ['perkara' => 'Latihan/Pensyarah', 'jenis' => 'OL'], 'OL29126' => ['perkara' => 'Persediaan Makanan', 'jenis' => 'OL'], 'OL29199' => ['perkara' => 'Perkhidmatan Lain', 'jenis' => 'OL'], 'OL29201' => ['perkara' => 'Penerbitan', 'jenis' => 'OL'], 'OL29202' => ['perkara' => 'Pencetakan', 'jenis' => 'OL'], 'OL29299' => ['perkara' => 'Percetakan Lain', 'jenis' => 'OL'], 'OL29301' => ['perkara' => 'Gaji Sambilan', 'jenis' => 'OL'], 'OL29303' => ['perkara' => 'KWSP Sambilan', 'jenis' => 'OL'], 'OL29401' => ['perkara' => 'Keraian Makanan', 'jenis' => 'OL'], 'OL29402' => ['perkara' => 'Keraian Penginapan', 'jenis' => 'OL'], 'OL29411' => ['perkara' => 'Keraian Pejabat', 'jenis' => 'OL'], 'OL29499' => ['perkara' => 'Bayaran Lain', 'jenis' => 'OL']]],
+                    '29100' => ['perkara' => 'PERKHIDMATAN DIBELI (Latihan, Makanan, dll)', 'jenis' => 'GRP', 'items' => [
+                        'OL29107' => ['perkara' => 'Latihan & Bayaran Pensyarah'],
+                        'OL29126' => ['perkara' => 'Persediaan Makanan'],
+                        'OL29199' => ['perkara' => 'Perkhidmatan Lain (Tol/Meter Reading)'],
+                    ]],
+                    '29200' => ['perkara' => 'PERCETAKAN', 'jenis' => 'GRP', 'items' => [
+                        'OL29201' => ['perkara' => 'Penerbitan Kerajaan'],
+                        'OL29202' => ['perkara' => 'Borang & Kepala Surat'],
+                        'OL29299' => ['perkara' => 'Percetakan Lain'],
+                    ]],
+                    '29300' => ['perkara' => 'KAKITANGAN KONTRAK (SAMBILAN)', 'jenis' => 'GRP', 'items' => [
+                        'OL29301' => ['perkara' => 'Gaji & Upah Sambilan'],
+                        'OL29302' => ['perkara' => 'Elaun Lebih Masa Sambilan'],
+                        'OL29303' => ['perkara' => 'Sumbangan KWSP Sambilan'],
+                    ]],
+                    '29400' => ['perkara' => 'KERAIAN & HOSPITALITI', 'jenis' => 'GRP', 'items' => [
+                        'OL29401' => ['perkara' => 'Makan & Minum (Jemputan Luar)'],
+                        'OL29402' => ['perkara' => 'Elaun Penginapan'],
+                        'OL29411' => ['perkara' => 'Keraian Pejabat (Mesyuarat)'],
+                        'OL29499' => ['perkara' => 'Bayaran Lain (Tip/Tol)'],
+                        ]],
+                    ]],
                 ]
             ],
         ];
     }
+    
+    // Fungsi dummy untuk elak error route jika ada
+    public function create() { return view('pentadbiran.dbus.create'); }
+    public function store(Request $request) { return redirect()->back(); }
+    public function edit(Request $request) { return redirect()->back(); }
 }

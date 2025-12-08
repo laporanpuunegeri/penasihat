@@ -15,37 +15,36 @@ class LaporanPandanganUndangController extends Controller
     /**
      * 1. INDEX: Senarai Laporan
      */
-   public function index(Request $request)
+public function index(Request $request)
     {
-        // 1. Dapatkan pengguna semasa
         $user = Auth::user();
-
-        // 2. Mulakan Query
-        // Pastikan Model LaporanPandanganUndang telah di-import di atas (use App\Models\LaporanPandanganUndang;)
         $query = LaporanPandanganUndang::query();
 
-        // 3. LOGIK TAPISAN (FILTER)
-        $allowedRoles = ['super_admin', 'YB', 'PUUN']; 
-
+        // 1. Filter Role (Hanya Admin/YB nampak semua)
+        $allowedRoles = ['super_admin', 'YB', 'PUUN', 'admin']; 
         if (!in_array($user->role, $allowedRoles)) {
-            // Tapis data supaya user biasa hanya nampak rekod sendiri
-            // Pastikan column 'user_id' wujud dalam table DB anda
             $query->where('user_id', $user->id);
         }
 
-        // 4. Carian / Filter tambahan (Jika ada)
-        if ($request->has('bulan') && $request->bulan != '') {
+        // 2. FILTER TAHUN (Wajib ada supaya data tak bercampur aduk)
+        // Ambil tahun dari request, atau guna tahun semasa sebagai default
+        $tahun = $request->input('tahun', date('Y'));
+        
+        if ($tahun != 'all') {
+            $query->whereYear('tarikh_terima', $tahun);
+        }
+
+        // 3. FILTER BULAN
+        if ($request->has('bulan') && $request->bulan != 'all') {
             $query->whereMonth('tarikh_terima', $request->bulan);
         }
-        
-        // 5. Dapatkan data (Paginate)
-        // Hasil disimpan dalam variable $senaraiLaporan
-        $senaraiLaporan = $query->latest()->paginate(10);
 
-        // PEMBETULAN: 
-        // Tukar compact('data') kepada compact('senaraiLaporan')
-        // Pastikan nama view ('laporanpandanganundang.index') adalah betul mengikut folder resources/views anda
-        return view('laporanpandanganundang.index', compact('senaraiLaporan'));
+        // 4. DAPATKAN DATA
+        // PENTING: Guna get() bukan paginate(10). 
+        // Ini memastikan semua data dalam bulan/tahun tersebut dipaparkan untuk disusun ikut kategori.
+        $senaraiLaporan = $query->orderBy('tarikh_terima', 'desc')->get();
+
+        return view('laporanpandanganundang.index', compact('senaraiLaporan', 'tahun'));
     }
 
     /**

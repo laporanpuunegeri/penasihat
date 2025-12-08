@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 
+// --- CONTROLLERS ---
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PergerakanController;
 use App\Http\Controllers\PentadbiranController;
@@ -29,74 +30,64 @@ use App\Http\Controllers\LaporanMesyuaratController;
 use App\Http\Controllers\KestatatertibController;
 use App\Http\Controllers\LaporanLainLainController;
 use App\Http\Controllers\PdfController;
-use App\Http\Controllers\LampiranKesMahkamahController; // Model/Controller Lampiran yang baru disahkan
+use App\Http\Controllers\LampiranKesMahkamahController; 
+
+// =========================================================================
+// ROUTE UTAMA & GUEST
+// =========================================================================
 
 Route::get('/', fn() => redirect()->route('dashboard'))->name('utama');
-
 
 Route::middleware('guest')->group(function () {
     Route::get('/reset-password', [PasswordResetLinkController::class, 'create'])->name('password.request');
     Route::post('/reset-password', [PasswordResetLinkController::class, 'store'])->name('password.email');
-    
     Route::get('/custom-forgot-password', fn() => view('auth.check-user'))->name('custom.password.request');
     Route::post('/custom-verify', [CustomPasswordResetController::class, 'verifyUser'])->name('custom.password.verify');
     Route::get('/custom-reset-password/{email}', [CustomPasswordResetController::class, 'showResetForm'])->name('custom.password.form');
     Route::post('/custom-reset-password', [CustomPasswordResetController::class, 'updatePassword'])->name('custom.password.update');
 });
 
+// =========================================================================
+// ROUTE AUTH (LOGGED IN USERS)
+// =========================================================================
 
 Route::middleware('auth')->group(function () {
 
+    // --- DASHBOARD LOGIC ---
     Route::get('/dashboard', function () {
         $user = Auth::user();
         $bahagian = strtoupper(trim($user->bahagian ?? ''));
-
         switch ($bahagian) {
-            case 'BAHAGIAN PENTADBIRAN':
-                return redirect()->route('dashboard.pentadbiran');
-            case 'BAHAGIAN KEWANGAN':
-                return redirect()->route('dashboard.kewangan');
+            case 'BAHAGIAN PENTADBIRAN': return redirect()->route('dashboard.pentadbiran');
+            case 'BAHAGIAN KEWANGAN': return redirect()->route('dashboard.kewangan');
             case 'BAHAGIAN PENTADBIRAN & KEWANGAN':
-            case 'BAHAGIAN PENTADBIRAN DAN KEWANGAN':
-                return redirect()->route('dashboard.pentadbirandankewangan');
-            case 'BAHAGIAN GUAMAN':
-                return redirect()->route('dashboard.guaman');
-            case 'BAHAGIAN PENASIHAT':
-                return redirect()->route('dashboard.penasihat');
-            case 'BAHAGIAN PENDAKWAAN':
-                return redirect()->route('dashboard.pendakwaan');
-            case 'BAHAGIAN SEMAKAN':
-                return redirect()->route('dashboard.semakan');
-            case 'BAHAGIAN SYARIAH':
-                return redirect()->route('dashboard.syariah');
-            default:
-                return view('dashboard.index', ['title' => 'Dashboard Utama']);
+            case 'BAHAGIAN PENTADBIRAN DAN KEWANGAN': return redirect()->route('dashboard.pentadbirandankewangan');
+            case 'BAHAGIAN GUAMAN': return redirect()->route('dashboard.guaman');
+            case 'BAHAGIAN PENASIHAT': return redirect()->route('dashboard.penasihat');
+            case 'BAHAGIAN PENDAKWAAN': return redirect()->route('dashboard.pendakwaan');
+            case 'BAHAGIAN SEMAKAN': return redirect()->route('dashboard.semakan');
+            case 'BAHAGIAN SYARIAH': return redirect()->route('dashboard.syariah');
+            default: return view('dashboard.index', ['title' => 'Dashboard Utama']);
         }
     })->name('dashboard');
 
-
     Route::prefix('dashboard')->group(function () {
-        
         Route::get('/pentadbiran', [KewanganPentadbiranDashboardController::class, 'dashboard'])->name('dashboard.pentadbiran');
         Route::get('/kewangan', [KewanganPentadbiranDashboardController::class, 'dashboard'])->name('dashboard.kewangan');
         Route::get('/pentadbiran-kewangan', [KewanganPentadbiranDashboardController::class, 'dashboard'])->name('dashboard.pentadbirandankewangan');
-
         Route::get('/guaman', [GuamanDashboardController::class, 'dashboard'])->name('dashboard.guaman');
-        
         Route::get('/penasihat', [PenasihatDashboardController::class, 'index'])->name('dashboard.penasihat');
-        
         Route::view('/pendakwaan', 'dashboard.pendakwaan')->name('dashboard.pendakwaan');
         Route::view('/semakan', 'dashboard.semakan')->name('dashboard.semakan');
         Route::view('/syariah', 'dashboard.syariah')->name('dashboard.syariah');
     });
 
-
+    // --- USER PROFILE & LOGOUT ---
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/', [ProfileController::class, 'show'])->name('show');
         Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
         Route::put('/update', [ProfileController::class, 'update'])->name('update');
     });
-
     Route::post('/logout', function(Request $request) {
         Auth::logout();
         $request->session()->invalidate();
@@ -104,7 +95,7 @@ Route::middleware('auth')->group(function () {
         return redirect('/login');
     })->name('logout');
 
-
+    // --- PERGERAKAN ---
     Route::prefix('pergerakan')->name('pergerakan.')->group(function () {
         Route::get('/', [PergerakanController::class, 'index'])->name('index');
         Route::get('/create', [PergerakanController::class, 'create'])->name('create');
@@ -125,45 +116,64 @@ Route::middleware('auth')->group(function () {
         Route::get('/cetak/{id}', [PergerakanController::class, 'cetakBorang'])->name('cetak');
     });
 
-
+    // =========================================================================
+    // MODUL PENTADBIRAN
+    // =========================================================================
     Route::prefix('pentadbiran')->name('pentadbiran.')->group(function () {
         Route::resource('/', PentadbiranController::class)->names(['index' => 'dashboard']); 
         
+        // WARAN
         Route::get('/waran', [PentadbiranController::class, 'indexWaran'])->name('waran.index'); 
         Route::get('/waran/edit', [PentadbiranController::class, 'editWaran'])->name('waran.edit');
         Route::post('/waran/update', [PentadbiranController::class, 'updateWaran'])->name('waran.update');
 
+        // DBUS (OBB)
         Route::prefix('dbus')->name('dbus.')->group(function () {
+
+            // ✅ PEMBETULAN UTAMA DISINI
+            // Buang prefix 'pentadbiran/dbus/' sebab group dah auto tambah
+            // Buang nama 'pentadbiran.dbus.' sebab group dah auto tambah
+            Route::get('/cetak-pdf', [DbusController::class, 'cetakPdf'])->name('cetak_pdf');
+            
+            // AJAX Update OA
+            Route::post('/update-oa-am', [DbusController::class, 'updateOaAm'])->name('updateOaAm'); 
+            
+            // Index & Master
             Route::get('/', [DbusController::class, 'index'])->name('index');
             Route::get('/create', [DbusController::class, 'create'])->name('create');
             Route::post('/store', [DbusController::class, 'store'])->name('store');
             Route::get('/edit', [DbusController::class, 'edit'])->name('edit');
 
+            // Pecahan Views (GET)
             Route::get('/pecahan/{kod}/{tahun}', [DbusPecahanController::class, 'editPegawai'])->name('pecahan');
-            Route::post('/pecahan/store', [DbusPecahanController::class, 'storePegawai'])->name('pecahan.store');
-            
             Route::get('/edit-ol14101/{kod}/{tahun}', [DbusPecahanController::class, 'editOt'])->name('edit_ol14101');
-            Route::post('/update-ol14101', [DbusPecahanController::class, 'updateOt'])->name('update_ol14101');
-            
             Route::get('/edit-os15000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs15'])->name('edit_os15000');
-            Route::post('/update-os15000', [DbusPecahanController::class, 'updateOs15'])->name('update_os15000');
-        
-            // --- PECAHAN OS21000 (SARA HIDUP) ---
             Route::get('/edit-os21000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs21000'])->name('edit_os21000');
-            Route::post('/update-os21000', [DbusPecahanController::class, 'updateOs21000'])->name('update_os21000');
-
-            // --- PECAHAN OS22000 (PENGANGKUTAN BARANG) ---
             Route::get('/edit-os22000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs22000'])->name('edit_os22000');
-            Route::post('/update-os22000', [DbusPecahanController::class, 'updateOs22000'])->name('update_os22000');
-
-            // --- PECAHAN OS23000 (PERHUBUNGAN DAN UTILITI) ---
-            Route::get('/os23000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs23000'])->name('edit_os23000');
-            Route::post('/update-os23000', [DbusPecahanController::class, 'updateOs23000'])->name('update_os23000');
-        
+            Route::get('/edit-os23000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs23000'])->name('edit_os23000');
             Route::get('/edit-os24000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs24000'])->name('edit_os24000');
+            Route::get('/edit-os25000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs25000'])->name('edit_os25000');
+            Route::get('/edit-os26000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs26000'])->name('edit_os26000');
+            Route::get('/edit-os27000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs27000'])->name('edit_os27000');
+            Route::get('/edit-os28000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs28000'])->name('edit_os28000');
+            Route::get('/edit-os29000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs29000'])->name('edit_os29000');
+            
+            // Pecahan Updates (POST)
+            Route::post('/pecahan/store', [DbusPecahanController::class, 'storePegawai'])->name('pecahan.store');
+            Route::post('/update-ol14101', [DbusPecahanController::class, 'updateOt'])->name('update_ol14101');
+            Route::post('/update-os15000', [DbusPecahanController::class, 'updateOs15'])->name('update_os15000');
+            Route::post('/update-os21000', [DbusPecahanController::class, 'updateOs21000'])->name('update_os21000');
+            Route::post('/update-os22000', [DbusPecahanController::class, 'updateOs22000'])->name('update_os22000');
+            Route::post('/update-os23000', [DbusPecahanController::class, 'updateOs23000'])->name('update_os23000');
             Route::post('/update-os24000', [DbusPecahanController::class, 'updateOs24000'])->name('update_os24000');
+            Route::post('/update-os25000', [DbusPecahanController::class, 'updateOs25000'])->name('update_os25000');
+            Route::post('/update-os26000', [DbusPecahanController::class, 'updateOs26000'])->name('update_os26000');
+            Route::post('/update-os27000', [DbusPecahanController::class, 'updateOs27000'])->name('update_os27000');
+            Route::post('/update-os28000', [DbusPecahanController::class, 'updateOs28000'])->name('update_os28000');
+            Route::post('/update-os29000', [DbusPecahanController::class, 'updateOs29000'])->name('update_os29000');
         });
 
+        // ROUTE LAPORAN PRESTASI
         Route::prefix('laporan-prestasi')->name('laporan_prestasi.')->group(function () {
             Route::get('/', [LaporanPPUUNController::class, 'index'])->name('index');
             Route::get('/cetak', [LaporanPPUUNController::class, 'cetak'])->name('cetak');
@@ -172,7 +182,7 @@ Route::middleware('auth')->group(function () {
         });
     });
 
-
+    // --- KEWANGAN ---
     Route::prefix('kewangan')->name('kewangan.')->group(function () {
         Route::get('/', [KewanganController::class, 'index'])->name('index');
         Route::get('/create', [KewanganController::class, 'create'])->name('create');
@@ -186,7 +196,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/cetak-pdf-suku', [KewanganController::class, 'cetakPdfSuku'])->name('cetak_pdf_suku');
     });
 
-
+    // --- GUAMAN ---
     Route::prefix('guaman')->name('guaman.')->group(function () {
         Route::get('/', [GuamanController::class, 'index'])->name('index');
         Route::get('/create', [GuamanController::class, 'create'])->name('create');
@@ -196,11 +206,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/cetak-laporan-pdf', [GuamanController::class, 'cetakLaporanPdf'])->name('cetak_laporan_pdf');
     });
 
-    // --- BAHAGIAN LAPORAN UTAMA ---
+    // --- LAPORAN & RESOURCE ---
     Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan.index');
     Route::get('/laporan/pdf', [PdfController::class, 'laporan'])->name('laporan.pdf');
 
-    // --- FIX ROUTE NOT FOUND [lampiran.index] ---
     Route::prefix('lampiran')->name('lampiran.')->group(function () {
         Route::get('/', [LampiranKesMahkamahController::class, 'index'])->name('index'); 
         Route::post('/', [LampiranKesMahkamahController::class, 'store'])->name('store');
@@ -208,27 +217,25 @@ Route::middleware('auth')->group(function () {
     
     Route::resources([
         'laporanpandanganundang' => LaporanPandanganUndangController::class,
-        'laporankesmahkamah'     => LaporanKesMahkamahController::class,
-        'laporangubalanundang'  => LaporanGubalanUndangController::class,
-        'laporanpindaanundang'  => LaporanPindaanUndangController::class,
-        'laporansemakanundang'  => LaporanSemakanUndangController::class,
-        'laporanmesyuarat'      => LaporanMesyuaratController::class,
-        'kestatatertib'         => KestatatertibController::class,
-        'lainlaintugasan'       => LaporanLainLainController::class,
+        'laporankesmahkamah' => LaporanKesMahkamahController::class,
+        'laporangubalanundang' => LaporanGubalanUndangController::class,
+        'laporanpindaanundang' => LaporanPindaanUndangController::class,
+        'laporansemakanundang' => LaporanSemakanUndangController::class,
+        'laporanmesyuarat' => LaporanMesyuaratController::class,
+        'kestatatertib' => KestatatertibController::class,
+        'lainlaintugasan' => LaporanLainLainController::class,
     ]);
 
-
+    // --- TETAPAN ---
     Route::prefix('tetapan')->group(function () {
         Route::get('/agensi', [AgensiController::class, 'index'])->name('agensi.index');
         Route::post('/agensi', [AgensiController::class, 'store'])->name('agensi.store');
         Route::delete('/agensi/{id}', [AgensiController::class, 'destroy'])->name('agensi.destroy');
-        
         Route::prefix('pengguna')->name('tetapan.pengguna.')->group(function () {
             Route::get('/', [UserController::class, 'index'])->name('index');
             Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy');
         });
     });
-
 });
 
 Route::middleware('auth')->group(function () {
