@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 
-// --- CONTROLLERS ---
+// Controllers
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PergerakanController;
 use App\Http\Controllers\PentadbiranController;
@@ -15,22 +15,28 @@ use App\Http\Controllers\LaporanPPUUNController;
 use App\Http\Controllers\DbusController;
 use App\Http\Controllers\DbusPecahanController; 
 use App\Http\Controllers\GuamanController;
-use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\CustomPasswordResetController;
-use App\Http\Controllers\DashboardBahagian\GuamanDashboardController;
-use App\Http\Controllers\DashboardBahagian\KewanganPentadbiranDashboardController; 
-use App\Http\Controllers\DashboardBahagian\PenasihatDashboardController;
 use App\Http\Controllers\LaporanController;
+use App\Http\Controllers\KestatatertibController;
+use App\Http\Controllers\LaporanLainLainController;
+use App\Http\Controllers\PdfController;
+use App\Http\Controllers\LampiranKesMahkamahController; 
+
+// Controllers Laporan (Untuk Grafik & CRUD)
 use App\Http\Controllers\LaporanPandanganUndangController;
 use App\Http\Controllers\LaporanKesMahkamahController;
 use App\Http\Controllers\LaporanGubalanUndangController;
 use App\Http\Controllers\LaporanPindaanUndangController;
 use App\Http\Controllers\LaporanSemakanUndangController;
 use App\Http\Controllers\LaporanMesyuaratController;
-use App\Http\Controllers\KestatatertibController;
-use App\Http\Controllers\LaporanLainLainController;
-use App\Http\Controllers\PdfController;
-use App\Http\Controllers\LampiranKesMahkamahController; 
+
+// Auth & Custom Passwords
+use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\CustomPasswordResetController;
+
+// Dashboard Controllers (Bahagian)
+use App\Http\Controllers\DashboardBahagian\GuamanDashboardController;
+use App\Http\Controllers\DashboardBahagian\KewanganPentadbiranDashboardController; 
+use App\Http\Controllers\DashboardBahagian\PenasihatDashboardController;
 
 // =========================================================================
 // ROUTE UTAMA & GUEST
@@ -53,7 +59,7 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
 
-    // --- DASHBOARD LOGIC ---
+    // --- DASHBOARD REDIRECT LOGIC ---
     Route::get('/dashboard', function () {
         $user = Auth::user();
         $bahagian = strtoupper(trim($user->bahagian ?? ''));
@@ -71,16 +77,34 @@ Route::middleware('auth')->group(function () {
         }
     })->name('dashboard');
 
+    // --- GROUP DASHBOARD KHAS ---
     Route::prefix('dashboard')->group(function () {
         Route::get('/pentadbiran', [KewanganPentadbiranDashboardController::class, 'dashboard'])->name('dashboard.pentadbiran');
         Route::get('/kewangan', [KewanganPentadbiranDashboardController::class, 'dashboard'])->name('dashboard.kewangan');
         Route::get('/pentadbiran-kewangan', [KewanganPentadbiranDashboardController::class, 'dashboard'])->name('dashboard.pentadbirandankewangan');
         Route::get('/guaman', [GuamanDashboardController::class, 'dashboard'])->name('dashboard.guaman');
+        
+        // Dashboard Penasihat (8 Graf Utama)
         Route::get('/penasihat', [PenasihatDashboardController::class, 'index'])->name('dashboard.penasihat');
+
         Route::view('/pendakwaan', 'dashboard.pendakwaan')->name('dashboard.pendakwaan');
         Route::view('/semakan', 'dashboard.semakan')->name('dashboard.semakan');
         Route::view('/syariah', 'dashboard.syariah')->name('dashboard.syariah');
     });
+
+    // =========================================================================
+    // 🔥 ROUTE KHAS UNTUK DRILL-DOWN GRAF (PECAHAN BULAN) 🔥
+    // Ini wajib ada supaya bila klik graf, dia pergi ke page detail
+    // =========================================================================
+    Route::get('laporanpandanganundang/pecahan', [LaporanPandanganUndangController::class, 'pecahanBulan'])->name('laporanpandanganundang.pecahan');
+    Route::get('laporankesmahkamah/pecahan', [LaporanKesMahkamahController::class, 'pecahanBulan'])->name('laporankesmahkamah.pecahan');
+    Route::get('laporangubalanundang/pecahan', [LaporanGubalanUndangController::class, 'pecahanBulan'])->name('laporangubalanundang.pecahan');
+    Route::get('laporanpindaanundang/pecahan', [LaporanPindaanUndangController::class, 'pecahanBulan'])->name('laporanpindaanundang.pecahan');
+    Route::get('laporansemakanundang/pecahan', [LaporanSemakanUndangController::class, 'pecahanBulan'])->name('laporansemakanundang.pecahan');
+    Route::get('laporanmesyuarat/pecahan', [LaporanMesyuaratController::class, 'pecahanBulan'])->name('laporanmesyuarat.pecahan');
+    Route::get('kestatatertib/pecahan', [KestatatertibController::class, 'pecahanBulan'])->name('kestatatertib.pecahan');
+    Route::get('lainlaintugasan/pecahan', [LaporanLainLainController::class, 'pecahanBulan'])->name('lainlaintugasan.pecahan');
+
 
     // --- USER PROFILE & LOGOUT ---
     Route::prefix('profile')->name('profile.')->group(function () {
@@ -129,10 +153,6 @@ Route::middleware('auth')->group(function () {
 
         // DBUS (OBB)
         Route::prefix('dbus')->name('dbus.')->group(function () {
-
-            // ✅ PEMBETULAN UTAMA DISINI
-            // Buang prefix 'pentadbiran/dbus/' sebab group dah auto tambah
-            // Buang nama 'pentadbiran.dbus.' sebab group dah auto tambah
             Route::get('/cetak-pdf', [DbusController::class, 'cetakPdf'])->name('cetak_pdf');
             
             // AJAX Update OA
@@ -215,6 +235,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [LampiranKesMahkamahController::class, 'store'])->name('store');
     });
     
+    // Resource Routes untuk Modul (CRUD Standard)
     Route::resources([
         'laporanpandanganundang' => LaporanPandanganUndangController::class,
         'laporankesmahkamah' => LaporanKesMahkamahController::class,

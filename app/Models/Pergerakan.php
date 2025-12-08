@@ -22,6 +22,7 @@ class Pergerakan extends Model
         'destinasi',
         'masa_mula',
         'masa_akhir',
+        'lampiran',
         
         // Workflow Columns
         'cc_id',

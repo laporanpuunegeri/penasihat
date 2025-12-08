@@ -31,7 +31,7 @@
         </div>
     </div>
     
-{{-- FILTER TAHUN & GRAND TOTAL --}}
+    {{-- FILTER TAHUN & GRAND TOTAL --}}
     <div class="card mb-4 border-0 shadow-sm" style="border-left: 5px solid #0d6efd;">
         <div class="card-body py-3 d-flex justify-content-between align-items-center">
             
@@ -50,7 +50,7 @@
             </div>
 
             <div class="text-end">
-                <span class="text-muted small text-uppercase fw-bold">Jumlah Keseluruhan</span>
+                <span class="text-muted small text-uppercase fw-bold">Jumlah Keseluruhan (OA10 + OA20)</span>
                 <h4 class="mb-0 text-success fw-bold" id="grandTotalDisplay">RM {{ number_format($grandTotal, 2) }}</h4>
             </div>
         </div>
@@ -111,25 +111,35 @@
                                                     {{-- LOGIK BUTANG KEMASKINI --}}
                                                     @php
                                                         $route = 'pentadbiran.dbus.pecahan'; 
-                                                        $btnClass = 'btn-outline-secondary';
+                                                        $btnClass = 'btn-primary'; // Warna Default: Biru
+                                                        
+                                                        // Senarai Modul yang SUDAH SIAP dan ada Route Khas
                                                         $siap = [
-                                                            'OS14000'=>'pentadbiran.dbus.edit_ol14101', 'OS15000'=>'pentadbiran.dbus.edit_os15000',
-                                                            'OS21000'=>'pentadbiran.dbus.edit_os21000', 'OS22000'=>'pentadbiran.dbus.edit_os22000',
-                                                            'OS23000'=>'pentadbiran.dbus.edit_os23000', 'OS24000'=>'pentadbiran.dbus.edit_os24000',
-                                                            'OS25000'=>'pentadbiran.dbus.edit_os25000', 'OS26000'=>'pentadbiran.dbus.edit_os26000',
-                                                            'OS27000'=>'pentadbiran.dbus.edit_os27000', 'OS28000'=>'pentadbiran.dbus.edit_os28000',
-                                                            'OS29000'=>'pentadbiran.dbus.edit_os29000'
+                                                            'OS14000' => 'pentadbiran.dbus.edit_ol14101',
+                                                            'OS15000' => 'pentadbiran.dbus.edit_os15000',
+                                                            'OS21000' => 'pentadbiran.dbus.edit_os21000',
+                                                            'OS22000' => 'pentadbiran.dbus.edit_os22000',
+                                                            'OS23000' => 'pentadbiran.dbus.edit_os23000',
+                                                            'OS24000' => 'pentadbiran.dbus.edit_os24000',
+                                                            'OS25000' => 'pentadbiran.dbus.edit_os25000',
+                                                            'OS26000' => 'pentadbiran.dbus.edit_os26000',
+                                                            'OS27000' => 'pentadbiran.dbus.edit_os27000',
+                                                            'OS28000' => 'pentadbiran.dbus.edit_os28000',
+                                                            'OS29000' => 'pentadbiran.dbus.edit_os29000',
                                                         ];
-                                                        if (array_key_exists($osKey, $siap)) { $route = $siap[$osKey]; $btnClass = 'btn-primary'; }
-                                                        elseif (in_array($osKey, ['OS11000', 'OS12000', 'OS13000'])) { $btnClass = 'btn-warning'; }
+
+                                                        if (array_key_exists($osKey, $siap)) {
+                                                            $route = $siap[$osKey];
+                                                        } 
                                                     @endphp
+
                                                     <a href="{{ route($route, ['kod'=>$osKey, 'tahun'=>$tahun]) }}" class="btn btn-sm {{ $btnClass }} py-0 px-2 shadow-sm" title="Kemaskini">
                                                         <i class="fas fa-edit me-1"></i> Edit
                                                     </a>
                                                 </td>
                                             </tr>
 
-                                            {{-- LOOP GROUP (HIJAU) - ADA 'ISSET' SUPAYA TAK ERROR --}}
+                                            {{-- LOOP GROUP (HIJAU) --}}
                                             @if(isset($os['items']) && is_array($os['items']))
                                                 @foreach($os['items'] as $groupKey => $group)
                                                     
@@ -140,7 +150,7 @@
                                                             </td>
                                                         </tr>
 
-                                                        {{-- LOOP OL (DATA PUTIH) - ADA 'ISSET' SUPAYA TAK ERROR --}}
+                                                        {{-- LOOP OL (DATA PUTIH) --}}
                                                         @if(isset($group['items']) && is_array($group['items']))
                                                             @foreach($group['items'] as $olKey => $ol)
                                                                 <tr class="row-ol">
@@ -178,9 +188,40 @@
 @push('scripts')
 <script>
     function formatCurrency(num) { return parseFloat(num).toLocaleString('ms-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-    function enableEdit(element) { /* ... (Kekalkan fungsi JS edit yang sama) ... */ }
+    
+    function enableEdit(element) {
+        if (element.querySelector('input')) return;
+        let currentVal = parseFloat(element.getAttribute('data-value'));
+        let oaKod = element.getAttribute('data-oa-kod');
+        element.innerHTML = `<input type="number" class="form-control form-control-sm text-end border-warning shadow" value="${currentVal.toFixed(2)}" id="input-${oaKod}" onblur="saveEdit(this, '${oaKod}')" onkeypress="handleEnter(event, this, '${oaKod}')">`;
+        setTimeout(() => document.getElementById(`input-${oaKod}`).focus(), 100);
+    }
+
     function handleEnter(e, input, oaKod) { if (e.key === 'Enter') input.blur(); }
-    function saveEdit(input, oaKod) { /* ... (Kekalkan fungsi JS save yang sama) ... */ }
-    function updateGrandTotal() { /* ... (Kekalkan fungsi JS total yang sama) ... */ }
+
+    function saveEdit(input, oaKod) {
+        let newVal = parseFloat(input.value);
+        let parentDiv = document.getElementById(`oaDisplay-${oaKod}`);
+        let oldVal = parseFloat(parentDiv.getAttribute('data-value'));
+        
+        if (isNaN(newVal) || newVal === oldVal) { parentDiv.innerHTML = formatCurrency(oldVal); return; }
+        
+        let tahun = document.getElementById('tahunSelector').value;
+        parentDiv.innerHTML = formatCurrency(newVal);
+        parentDiv.setAttribute('data-value', newVal);
+        updateGrandTotal(); 
+
+        fetch("{{ route('pentadbiran.dbus.updateOaAm') }}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content },
+            body: JSON.stringify({ tahun: tahun, oa_kod: oaKod, oa_am_value: newVal })
+        }).catch(err => { alert('Gagal simpan.'); parentDiv.innerHTML = formatCurrency(oldVal); });
+    }
+
+    function updateGrandTotal() {
+        let total = 0;
+        document.querySelectorAll('.editable-oa-value').forEach(el => total += parseFloat(el.getAttribute('data-value')));
+        document.getElementById('grandTotalDisplay').innerText = 'RM ' + formatCurrency(total);
+    }
 </script>
 @endpush

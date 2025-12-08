@@ -21,6 +21,13 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             @endif
+            
+            @if(session('error'))
+                <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 border-start border-4 border-danger" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i> {!! session('error') !!}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
 
             {{-- KAD BORANG --}}
             <div class="card shadow border-0 rounded-3">
@@ -29,7 +36,7 @@
                 </div>
                 
                 <div class="card-body p-4">
-                    <form action="{{ route('pergerakan.store') }}" method="POST">
+                    <form action="{{ route('pergerakan.store') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         
                         {{-- 1. JENIS PERGERAKAN --}}
@@ -47,66 +54,37 @@
                                 <option value="Mesyuarat Dalaman" {{ old('jenis') == 'Mesyuarat Dalaman' ? 'selected' : '' }}>Mesyuarat Dalaman</option>
                                 <option value="Mesyuarat Luar Pejabat" {{ old('jenis') == 'Mesyuarat Luar Pejabat' ? 'selected' : '' }}>Mesyuarat Luar Pejabat</option>
                             </select>
-                            @error('jenis')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            @error('jenis')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
-                        {{-- 2. TARIKH & TEMPOH (DIKEMASKINI: DIBAGI KEPADA 4 LAJUR) --}}
+                        {{-- 2. TARIKH & TEMPOH --}}
                         <div class="row mb-4">
-                            
-                            {{-- Tarikh Mula --}}
                             <div class="col-md-3">
-                                <label for="tarikh_mula" class="form-label fw-bold text-muted">
-                                    <i class="far fa-calendar-alt me-1"></i> Tarikh Mula
-                                </label>
+                                <label for="tarikh_mula" class="form-label fw-bold text-muted"><i class="far fa-calendar-alt me-1"></i> Tarikh Mula</label>
                                 <input type="date" name="tarikh_mula" id="tarikh_mula" class="form-control @error('tarikh_mula') is-invalid @enderror" value="{{ old('tarikh_mula') }}" required>
-                                @error('tarikh_mula')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                @error('tarikh_mula')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
-
-                            {{-- Masa Mula (BARU) --}}
                             <div class="col-md-3">
-                                <label for="masa_mula" class="form-label fw-bold text-muted">
-                                    <i class="far fa-clock me-1"></i> Masa Mula
-                                </label>
+                                <label for="masa_mula" class="form-label fw-bold text-muted"><i class="far fa-clock me-1"></i> Masa Mula</label>
                                 <input type="time" name="masa_mula" id="masa_mula" class="form-control @error('masa_mula') is-invalid @enderror" value="{{ old('masa_mula') }}">
-                                @error('masa_mula')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                @error('masa_mula')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
-                            
-                            {{-- Tarikh Akhir --}}
                             <div class="col-md-3">
-                                <label for="tarikh_akhir" class="form-label fw-bold text-muted">
-                                    <i class="far fa-calendar-check me-1"></i> Tarikh Akhir
-                                </label>
+                                <label for="tarikh_akhir" class="form-label fw-bold text-muted"><i class="far fa-calendar-check me-1"></i> Tarikh Akhir</label>
                                 <input type="date" name="tarikh_akhir" id="tarikh_akhir" class="form-control bg-white @error('tarikh_akhir') is-invalid @enderror" value="{{ old('tarikh_akhir') }}" required> 
-                                @error('tarikh_akhir')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                @error('tarikh_akhir')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
-
-                            {{-- Masa Akhir (BARU) --}}
                             <div class="col-md-3">
-                                <label for="masa_akhir" class="form-label fw-bold text-muted">
-                                    <i class="far fa-clock me-1"></i> Masa Akhir
-                                </label>
+                                <label for="masa_akhir" class="form-label fw-bold text-muted"><i class="far fa-clock me-1"></i> Masa Akhir</label>
                                 <input type="time" name="masa_akhir" id="masa_akhir" class="form-control @error('masa_akhir') is-invalid @enderror" value="{{ old('masa_akhir') }}">
-                                @error('masa_akhir')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                @error('masa_akhir')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
-
                         </div>
                         
-                        {{-- TEMPOH HARI (Diasingkan dari baris atas) --}}
+                        {{-- TEMPOH HARI --}}
                         <div class="row mb-4">
                             <div class="col-md-3">
-                                <label for="tempoh" class="form-label fw-bold text-muted">
-                                    <i class="fas fa-hourglass-half me-1"></i> Tempoh (Hari)
-                                </label>
+                                <label for="tempoh" class="form-label fw-bold text-muted"><i class="fas fa-hourglass-half me-1"></i> Tempoh (Hari)</label>
                                 <div class="input-group">
                                     <input type="number" id="tempoh" class="form-control" placeholder="0" min="1">
                                     <span class="input-group-text bg-light">Hari</span>
@@ -115,77 +93,71 @@
                             </div>
                         </div>
 
-                        
                         {{-- 3. JENIS KENDERAAN --}}
                         <div class="mb-4">
-                            <label class="form-label fw-bold text-muted d-block mb-3">
-                                <i class="fas fa-car me-1"></i> Jenis Kenderaan
-                            </label>
-                            
+                            <label class="form-label fw-bold text-muted d-block mb-3"><i class="fas fa-car me-1"></i> Jenis Kenderaan</label>
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <input type="radio" class="btn-check" name="kenderaan" id="kenderaan_sendiri" value="Kenderaan Sendiri" required {{ old('kenderaan') == 'Kenderaan Sendiri' ? 'checked' : '' }}>
                                     <label class="btn btn-outline-primary w-100 p-3 d-flex align-items-center text-start h-100" for="kenderaan_sendiri">
                                         <i class="fas fa-car-side fa-2x me-3"></i>
-                                        <div>
-                                            <div class="fw-bold">Kenderaan Sendiri</div>
-                                            <div class="small text-muted">Menggunakan kereta persendirian</div>
-                                        </div>
+                                        <div><div class="fw-bold">Kenderaan Sendiri</div><div class="small text-muted">Menggunakan kereta persendirian</div></div>
                                     </label>
                                 </div>
-
                                 <div class="col-md-6">
                                     <input type="radio" class="btn-check" name="kenderaan" id="kenderaan_pejabat" value="Kenderaan Pejabat" required {{ old('kenderaan') == 'Kenderaan Pejabat' ? 'checked' : '' }}>
                                     <label class="btn btn-outline-info w-100 p-3 d-flex align-items-center text-start h-100" for="kenderaan_pejabat">
                                         <i class="fas fa-building fa-2x me-3"></i>
-                                        <div>
-                                            <div class="fw-bold">Kenderaan Pejabat</div>
-                                            <div class="small text-muted">Menggunakan kenderaan jabatan/rasmi</div>
-                                        </div>
+                                        <div><div class="fw-bold">Kenderaan Pejabat</div><div class="small text-muted">Menggunakan kenderaan jabatan/rasmi</div></div>
                                     </label>
                                 </div>
                             </div>
-                            @error('kenderaan')
-                                <div class="text-danger small mt-2">{{ $message }}</div>
-                            @enderror
+                            @error('kenderaan')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
                         </div>
 
-                        {{-- 4. BUTIRAN PERGERAKAN RASMI (STATIK & SENTIASA MUNCUL) --}}
+                        {{-- 4. BUTIRAN PERGERAKAN RASMI --}}
                         <div class="mb-4">
                             <hr class="my-4">
                             <h5 class="fw-bold text-primary mb-3"><i class="fas fa-route me-2"></i> Butiran Pergerakan Rasmi</h5>
-                            
                             <div class="row mb-4">
-                                {{-- Tujuan Penggunaan --}}
                                 <div class="col-md-6">
-                                    <label for="tujuan_penggunaan" class="form-label fw-bold text-muted">
-                                        <i class="fas fa-bullseye me-1"></i> Tujuan Penggunaan
-                                    </label>
+                                    <label for="tujuan_penggunaan" class="form-label fw-bold text-muted"><i class="fas fa-bullseye me-1"></i> Tujuan Penggunaan</label>
                                     <input type="text" name="tujuan_penggunaan" id="tujuan_penggunaan" class="form-control @error('tujuan_penggunaan') is-invalid @enderror" value="{{ old('tujuan_penggunaan') }}" placeholder="Contoh: Bertugas di Mahkamah Tinggi" required>
-                                    @error('tujuan_penggunaan')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
+                                    @error('tujuan_penggunaan')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
-
-                                {{-- Destinasi --}}
                                 <div class="col-md-6">
-                                    <label for="destinasi" class="form-label fw-bold text-muted">
-                                        <i class="fas fa-map-marker-alt me-1"></i> Destinasi
-                                    </label>
+                                    <label for="destinasi" class="form-label fw-bold text-muted"><i class="fas fa-map-marker-alt me-1"></i> Destinasi</label>
                                     <input type="text" name="destinasi" id="destinasi" class="form-control @error('destinasi') is-invalid @enderror" value="{{ old('destinasi') }}" placeholder="Contoh: Kuala Lumpur / Pejabat Tanah Galian" required>
-                                    @error('destinasi')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
+                                    @error('destinasi')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                             </div>
                         </div>
 
                         {{-- 5. CATATAN --}}
                         <div class="mb-4">
-                            <label for="catatan" class="form-label fw-bold text-muted">
-                                <i class="fas fa-sticky-note me-1"></i> Catatan
-                            </label>
+                            <label for="catatan" class="form-label fw-bold text-muted"><i class="fas fa-sticky-note me-1"></i> Catatan</label>
                             <textarea name="catatan" id="catatan" rows="4" class="form-control" placeholder="Masukkan sebarang catatan tambahan jika perlu...">{{ old('catatan') }}</textarea>
+                        </div>
+
+                        {{-- 6. MUAT NAIK LAMPIRAN (HANYA GAMBAR) --}}
+                        <div class="mb-4 p-3 bg-light border rounded">
+                            <h6 class="fw-bold text-primary mb-3"><i class="fas fa-paperclip me-2"></i> Lampiran Dokumen</h6>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Muat Naik Surat Arahan / Dokumen Sokongan <span class="text-danger">*</span></label>
+                                
+                                {{-- 🔥 INPUT HANYA GAMBAR 🔥 --}}
+                                <input type="file" name="lampiran" class="form-control @error('lampiran') is-invalid @enderror" accept=".jpg,.jpeg,.png" required>
+                                
+                                <small class="text-muted d-block mt-1">
+                                    <i class="fas fa-exclamation-circle me-1"></i> 
+                                    <strong>PENTING:</strong> Sila muat naik format <strong>GAMBAR (JPG/PNG)</strong> sahaja untuk paparan terus. Format PDF tidak diterima.
+                                </small>
+                                
+                                @error('lampiran')
+                                    <div class="invalid-feedback fw-bold">{{ $message }}</div>
+                                @enderror
+                            </div>
                         </div>
 
                         {{-- BUTANG SUBMIT --}}
@@ -198,7 +170,6 @@
                     </form>
                 </div>
             </div>
-
         </div>
     </div>
 </div>
@@ -208,40 +179,28 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const inputMula = document.getElementById('tarikh_mula');
-        const inputMasaMula = document.getElementById('masa_mula'); // Baru
         const inputAkhir = document.getElementById('tarikh_akhir');
-        const inputMasaAkhir = document.getElementById('masa_akhir'); // Baru
         const inputTempoh = document.getElementById('tempoh');
 
-        // Fungsi Kira Tarikh Akhir
         function kiraTarikhAkhir() {
             if (inputMula.value && inputTempoh.value) {
                 let date = new Date(inputMula.value);
                 let hari = parseInt(inputTempoh.value);
-
                 if(hari > 0) {
-                    // Kira tarikh akhir berdasarkan tempoh hari
                     date.setDate(date.getDate() + (hari - 1));
-                    
                     let year = date.getFullYear();
                     let month = String(date.getMonth() + 1).padStart(2, '0');
                     let day = String(date.getDate()).padStart(2, '0');
-                    
                     inputAkhir.value = `${year}-${month}-${day}`;
-                } else {
-                    inputAkhir.value = '';
-                }
+                } else { inputAkhir.value = ''; }
             }
         }
 
-        // Fungsi Kira Tempoh
         function kiraTempoh() {
             if (inputMula.value && inputAkhir.value) {
                 let start = new Date(inputMula.value);
                 let end = new Date(inputAkhir.value);
-                
                 let diffTime = end - start;
-                
                 if (diffTime >= 0) {
                     let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
                     inputTempoh.value = diffDays;
@@ -253,17 +212,12 @@
             }
         }
 
-        // Event Listeners Tarikh/Tempoh
         inputTempoh.addEventListener('input', kiraTarikhAkhir);
         inputMula.addEventListener('change', function() {
             if(inputTempoh.value) kiraTarikhAkhir();
             else if(inputAkhir.value) kiraTempoh();
         });
         inputAkhir.addEventListener('change', kiraTempoh);
-        
-        // Tambahan: Jika tarikh diisi, isikan masa piawai (pilihan)
-        // inputMula.addEventListener('change', function() { if (!inputMasaMula.value) inputMasaMula.value = '08:00'; });
-        // inputAkhir.addEventListener('change', function() { if (!inputMasaAkhir.value) inputMasaAkhir.value = '17:00'; });
     });
 </script>
 @endpush
