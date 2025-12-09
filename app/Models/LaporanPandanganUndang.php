@@ -13,6 +13,8 @@ class LaporanPandanganUndang extends Model
     protected $table = 'laporan_pandangan_undangs';
 
     protected $fillable = [
+        'is_current',
+        'previous_id', 
         'kategori',
         'isu',
         'tarikh_terima',

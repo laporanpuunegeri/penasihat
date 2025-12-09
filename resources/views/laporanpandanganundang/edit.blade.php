@@ -2,220 +2,171 @@
 
 @section('content')
 
-{{-- Style Khas untuk Form --}}
+{{-- Style Khas --}}
 <style>
     .page-header {
-        background: #fff;
-        padding: 20px 25px;
-        border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-        margin-bottom: 25px;
-        border-left: 5px solid #f59e0b; /* Warning Color Accent untuk Edit */
+        background: #fff; padding: 20px 25px; border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 25px;
+        border-left: 5px solid #f59e0b;
     }
-
     .form-card {
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-        border: 1px solid #f1f5f9;
-        overflow: hidden;
+        background: #fff; border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; overflow: hidden;
     }
-
     .form-section-title {
-        color: #1e293b;
-        font-weight: 700;
-        font-size: 1rem;
-        margin-bottom: 15px;
-        padding-bottom: 10px;
-        border-bottom: 2px solid #f1f5f9;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        color: #1e293b; font-weight: 700; font-size: 1rem; margin-bottom: 15px;
+        padding-bottom: 10px; border-bottom: 2px solid #f1f5f9; text-transform: uppercase;
     }
-
-    .form-label {
-        font-weight: 600;
-        color: #475569;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-    }
-
-    .form-control:focus, .form-select:focus {
-        border-color: #f59e0b;
-        box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
-    }
-
-    /* Radio Button Style jadi Card */
-    .btn-check:checked + .btn-outline-warning {
-        background-color: #fffbeb;
-        color: #b45309;
-        border-color: #f59e0b;
-        font-weight: bold;
+    /* Input Readonly nampak macam disabled */
+    .form-control[readonly], .form-check-input:disabled { 
+        background-color: #f1f5f9; color: #64748b; cursor: not-allowed; opacity: 1;
     }
 </style>
 
 <div class="container-fluid px-4 py-4">
 
-    {{-- HEADER --}}
     <div class="page-header d-flex justify-content-between align-items-center">
         <div>
             <h3 class="mb-1 fw-bold text-dark">Kemaskini Laporan</h3>
-            <p class="text-muted small mb-0">Kemaskini maklumat pandangan undang-undang sedia ada.</p>
+            <p class="text-muted small mb-0">Kemaskini status tindakan. Maklumat asas dikunci.</p>
         </div>
-        <div class="d-flex gap-2">
-            {{-- Butang Padam (Optional, kalau nak letak sini) --}}
-            <form action="{{ route('laporanpandanganundang.destroy', $laporan->id) }}" method="POST" onsubmit="return confirm('Adakah anda pasti mahu memadam rekod ini?');">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="btn btn-outline-danger shadow-sm">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
-            </form>
-            <a href="{{ route('laporanpandanganundang.index') }}" class="btn btn-secondary shadow-sm">
-                <i class="fas fa-arrow-left me-2"></i> Kembali
-            </a>
-        </div>
+        <a href="{{ route('laporanpandanganundang.index') }}" class="btn btn-secondary shadow-sm">
+            <i class="fas fa-arrow-left me-2"></i> Kembali
+        </a>
     </div>
 
-    <form method="POST" action="{{ route('laporanpandanganundang.update', $laporan->id) }}">
+    <form method="POST" action="{{ route('laporanpandanganundang.update', $laporan->id) }}" enctype="multipart/form-data">
         @csrf
         @method('PUT')
 
         <div class="row">
-            {{-- KOLUM KIRI: MAKLUMAT ASAS --}}
+            {{-- KOLUM KIRI: MAKLUMAT ASAS (LOCKED) --}}
             <div class="col-lg-8">
                 <div class="form-card p-4 mb-4">
-                    <h5 class="form-section-title"><i class="fas fa-edit me-2 text-warning"></i> Maklumat Asas & Perincian</h5>
+                    <h5 class="form-section-title"><i class="fas fa-lock me-2 text-secondary"></i> Maklumat Asas (Dikunci)</h5>
                     
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label text-muted">Kategori (Dikunci)</label>
-                            <input type="text" class="form-control bg-light" value="{{ $laporan->kategori }}" readonly>
-                            <input type="hidden" name="kategori" value="{{ $laporan->kategori }}">
+                            <label class="form-label text-muted">Kategori</label>
+                            <input type="text" class="form-control" value="{{ $laporan->kategori }}" readonly>
                         </div>
                         <div class="col-md-6">
-                            <label for="tarikh_terima" class="form-label">Tarikh Terima</label>
-                            <input type="date" name="tarikh_terima" id="tarikh_terima" class="form-control" value="{{ $laporan->tarikh_terima->format('Y-m-d') }}" required>
+                            <label class="form-label text-muted">Tarikh Terima Asal</label>
+                            <input type="text" class="form-control" value="{{ $laporan->tarikh_terima->format('d/m/Y') }}" readonly>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Agensi Terlibat</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-building text-muted"></i></span>
-                            <input type="text" class="form-control bg-light border-start-0 fw-bold text-dark" value="{{ $laporan->agensi }}" readonly>
-                            <input type="hidden" name="agensi" value="{{ $laporan->agensi }}">
-                        </div>
-                        <small class="text-muted fst-italic">*Agensi tidak boleh diubah selepas didaftarkan.</small>
+                        <label class="form-label text-muted">Agensi Terlibat</label>
+                        <input type="text" class="form-control fw-bold" value="{{ $laporan->agensi }}" readonly>
                     </div>
 
                     <div class="mb-3">
-                        <label for="isu" class="form-label">Tajuk Isu</label>
-                        <input type="text" name="isu" id="isu" class="form-control" value="{{ $laporan->isu }}" required>
+                        <label class="form-label text-muted">Tajuk Isu</label>
+                        <input type="text" class="form-control" value="{{ $laporan->isu }}" readonly>
                     </div>
 
                     <div class="mb-3">
-                        <label for="fakta_ringkasan" class="form-label">Fakta Ringkasan</label>
-                        <textarea name="fakta_ringkasan" id="fakta_ringkasan" class="form-control" rows="4" required>{{ $laporan->fakta_ringkasan }}</textarea>
+                        <label class="form-label text-muted">Fakta Ringkasan</label>
+                        <textarea class="form-control" rows="4" readonly>{{ $laporan->fakta_ringkasan }}</textarea>
                     </div>
 
                     <div class="mb-3">
-                        <label for="isu_detail" class="form-label">Perincian Isu</label>
-                        <textarea name="isu_detail" id="isu_detail" class="form-control" rows="3" required>{{ $laporan->isu_detail }}</textarea>
+                        <label class="form-label text-muted">Perincian Isu</label>
+                        <textarea class="form-control" rows="3" readonly>{{ $laporan->isu_detail }}</textarea>
                     </div>
-
-                    <div class="mb-3">
-                        <label for="ringkasan_pandangan" class="form-label">Ringkasan Pandangan</label>
-                        <textarea name="ringkasan_pandangan" id="ringkasan_pandangan" class="form-control" rows="3" required>{{ $laporan->ringkasan_pandangan }}</textarea>
-                    </div>
+                </div>
+                
+                {{-- RUANG RINGKASAN PANDANGAN (BOLEH EDIT) --}}
+                <div class="form-card p-4 mb-4">
+                    <h5 class="form-section-title"><i class="fas fa-edit me-2 text-warning"></i> Ringkasan Pandangan (Boleh Edit)</h5>
+                    <textarea name="ringkasan_pandangan" id="ringkasan_pandangan" class="form-control border-warning" rows="4">{{ $laporan->ringkasan_pandangan }}</textarea>
                 </div>
             </div>
 
-            {{-- KOLUM KANAN: STATUS & PANDANGAN --}}
+            {{-- KOLUM KANAN: STATUS & INPUT BARU --}}
             <div class="col-lg-4">
                 
-                {{-- CARD 1: JENIS PANDANGAN --}}
+                {{-- JENIS PANDANGAN (LOCKED) --}}
                 <div class="form-card p-4 mb-4">
-                    <h5 class="form-section-title"><i class="fas fa-comment-dots me-2 text-warning"></i> Jenis Pandangan</h5>
-                    
+                    <h5 class="form-section-title"><i class="fas fa-lock me-2 text-secondary"></i> Jenis Pandangan (Dikunci)</h5>
                     <div class="d-flex gap-2 w-100">
-                        <input type="radio" class="btn-check" name="jenis_pandangan" value="Lisan" id="lisan" 
-                            {{ (old('jenis_pandangan', $laporan->jenis_pandangan ?? '') === 'Lisan') ? 'checked' : '' }}>
-                        <label class="btn btn-outline-warning w-50 py-2 text-dark" for="lisan">
-                            <i class="fas fa-microphone-alt d-block mb-1 fs-5"></i> Lisan
-                        </label>
-                    
-                        <input type="radio" class="btn-check" name="jenis_pandangan" value="Bertulis" id="bertulis" 
-                            {{ (old('jenis_pandangan', $laporan->jenis_pandangan ?? '') === 'Bertulis') ? 'checked' : '' }}>
-                        <label class="btn btn-outline-warning w-50 py-2 text-dark" for="bertulis">
-                            <i class="fas fa-file-signature d-block mb-1 fs-5"></i> Bertulis
-                        </label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" id="lisan" {{ $laporan->jenis_pandangan == 'Lisan' ? 'checked' : '' }} disabled>
+                            <label class="form-check-label" for="lisan">Lisan</label>
+                        </div>
+                        <div class="form-check ms-3">
+                            <input class="form-check-input" type="radio" id="bertulis" {{ $laporan->jenis_pandangan == 'Bertulis' ? 'checked' : '' }} disabled>
+                            <label class="form-check-label" for="bertulis">Bertulis</label>
+                        </div>
+                        {{-- Hidden input untuk hantar nilai ke controller --}}
+                        <input type="hidden" name="jenis_pandangan" value="{{ $laporan->jenis_pandangan }}">
                     </div>
                 </div>
 
-                {{-- CARD 2: STATUS & TARIKH --}}
-                <div class="form-card p-4 mb-4">
-                    <h5 class="form-section-title"><i class="fas fa-tasks me-2 text-warning"></i> Status Tindakan</h5>
+                {{-- STATUS TINDAKAN (LOGIC UTAMA) --}}
+                <div class="form-card p-4 mb-4 border-warning">
+                    <h5 class="form-section-title text-warning"><i class="fas fa-tasks me-2"></i> Status Tindakan</h5>
+
+                    {{-- 1. INPUT TARIKH BARU (Muncul untuk Status 2-7) --}}
+                    <div class="mb-3 p-3 bg-warning bg-opacity-10 rounded border border-warning" id="date-container" style="display: none;">
+                        <label for="tarikh_status_baru" class="form-label fw-bold text-dark">
+                            <i class="fas fa-calendar-plus me-1"></i> Tarikh Status Baharu
+                        </label>
+                        <input type="date" name="tarikh_status_baru" id="tarikh_status_baru" class="form-control border-warning bg-white text-dark">
+                        <small class="text-muted" style="font-size: 0.75rem;">Tarikh ini akan menjadi tarikh tindakan.</small>
+                    </div>
+
+                    {{-- 2. INPUT TARIKH SELESAI (Hanya Muncul untuk Status 8) --}}
+                    <div class="mb-3 p-3 bg-success bg-opacity-10 rounded border border-success" id="selesai-container" style="display: none;">
+                        <label for="tarikh_selesai" class="form-label fw-bold text-success">
+                            <i class="fas fa-check-circle me-1"></i> Tarikh Selesai
+                        </label>
+                        <input type="date" name="tarikh_selesai" id="tarikh_selesai" class="form-control border-success bg-white">
+                        <small class="text-muted" style="font-size: 0.75rem;">Sila masukkan tarikh penyelesaian.</small>
+                    </div>
 
                     <div class="mb-3">
-                        <label for="status_preset" class="form-label text-muted small">Pilih Ayat Status (Template)</label>
-                        <select id="status_preset" class="form-select form-select-sm mb-2 bg-light">
+                        <label for="status_preset" class="form-label small text-muted">Pilih Status</label>
+                        <select id="status_preset" class="form-select form-select-sm mb-2" onchange="toggleDateInput(this)">
                             <option value="">-- Pilih Template Status --</option>
                             @php
                                 $senarai_status = [
-                                    'Pandangan undang-undang/Maklum Balas telah dikemukakan /melalui e-mel kepada ………. pada …… Julai 20XX',
-                                    'Draf pandangan undang-undang telah dikemukakan kepada Penasihat Undang-Undang pada ….. Mei 20XX',
-                                    'Dalam tindakan untuk menyediakan pandangan undang-undang selepas perbincangan dengan YB PUU/Agensi pada … Mei 20XX',
-                                    'Dalam tindakan untuk mendapatkan dokumen atau maklum balas daripada Agensi ………. melalui surat/email/percakapan/Whatsapps/telefon bertarikh……. Mei 20XX',
-                                    'Dalam tindakan untuk menyediakan pandangan undang-undang atau maklum balas selepas menerima dokumen daripada Agensi ……… bertarikh ……. Mei 20XX',
-                                    'Cadangan untuk digugurkan daripada Laporan sehingga mendapat tarikh daripada agensi untuk perbincangan',
-                                    'Draf Perjanjian telah dikemukakan kepada …………………….. pada …………… September 20XX',
-                                    'Pandangan undang-undang telah dikemukakan dalam mesyuarat pada …………………………',
+                                    '1. Pandangan undang-undang/Maklum Balas telah dikemukakan...',
+                                    '2. Draf pandangan undang-undang telah dikemukakan...',
+                                    '3. Dalam tindakan untuk menyediakan pandangan...',
+                                    '4. Dalam tindakan untuk mendapatkan dokumen...',
+                                    '5. Dalam tindakan untuk menyediakan pandangan...',
+                                    '6. Cadangan untuk digugurkan daripada Laporan...',
+                                    '7. Draf Perjanjian telah dikemukakan kepada...',
+                                    '8. Pandangan undang-undang telah dikemukakan...',
                                 ];
                             @endphp
                             @foreach ($senarai_status as $status_item)
-                                <option value="{{ $status_item }}">{{ $loop->iteration }}. {{ Str::limit($status_item, 40) }}</option>
+                                <option value="{{ $status_item }}">{{ $status_item }}</option>
                             @endforeach
                         </select>
-                        <label for="status" class="form-label">Ringkasan Status</label>
-                        <textarea name="status" id="status" class="form-control" rows="4" required>{{ $laporan->status }}</textarea>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="tarikh_selesai" class="form-label">Tarikh Selesai</label>
-                        <input type="date" name="tarikh_selesai" id="tarikh_selesai" class="form-control" value="{{ $laporan->tarikh_selesai ? $laporan->tarikh_selesai->format('Y-m-d') : '' }}">
                         
-                        <div class="form-check form-switch mt-3">
-                            <input class="form-check-input" type="checkbox" name="belum_selesai" value="1" id="belum_selesai" 
-                                {{ $laporan->belum_selesai ? 'checked' : '' }}>
-                            <label class="form-check-label fw-bold text-danger" for="belum_selesai">Tandakan jika Belum Selesai</label>
-                        </div>
-                    </div>
-
-                    <div class="form-check mt-2 p-3 bg-light rounded border">
-                        <input class="form-check-input" type="checkbox" name="dirujuk_jpn" value="1" id="dirujuk_jpn" 
-                            {{ $laporan->dirujuk_jpn ? 'checked' : '' }}>
-                        <label class="form-check-label" for="dirujuk_jpn">Dirujuk ke AGC (HQ)</label>
+                        <label class="form-label">Ringkasan Status</label>
+                        <textarea name="status" id="status" class="form-control" rows="4" required>{{ $laporan->status }}</textarea>
                     </div>
                 </div>
 
-                {{-- CARD 3: KEHADIRAN (ROLE BASED) --}}
-                @php $authUser = auth()->user(); @endphp
-                @if ($authUser->role === 'user')
-                    <div class="form-card p-3 mb-4">
-                        <div class="form-check">
-                            <input type="checkbox" name="hantar_kepada_boss" value="1" id="hantar_kepada_boss" class="form-check-input">
-                            <label for="hantar_kepada_boss" class="form-check-label small fw-bold">Saya hadir bersama YB Penasihat</label>
+                {{-- DOKUMEN TAMBAHAN --}}
+                <div class="form-card p-4 mb-4">
+                    <h5 class="form-section-title"><i class="fas fa-paperclip me-2"></i> Dokumen</h5>
+                    @if($laporan->dokumen_path)
+                        <div class="mb-2">
+                            <a href="{{ asset('storage/' . $laporan->dokumen_path) }}" target="_blank" class="btn btn-sm btn-info text-white w-100 mb-2">Lihat Dokumen Asal</a>
                         </div>
-                    </div>
-                @endif
-                @if ($authUser->role === 'pa')
-                    <input type="hidden" name="hantar_kepada_boss" value="1">
-                @endif
+                    @endif
+                    <label class="form-label small">Muat Naik Dokumen Baru (Jika ada)</label>
+                    <input type="file" name="dokumen" class="form-control form-control-sm">
+                </div>
 
             </div>
         </div>
 
-        {{-- FOOTER / SUBMIT BUTTON --}}
         <div class="d-flex justify-content-end mt-3 mb-5">
             <a href="{{ route('laporanpandanganundang.index') }}" class="btn btn-light border me-3 px-4">Batal</a>
             <button type="submit" class="btn btn-warning px-5 py-2 shadow fw-bold text-dark">
@@ -226,51 +177,52 @@
     </form>
 </div>
 
-{{-- SCRIPT --}}
+{{-- JAVASCRIPT: LOGIK PAPARAN TARIKH --}}
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        // 1. Auto-fill Textarea from Dropdown
-        const presetSelect = document.getElementById('status_preset');
-        const statusTextarea = document.getElementById('status');
+    function toggleDateInput(selectObject) {
+        var value = selectObject.value;
+        var dateContainer = document.getElementById('date-container');     // Tarikh Baru (2-7)
+        var dateInput = document.getElementById('tarikh_status_baru');
         
-        if (presetSelect && statusTextarea) {
-            presetSelect.addEventListener('change', function () {
-                if(this.value) {
-                    statusTextarea.value = this.value;
-                    statusTextarea.focus();
-                }
-            });
+        var selesaiContainer = document.getElementById('selesai-container'); // Tarikh Selesai (8)
+        var selesaiInput = document.getElementById('tarikh_selesai');
+        
+        var statusTextarea = document.getElementById('status');
+
+        // Auto-fill textarea
+        if(value) {
+            statusTextarea.value = value;
         }
 
-        // 2. Toggle Date Field based on 'Belum Selesai' Checkbox
-        const tarikhField = document.getElementById("tarikh_selesai");
-        const checkbox = document.getElementById("belum_selesai");
+        // Ambil nombor status
+        var firstChar = value.charAt(0);
+        var statusNumber = parseInt(firstChar);
 
-        if (tarikhField && checkbox) {
-            function toggleFields() {
-                tarikhField.disabled = checkbox.checked;
+        // Reset semua dulu
+        dateContainer.style.display = 'none';
+        dateInput.removeAttribute('required');
+        selesaiContainer.style.display = 'none';
+        selesaiInput.removeAttribute('required');
+
+        if (!isNaN(statusNumber)) {
+            // LOGIK 1: Status 2 hingga 7
+            if (statusNumber >= 2 && statusNumber <= 7) {
+                dateContainer.style.display = 'block';
+                dateInput.setAttribute('required', 'required');
                 
-                if (checkbox.checked) {
-                    tarikhField.value = "";
-                    tarikhField.classList.add('bg-secondary', 'bg-opacity-10');
-                } else {
-                    tarikhField.classList.remove('bg-secondary', 'bg-opacity-10');
-                }
+                // Pastikan selesai kosong/hidden
+                selesaiInput.value = ''; 
             }
-
-            tarikhField.addEventListener("change", function() {
-                if (this.value !== "") {
-                    checkbox.checked = false;
-                    toggleFields();
-                }
-            });
-
-            checkbox.addEventListener("change", toggleFields);
-            
-            // Run on load
-            toggleFields();
+            // LOGIK 2: Status 8
+            else if (statusNumber === 8) {
+                selesaiContainer.style.display = 'block';
+                selesaiInput.setAttribute('required', 'required');
+                
+                // Pastikan tarikh status baru kosong/hidden
+                dateInput.value = '';
+            }
         }
-    });
+    }
 </script>
 
 @endsection
