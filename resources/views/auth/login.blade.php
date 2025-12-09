@@ -336,7 +336,7 @@
                                 <input type="checkbox" id="remember" name="remember">
                                 <label for="remember">Ingat saya</label>
                             </div>
-                            <a href="{{ route('password.request') }}">Lupa Kata Laluan?</a>
+                            <a href="{{ route('custom.password.request') }}">Lupa Kata Laluan?</a>
                         </div>
                     </form>
                     

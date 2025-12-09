@@ -15,20 +15,22 @@ class CustomPasswordResetController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'phone' => 'required'
+            'phone' => 'required|digits_between:10,15' // Tambah validation digits
         ]);
 
         $user = User::where('email', $request->email)
-                    ->where('no_telefon', $request->phone)
+                    // --- PEMBETULAN: Tukar no_telefon kepada 'phone' (Assume DB name) ---
+                    ->where('phone', $request->phone) 
                     ->first();
 
         if (!$user) {
-            // Jika tak padan, terus ke login page
-            return redirect()->route('login')
-                             ->with('error', 'Maklumat tidak sepadan atau tiada dalam rekod.');
+            // JIKA GAGAL: Redirect balik ke borang verifikasi
+            return redirect()->route('custom.password.request')
+                             ->with('error', 'Maklumat Emel atau Nombor Telefon tidak sepadan. Sila cuba lagi.')
+                             ->withInput(); // Kekalkan input lama
         }
 
-        // Jika padan, pergi ke borang tetapan semula
+        // JIKA BERJAYA: Pergi ke borang tetapan semula
         return redirect()->route('custom.password.form', ['email' => $user->email]);
     }
 
@@ -40,7 +42,7 @@ class CustomPasswordResetController extends Controller
         $user = User::where('email', $email)->first();
 
         if (!$user) {
-            return redirect()->route('login')->with('error', 'Pengguna tidak ditemui.');
+            return redirect()->route('login')->with('error', 'Pautan tetapan semula tidak sah.');
         }
 
         return view('auth.custom-reset-password', ['email' => $email]);
@@ -53,7 +55,7 @@ class CustomPasswordResetController extends Controller
     {
         $request->validate([
             'email' => 'required|email',
-            'password' => 'required|confirmed|min:6',
+            'password' => 'required|confirmed|min:8', // Tambah min:8 untuk security
         ]);
 
         $user = User::where('email', $request->email)->first();

@@ -54,8 +54,9 @@
                                         {{ $item->kategori }}
                                     </td>
                                     <td class="text-center">
-                                        <span class="badge {{ $item->total > 0 ? 'bg-primary' : 'bg-secondary opacity-50' }} rounded-pill px-3">
-                                            {{ $item->total }}
+                                        <span class="badge {{ $item->jumlah > 0 ? 'bg-primary' : 'bg-secondary opacity-50' }} rounded-pill px-3">
+                                            {{-- DIBETULKAN: Guna 'jumlah' --}}
+                                            {{ $item->jumlah }}
                                         </span>
                                     </td>
                                 </tr>
@@ -66,7 +67,8 @@
                             <tfoot class="bg-light fw-bold">
                                 <tr>
                                     <td class="ps-4">JUMLAH</td>
-                                    <td class="text-center text-primary">{{ $dataPecahan->sum('total') }}</td>
+                                    {{-- DIBETULKAN: Guna 'jumlah' untuk sum --}}
+                                    <td class="text-center text-primary">{{ $dataPecahan->sum('jumlah') }}</td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -90,7 +92,8 @@
         data: {
             labels: {!! json_encode($labels) !!},
             datasets: [{
-                data: {!! json_encode($totals) !!},
+                // Data sudah betul menggunakan $totals dari controller
+                data: {!! json_encode($totals) !!}, 
                 backgroundColor: bluePalette,
                 borderColor: '#ffffff',
                 borderWidth: 2

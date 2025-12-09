@@ -23,6 +23,7 @@ return array(
     'App\\Http\\Controllers\\DashboardBahagian\\GuamanDashboardController' => $baseDir . '/app/Http/Controllers/DashboardBahagian/GuamanDashboardController.php',
     'App\\Http\\Controllers\\DashboardBahagian\\KewanganPentadbiranDashboardController' => $baseDir . '/app/Http/Controllers/DashboardBahagian/KewanganPentadbiranDashboardController.php',
     'App\\Http\\Controllers\\DashboardBahagian\\PenasihatDashboardController' => $baseDir . '/app/Http/Controllers/DashboardBahagian/PenasihatDashboardController.php',
+    'App\\Http\\Controllers\\DashboardController' => $baseDir . '/app/Http/Controllers/DashboardController.php',
     'App\\Http\\Controllers\\DbusController' => $baseDir . '/app/Http/Controllers/DbusController.php',
     'App\\Http\\Controllers\\DbusPecahanController' => $baseDir . '/app/Http/Controllers/DbusPecahanController.php',
     'App\\Http\\Controllers\\GuamanController' => $baseDir . '/app/Http/Controllers/GuamanController.php',

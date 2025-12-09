@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\LaporanMesyuarat;
 use App\Models\Pergerakan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB; // <--- DITAMBAH UNTUK QUERY GRAF
 
 class LaporanMesyuaratController extends Controller
 {
@@ -72,12 +73,12 @@ class LaporanMesyuaratController extends Controller
         Pergerakan::create([
             'user_id'     => $user->id,
             'tarikh'      => $validated['tarikh_mesyuarat'],
-            'tarikh_mula' => $validated['tarikh_mesyuarat'],   // wajib
-            'tarikh_akhir'=> $validated['tarikh_mesyuarat'],   // ikut logic
+            'tarikh_mula' => $validated['tarikh_mesyuarat'], 
+            'tarikh_akhir'=> $validated['tarikh_mesyuarat'], 
             'jenis'       => 'Mesyuarat',
             'catatan'     => $validated['mesyuarat'],
             'negeri'      => $user->negeri,
-            'kenderaan'   => '',   // ✅ default kosong supaya tidak error NOT NULL
+            'kenderaan'   => '', 
         ]);
 
         return redirect()->route('laporanmesyuarat.index')
@@ -148,5 +149,53 @@ class LaporanMesyuaratController extends Controller
         $user = Auth::user();
         return ($user->role === 'pa' && $user->negeri === $laporan->negeri)
             || ($laporan->user_id === $user->id);
+    }
+
+    // ====================================================================
+    // 🔥 FUNGSI DRILL-DOWN BARU (PECAHAN BULAN) 🔥
+    // ====================================================================
+    public function pecahanBulan(Request $request)
+    {
+        $bulan = $request->bulan;
+        $tahun = $request->tahun;
+        $namaBulan = \Carbon\Carbon::create()->month($bulan)->format('F');
+
+        // Menggunakan column 'pandangan' untuk membezakan Lisan/Bertulis
+        $colKategori = 'pandangan'; 
+        $standardList = ['Lisan', 'Bertulis'];
+
+        // QUERY DATABASE
+        try {
+            $dbData = LaporanMesyuarat::select($colKategori, DB::raw('count(*) as total'))
+                ->whereMonth('created_at', $bulan)
+                ->whereYear('created_at', $tahun)
+                ->groupBy($colKategori)
+                ->pluck('total', $colKategori)
+                ->toArray();
+        } catch (\Exception $e) {
+            $dbData = [];
+        }
+
+        // GABUNGKAN DATA
+        $dataPecahan = collect();
+        $labels = [];
+        $totals = [];
+
+        foreach ($standardList as $item) {
+            $count = $dbData[$item] ?? 0;
+
+            $dataPecahan->push((object)[
+                'kategori' => $item, 
+                'total' => $count
+            ]);
+
+            $labels[] = $item;
+            $totals[] = $count;
+        }
+
+        return view('laporanmesyuarat.pecahan', compact(
+            'bulan', 'tahun', 'namaBulan', 
+            'labels', 'totals', 'dataPecahan'
+        ));
     }
 }

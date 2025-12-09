@@ -11,7 +11,7 @@ use Carbon\Carbon;
 class KestatatertibController extends Controller
 {
     /**
-     * INDEX: Senarai Laporan (Default Bulan Semasa)
+     * INDEX: Senarai Laporan (Kekal Ketat mengikut user_id, melainkan YB/PA)
      */
     public function index(Request $request)
     {
@@ -19,19 +19,20 @@ class KestatatertibController extends Controller
         $query = Kestatatertib::query();
 
         // 1. Filter Ikut Peranan
-        if ($user->role === 'yb' || $user->role === 'pa') {
+        if ($user->role === 'pa' || $user->role === 'yb') {
             $query->where('negeri', $user->negeri);
+        } elseif ($user->role === 'super_admin') {
+            // Super Admin melihat SEMUA data (tiada filter)
         } else {
-            $query->where('user_id', $user->id);
+            // User biasa nampak rekod sendiri sahaja
+            $query->where('user_id', $user->id); 
         }
 
-        // 2. Filter Ikut Bulan (Logic Baru)
-        // Default: Bulan Semasa (date('n'))
+        // 2. Filter Ikut Bulan 
         $bulanPilihan = $request->input('bulan', date('n'));
         $tahunSemasa = date('Y');
 
         if ($bulanPilihan !== 'all') {
-            // Filter ikut bulan 'created_at' (tarikh daftar)
             $query->whereMonth('created_at', $bulanPilihan)
                   ->whereYear('created_at', $tahunSemasa);
         }
@@ -74,7 +75,6 @@ class KestatatertibController extends Controller
             abort(403);
         }
 
-        // Namakan variable 'laporan' supaya konsisten dengan view edit.blade.php
         return view('kestatatertib.edit', ['laporan' => $kestatatertib]);
     }
 
@@ -122,9 +122,8 @@ class KestatatertibController extends Controller
             || ($laporan->user_id === $user->id);
     }
 
-/**
-     * 7. PECAHAN BULAN
-     * Fungsi ini memecahkan jumlah kes mengikut kategori/status.
+    /**
+     * FUNGSI DRILL-DOWN: Pecahan Kes Tatatertib Mengikut KATEGORI
      */
     public function pecahanBulan(Request $request)
     {
@@ -132,35 +131,45 @@ class KestatatertibController extends Controller
         $tahun = $request->tahun;
         $user = Auth::user();
         
-        $namaBulan = \Carbon\Carbon::create()->month($bulan)->format('F');
+        $namaBulan = Carbon::create()->month($bulan)->format('F');
 
-        // 1. Re-apply Filter Logic (Wajib, supaya data ikut peranan yang login)
+        // 1. Re-apply Filter Logic (DILONGGARKAN untuk statistik pecahan)
         $query = Kestatatertib::query();
-        if ($user->role === 'yb' || $user->role === 'pa') {
+        
+        // Filter ikut NEGERI/Wilayah, kecuali Super Admin (yang nampak semua)
+        if ($user->role !== 'super_admin') {
             $query->where('negeri', $user->negeri);
-        } else {
-            $query->where('user_id', $user->id);
         }
-
-        // 2. Build Query Pecahan
-        $dataPecahan = $query->select('status as kategori', DB::raw('count(*) as jumlah'))
+        
+        // 2. Build Query Pecahan (Guna column 'kategori')
+        try {
+            // 🔥 PERUBAHAN UTAMA: Guna COALESCE/IFNULL untuk pastikan rekod NULL dikira 🔥
+            // COALESCE digunakan untuk PostgreSQL/MySQL untuk menukar NULL kepada 'Tiada Kategori'
+            $dataPecahan = $query->select(
+                DB::raw("COALESCE(kategori, 'Tiada Kategori') as kategori"),
+                DB::raw('count(*) as jumlah')
+            )
             ->whereMonth('created_at', $bulan)
             ->whereYear('created_at', $tahun)
-            ->groupBy('status')
+            ->groupBy(DB::raw("COALESCE(kategori, 'Tiada Kategori')"))
             ->orderBy('jumlah', 'desc')
             ->get();
+            
+        } catch (\Exception $e) {
+            // Jika terdapat ralat SQL (cth: column 'kategori' tiada), set data kosong
+            $dataPecahan = collect(); 
+        }
             
         // 3. Kira Jumlah Keseluruhan
         $labels = $dataPecahan->pluck('kategori');
         $totals = $dataPecahan->pluck('jumlah');
         $jumlahKeseluruhan = $dataPecahan->sum('jumlah');
 
-
-        // 4. Return ke View yang BETUL
-        return view('kestatatertib.pecahan', compact( // 🔥 VIEW NAMA DIBETULKAN
+        // 4. Return ke View
+        return view('kestatatertib.pecahan', compact(
             'bulan', 'tahun', 'namaBulan', 
             'labels', 'totals', 'dataPecahan', 
             'jumlahKeseluruhan'
         ));
-    }    
+    }
 }

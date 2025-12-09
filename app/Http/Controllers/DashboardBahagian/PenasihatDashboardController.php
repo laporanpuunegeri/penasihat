@@ -1,7 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\DashboardBahagian; // <--- Namespace Baru
-
+namespace App\Http\Controllers\DashboardBahagian;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
