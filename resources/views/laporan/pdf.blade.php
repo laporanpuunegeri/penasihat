@@ -1,601 +1,638 @@
-<!DOCTYPE html>
-<html lang="ms">
-<head>
-    <meta charset="UTF-8">
-    <title>Laporan Aktiviti Bulanan</title>
-    <style>
-        /* --- GENERAL STYLES --- */
-        body {
-            font-family: DejaVu Sans, sans-serif;
-            font-size: 11px;
-            line-height: 1.3; 
-            color: #000;
-        }
+@extends('layouts.app')
 
-        .text-center { text-align: center; }
-        .text-end { text-align: right; }
-        .text-start { text-align: left; }
-        .fw-bold { font-weight: bold; }
-        .fw-normal { font-weight: normal; }
-        .mb-3 { margin-bottom: 12px; }
-        .mt-4 { margin-top: 20px; }
-        .mt-5 { margin-top: 30px; }
-        .fst-italic { font-style: italic; }
-        .text-muted { color: #555; }
+@section('content')
+
+{{-- Custom CSS untuk halaman ini --}}
+<style>
+    .report-card {
+        background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+        border: 1px solid rgba(0,0,0,0.05); margin-bottom: 30px; overflow: hidden;
+    }
+    .report-header {
+        background: #f8fafc; padding: 20px 25px; border-bottom: 1px solid #e2e8f0;
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    .report-title {
+        font-weight: 700; color: #1e293b; margin: 0; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .table-custom thead th {
+        background-color: #1e293b; /* Dark Navy */ color: #ffffff; font-weight: 600; border: none;
+        text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px; padding: 15px; vertical-align: middle;
+    }
+    .table-custom tbody td {
+        padding: 15px; vertical-align: middle; font-size: 0.95rem; border-color: #f1f5f9; color: #475569;
+    }
+    .table-custom tbody tr:hover { background-color: #f8fafc; }
+    .status-badge { padding: 5px 12px; border-radius: 50px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+    .bg-soft-primary { background-color: #e0f2fe; color: #0284c7; }
+    .bg-soft-success { background-color: #dcfce7; color: #166534; }
+    .bg-soft-warning { background-color: #fef9c3; color: #854d0e; }
+    .bg-soft-secondary { background-color: #f1f5f9; color: #475569; }
+    
+    /* STYLE BARU UNTUK GROUPING */
+    .group-header-row {
+        background-color: #e3f2fd !important; font-weight: 700; color: #0d47a1 !important; 
+        text-align: left !important; padding: 8px 15px !important; font-size: 0.9rem !important;
+        border-bottom: 2px solid #bbdefb !important; border-top: 2px solid #bbdefb !important;
+    }
+</style>
+
+<div class="container-fluid px-4 py-4">
+
+    {{-- HEADER UTAMA & FILTER --}}
+    <div class="report-card p-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h4 class="fw-bold text-dark mb-1">LAPORAN AKTIVITI BULANAN</h4>
+                <h6 class="text-secondary text-uppercase mb-3">
+                    Penasihat Undang-Undang Negeri {{ strtoupper(auth()->user()->negeri ?? '-') }}
+                </h6>
+
+                {{-- Dropdown Bulan --}}
+                <form method="GET" action="{{ route('laporan.index') }}" class="d-flex align-items-center gap-3">
+                    <div class="input-group" style="max-width: 300px;">
+                        <span class="input-group-text bg-white text-muted border-end-0"><i class="fas fa-calendar-alt"></i></span>
+                        <select name="bulan" id="bulan" class="form-select border-start-0 ps-0" onchange="this.form.submit()" style="cursor: pointer;">
+                            @for ($i = 1; $i <= 12; $i++)
+                                <option value="{{ $i }}" {{ request('bulan', now()->month) == $i ? 'selected' : '' }}>
+                                    {{ \Carbon\Carbon::create()->month($i)->translatedFormat('F') }}
+                                </option>
+                            @endfor
+                        </select>
+                        <span class="input-group-text bg-light text-dark fw-bold">{{ now()->year }}</span>
+                    </div>
+                </form>
+            </div>
+
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <div class="p-3 bg-light rounded-3 d-inline-block text-center border">
+                    <small class="d-block text-muted fw-bold mb-2">EKSPORT DOKUMEN</small>
+                    <a href="{{ route('laporan.pdf', ['bulan' => request('bulan', now()->month)]) }}" 
+                       class="btn btn-primary btn-sm px-4 shadow-sm" target="_blank">
+                        <i class="fas fa-file-pdf me-2"></i> Cetak PDF (Lampiran B)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    {{-- BAHAGIAN 1: STATISTIK PANDANGAN UNDANG-UNDANG --}}
+    <div class="report-card">
+        <div class="report-header">
+            <h5 class="report-title">
+                <i class="fas fa-chart-pie me-2 text-primary"></i> Ringkasan Pandangan Undang-Undang
+            </h5>
+            <small class="text-muted">Rujuk Lampiran I untuk perincian</small>
+        </div>
         
-        /* --- HEADER SECTION --- */
-        .header {
-            margin-bottom: 25px;
-            text-align: center;
-        }
-        .header img {
-            width: 90px;
-            display: block;
-            margin: 0 auto 10px auto;
-        }
-        .title {
-            font-size: 14px;
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-bottom: 5px;
-        }
-        .sub-title {
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-bottom: 20px;
-        }
+        <div class="p-0">
+            @php
+                $kategori_list = ['Perlembagaan', 'Tanah / PBT', 'Undang-Undang Pentadbiran / Perkhidmatan', 'Perjanjian / MOU', 'Penswastaan', 'Lain-lain'];
 
-        /* --- TABLES & GROUPING (TERKEMAS) --- */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 15px;
-            page-break-inside: auto; 
-        }
+                $data = collect($kategori_list)->map(function ($kategori) use ($laporan) {
+                    $laporanKategori = $laporan->where('kategori', $kategori);
+                    return [
+                        'kategori' => $kategori,
+                        'bilangan' => $laporanKategori->count(),
+                        'jpn' => $laporanKategori->where('dirujuk_jpn', true)->count(),
+                        'negeri' => $laporanKategori->where('dirujuk_jpn', false)->count(),
+                        'laporan' => $laporanKategori,
+                    ];
+                });
 
-        th, td {
-            border: 1px solid #000;
-            padding: 6px 8px;
-            vertical-align: middle;
-            word-wrap: break-word;
-        }
+                $jumlah = $data->sum('bilangan');
+                $jumlah_jpn = $data->sum('jpn');
+                $jumlah_negeri = $data->sum('negeri');
+            @endphp
 
-        th {
-            background-color: #1e293b; /* Dark Navy for High Contrast */
-            color: #ffffff;
-            font-weight: bold;
-            text-transform: uppercase;
-            font-size: 10px;
-            text-align: center;
-        }
+            <div class="table-responsive">
+                <table class="table table-custom table-hover mb-0 text-center">
+                    <thead>
+                        <tr>
+                            <th rowspan="2" class="text-start ps-4" style="width: 40%;">Isu / Kategori</th>
+                            <th rowspan="2">Jumlah Keseluruhan</th>
+                            <th colspan="2">Pecahan Bilangan</th>
+                        </tr>
+                        <tr>
+                            <th class="bg-secondary bg-opacity-10 text-dark">Dirujuk ke AGC (HQ)</th>
+                            <th class="bg-secondary bg-opacity-10 text-dark">Peringkat Negeri</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($data as $index => $kategori)
+                            <tr>
+                                <td class="text-start ps-4 fw-bold text-dark">
+                                    {{ $loop->iteration }}. {{ $kategori['kategori'] }}
+                                </td>
+                                <td>
+                                    @if($kategori['bilangan'] > 0)
+                                        <span class="badge bg-primary rounded-pill px-3">{{ $kategori['bilangan'] }}</span>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                                <td>{{ $kategori['jpn'] ?: '-' }}</td>
+                                <td>{{ $kategori['negeri'] ?: '-' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot class="bg-light">
+                        <tr class="fw-bold">
+                            <td class="text-end pe-4">JUMLAH BESAR</td>
+                            <td class="text-primary fs-5">{{ $jumlah }}</td>
+                            <td>{{ $jumlah_jpn }}</td>
+                            <td>{{ $jumlah_negeri }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
 
-        tr {
-            page-break-inside: auto; 
-            page-break-after: auto;
-        }
-        
-        thead {
-            display: table-header-group; 
-        }
-        
-        /* STYLE BARU UNTUK GROUPING */
-        .group-header-pdf {
-            background-color: #e3f2fd !important; /* Biru cair */
-            font-weight: bold;
-            color: #1e293b !important; /* Tulisan Dark Navy */
-            text-align: left !important;
-            padding: 8px !important;
-            border-top: 1px solid #000;
-        }
 
-        /* Info Pegawai Table */
-        .info-table td {
-            border: 1px solid #000;
-            padding: 5px;
-        }
+    {{-- BAHAGIAN 2: STATISTIK KES MAHKAMAH (DENGAN GROUPING BARU) --}}
+<div class="report-card">
+    <div class="report-header">
+        <h5 class="report-title">
+            <i class="fas fa-balance-scale me-2 text-primary"></i> Ringkasan Kes Mahkamah
+        </h5>
+        <small class="text-muted">Rujuk Lampiran II untuk perincian</small>
+    </div>
 
-        /* Gaya Indent untuk Pecahan (Sivil/Guaman) */
-        .sub-category-label {
-            margin-left: 15px;
-            display: inline-block;
-        }
-    </style>
-</head>
-<body>
+    <div class="table-responsive">
+        <table class="table table-custom table-hover mb-0 text-center">
+            <thead>
+                <tr>
+                    <th rowspan="2" class="text-start ps-4">Kategori Kes</th>
+                    <th rowspan="2">Masih Aktif</th>
+                    <th colspan="5" class="bg-secondary bg-opacity-10 text-dark">Peringkat Mahkamah</th>
+                </tr>
+                <tr>
+                    <th>Majistret</th>
+                    <th>Sesyen</th>
+                    <th>Tinggi</th>
+                    <th>Rayuan</th>
+                    <th>Persekutuan</th>
+                </tr>
+            </thead>
+            <tbody>
+                @php $jum = ['aktif' => 0, 'maj' => 0, 'sesi' => 0, 'tinggi' => 0, 'rayuan' => 0, 'persk' => 0]; @endphp
+                @php $groupCounter = 0; $currentGroup = ''; @endphp
 
-<div class="header">
-    <img src="{{ public_path('images/logo.png') }}" alt="Jata Negara">
-    <div class="title">LAPORAN AKTIVITI BULANAN</div>
-    <div class="sub-title">
-        PENASIHAT UNDANG-UNDANG NEGERI {{ strtoupper($user->negeri ?? '-') }}
+                @forelse ($lampiran_kesmahkamah as $row)
+                    @php
+                        $kategori = $row->kategori;
+                        
+                        $mainGroupName = str_contains($kategori, '(') ? trim(explode('(', $kategori)[0]) : $kategori;
+                        $displayLabel = str_contains($kategori, '(') ? substr($kategori, strpos($kategori, '(')) : $kategori;
+                    @endphp
+                    
+                    {{-- FIX: MENCIPTA HEADER BARU JIKA KUMPULAN BERUBAH --}}
+                    @if ($mainGroupName !== $currentGroup)
+                        {{-- Increment counter dan update currentGroup --}}
+                        @php $groupCounter++; $currentGroup = $mainGroupName; @endphp
+                        
+                        <tr class="group-header-row">
+                            <td colspan="7" class="text-start ps-3">{{ $groupCounter }}. {{ $mainGroupName }}</td>
+                        </tr>
+                    @endif
+
+                    {{-- ROW DATA UTAMA --}}
+                    <tr>
+                        <td class="text-start ps-{{ str_contains($kategori, '(') ? '5' : '4' }} fw-semibold text-muted">
+                            {{ $displayLabel }}
+                        </td>
+                        <td><span class="badge bg-warning text-dark rounded-pill">{{ $row->bil_aktif }}</span></td>
+                        <td>{{ $row->majistret }}</td>
+                        <td>{{ $row->sesi }}</td>
+                        <td>{{ $row->tinggi }}</td>
+                        <td>{{ $row->rayuan }}</td>
+                        <td>{{ $row->persk }}</td>
+                    </tr>
+                    @php
+                        $jum['aktif'] += $row->bil_aktif; $jum['maj'] += $row->majistret;
+                        $jum['sesi'] += $row->sesi; $jum['tinggi'] += $row->tinggi;
+                        $jum['rayuan'] += $row->rayuan; $jum['persk'] += $row->persk;
+                    @endphp
+                @empty
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            <i class="fas fa-folder-open mb-2 d-block fa-2x opacity-25"></i>
+                            Tiada data ringkasan kes mahkamah.
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+            <tfoot class="bg-light fw-bold">
+                <tr>
+                    <td class="text-end pe-4">JUMLAH BESAR</td>
+                    <td class="text-primary">{{ $jum['aktif'] }}</td>
+                    <td>{{ $jum['maj'] }}</td>
+                    <td>{{ $jum['sesi'] }}</td>
+                    <td>{{ $jum['tinggi'] }}</td>
+                    <td>{{ $jum['rayuan'] }}</td>
+                    <td>{{ $jum['persk'] }}</td>
+                </tr>
+            </tfoot>
+        </table>
     </div>
 </div>
 
-<table class="info-table">
-    <tr>
-        <td style="width: 25%; font-weight:bold;">NAMA PEGAWAI</td>
-        <td style="width: 5%; text-align:center;">:</td>
-        <td style="width: 70%;">{{ strtoupper($user->name ?? '-') }}</td>
-    </tr>
-    <tr>
-        <td style="font-weight:bold;">JAWATAN</td>
-        <td style="text-align:center;">:</td>
-        <td>{{ strtoupper($user->nama_jawatan ?? '-') }}</td>
-    </tr>
-    <tr>
-        <td style="font-weight:bold;">BULAN</td>
-        <td style="text-align:center;">:</td>
-        <td>{{ $bulan }}/{{ $tahun }}</td>
-    </tr>
-    <tr>
-        <td style="font-weight:bold;">NEGERI</td>
-        <td style="text-align:center;">:</td>
-        <td>{{ strtoupper($user->negeri ?? '-') }}</td>
-    </tr>
-</table>
-
-<h5 class="section-title">1. PANDANGAN UNDANG-UNDANG 
-    <small class="fw-normal" style="font-size: 10px;">(Laporan lengkap adalah seperti di <strong>LAMPIRAN I</strong>)</small>
-</h5>
-
-@php
-    $data = collect($kategori_list)->map(function ($kategori) use ($laporan) {
-        $laporanKategori = $laporan->where('kategori', $kategori);
-        return [
-            'kategori' => $kategori,
-            'bilangan' => $laporanKategori->count(),
-            'jpn' => $laporanKategori->where('dirujuk_jpn', true)->count(),
-            'negeri' => $laporanKategori->where('dirujuk_jpn', false)->count(),
-        ];
-    });
-    $jumlah = $data->sum('bilangan');
-    $jumlah_jpn = $data->sum('jpn');
-    $jumlah_negeri = $data->sum('negeri');
-@endphp
-
-<table style="text-align: center;">
-    <thead>
-        <tr>
-            <th rowspan="2" style="width: 40%;">Pembahagian Pandangan Mengikut Isu</th>
-            <th rowspan="2" style="width: 15%;">Bilangan Keseluruhan</th>
-            <th colspan="2">Pecahan Bilangan</th>
-            <th rowspan="2" style="width: 15%;">Status</th>
-        </tr>
-        <tr>
-            <th>Dirujuk ke AGC (HQ)</th>
-            <th>Peringkat Negeri</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach ($data as $item)
-        <tr>
-            <td class="text-start">{{ $item['kategori'] }}</td>
-            <td>{{ $item['bilangan'] }}</td>
-            <td>{{ $item['jpn'] }}</td>
-            <td>{{ $item['negeri'] }}</td>
-            <td>-</td>
-        </tr>
-        @endforeach
-        <tr style="background-color: #f9f9f9; font-weight: bold;">
-            <td class="text-end">JUMLAH KESELURUHAN</td>
-            <td>{{ $jumlah }}</td>
-            <td>{{ $jumlah_jpn }}</td>
-            <td>{{ $jumlah_negeri }}</td>
-            <td>-</td>
-        </tr>
-    </tbody>
-</table>
-
-<h5 class="section-title">2. KES MAHKAMAH 
-    <small class="fw-normal" style="font-size: 10px;">(Laporan lengkap adalah seperti di <strong>LAMPIRAN II</strong>)</small>
-</h5>
-
-@php $jumlah = ['bil_aktif' => 0, 'majistret' => 0, 'sesi' => 0, 'tinggi' => 0, 'rayuan' => 0, 'persk' => 0]; @endphp
-
-<table style="text-align: center;">
-    <thead>
-        <tr>
-            <th rowspan="2" style="width: 25%;">Kategori Kes</th>
-            <th rowspan="2" style="width: 12%;">Bilangan Masih Aktif</th>
-            <th colspan="5">Peringkat Mahkamah</th>
-            <th rowspan="2" style="width: 10%;">Status</th>
-        </tr>
-        <tr>
-            <th>Maj.</th>
-            <th>Sesi.</th>
-            <th>Tinggi</th>
-            <th>Rayuan</th>
-            <th>Persk.</th>
-        </tr>
-    </thead>
-    <tbody>
-        @php 
-            $groupedData = [];
-            $masterList = [
-                'Perlembagaan', 'Tanah (Sivil)', 'Tanah (Guaman)', 'Rujukan tanah',
-                'Undang-Undang Pentadbiran / Perkhidmatan', 'Kemalangan',
-                'Perjanjian / Penswastaan', 'Pendakwaan', 
-                'Lain-lain (Sivil)', 'Lain-lain (Guaman)', 
-            ];
-
-            // Proses dan susun data mengikut grouping yang baru (sama seperti sebelum ini)
-            foreach ($masterList as $kategori) {
-                $key = $kategori;
-                
-                // Ambil rekod dari $lampiran_kesmahkamah (yang sepatutnya keyed by kategori)
-                $rekod = $lampiran_kesmahkamah[$key] ?? [
-                    'bil_aktif' => 0, 'majistret' => 0, 'sesi' => 0, 'tinggi' => 0, 'rayuan' => 0, 'persk' => 0, 'status' => '-'
-                ];
-
-                // Tentukan Nama Kumpulan Utama dan Label Paparan
-                $mainGroupName = str_contains($kategori, '(') ? trim(explode('(', $kategori)[0]) : $kategori;
-                $displayLabel = str_contains($kategori, '(') ? substr($kategori, strpos($kategori, '(')) : $kategori;
-
-                // Simpan data dalam struktur yang sedia untuk looping
-                $groupedData[] = [
-                    'kategori' => $kategori,
-                    'main_group' => $mainGroupName,
-                    'display_label' => $displayLabel,
-                    'rekod' => $rekod
-                ];
-            }
-        @endphp
-
-        @php $groupCounter = 1; $currentGroup = ''; @endphp
-        @foreach ($groupedData as $item)
-            @php
-                $rekod = $item['rekod'];
-                $mainGroupName = $item['main_group'];
-                $displayLabel = $item['display_label'];
-                $isSplit = str_contains($item['kategori'], '(');
-                
-                // 1. MENCIPTA HEADER BARU JIKA KUMPULAN BERUBAH
-                if ($mainGroupName !== $currentGroup) {
-                    // Header Row 
-                    echo '<tr class="group-header-pdf">
-                            <td colspan="8" class="text-start" style="padding: 8px 8px;">
-                                '. $groupCounter . '. ' . strtoupper($mainGroupName) . '
+    {{-- BAHAGIAN 3: SENARAI TERPERINCI (Pandangan Undang-undang) --}}
+    <div class="report-card">
+        <div class="report-header">
+            <h5 class="report-title">
+                <i class="fas fa-list-alt me-2 text-primary"></i> 1. Senarai Pandangan Undang-Undang Terperinci
+            </h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-custom mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th width="5%" class="text-center">Bil</th>
+                        <th width="12%">Tarikh Tindakan</th> {{-- HEADER CHANGE --}}
+                        <th width="20%">Fakta Ringkas</th>
+                        <th width="20%">Isu</th>
+                        <th width="20%">Ringkasan Pandangan</th>
+                        <th width="8%" class="text-center">Jenis</th>
+                        <th width="15%">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @php $bil = 1; @endphp
+                    @foreach ($data as $index => $kategori)
+                        {{-- Kategori Header Row --}}
+                        <tr class="table-light">
+                            <td colspan="7" class="fw-bold ps-4 text-primary text-uppercase border-top border-bottom">
+                                <i class="fas fa-folder me-2"></i> {{ $kategori['kategori'] }}
                             </td>
-                        </tr>';
-                    $currentGroup = $mainGroupName;
-                    $groupCounter++;
-                }
+                        </tr>
+                        
+                        @forelse ($kategori['laporan'] as $item)
+                            <tr>
+                                <td class="text-center text-muted">{{ $bil++ }}</td>
+                                {{-- 🔥 PAPARAN DUAL-DATE (UPDATED_AT vs TARIKH_TERIMA) 🔥 --}}
+                                <td>
+                                    <div class="fw-bold text-primary" style="font-size: 0.85rem;">
+                                        <i class="fas fa-calendar-check me-1"></i> {{ \Carbon\Carbon::parse($item->updated_at)->format('d/m/Y') }}
+                                    </div>
+                                    <div class="small text-muted fst-italic" style="font-size: 0.65rem;">(Tindakan Terkini)</div>
 
-                // Kira Jumlah Keseluruhan (dipindahkan ke dalam loop data)
-                $jumlah['bil_aktif'] += $rekod['bil_aktif'];
-                $jumlah['majistret'] += $rekod['majistret'];
-                $jumlah['sesi'] += $rekod['sesi'];
-                $jumlah['tinggi'] += $rekod['tinggi'];
-                $jumlah['rayuan'] += $rekod['rayuan'];
-                $jumlah['persk'] += $rekod['persk'];
-            @endphp
-            
-            {{-- 2. ROW DATA --}}
-            <tr>
-                <td class="text-start">
-                    @if ($isSplit)
-                        <span class="sub-category-label">{{ $displayLabel }}</span>
-                    @else
-                        {{ $displayLabel }}
-                    @endif
-                </td>
-                <td>{{ $rekod['bil_aktif'] }}</td>
-                <td>{{ $rekod['majistret'] }}</td>
-                <td>{{ $rekod['sesi'] }}</td>
-                <td>{{ $rekod['tinggi'] }}</td>
-                <td>{{ $rekod['rayuan'] }}</td>
-                <td>{{ $rekod['persk'] }}</td>
-                <td>{{ $rekod['status'] ?? '-' }}</td>
-            </tr>
-        @endforeach
-        
-        {{-- JUMLAH KESELURUHAN --}}
-        <tr style="background-color: #f9f9f9; font-weight: bold;">
-            <td class="text-end">JUMLAH KESELURUHAN</td>
-            <td>{{ $jumlah['bil_aktif'] }}</td>
-            <td>{{ $jumlah['majistret'] }}</td>
-            <td>{{ $jumlah['sesi'] }}</td>
-            <td>{{ $jumlah['tinggi'] }}</td>
-            <td>{{ $jumlah['rayuan'] }}</td>
-            <td>{{ $jumlah['persk'] }}</td>
-            <td>-</td>
-        </tr>
-    </tbody>
-</table>
+                                    <hr class="my-1" style="opacity: 0.1">
 
-<h5 class="section-title">3. PERUNDANGAN SUBSIDIARI SUBSTANTIF</h5>
-<ul>
-    <li>Rang Undang-Undang / Perundangan Subsidiari Substantif yang digubal (Laporan lengkap di <strong>LAMPIRAN III</strong>)</li>
-    <li>Rang Undang-Undang / Perundangan Subsidiari Substantif yang dipinda (Laporan lengkap di <strong>LAMPIRAN IV</strong>)</li>
-    <li>Rang Undang-Undang / Perundangan Subsidiari Substantif yang disemak di bawah Akta Penyelenggaraan Undang-Undang 1968 <strong>[Akta 1]</strong> (Laporan lengkap di <strong>LAMPIRAN V</strong>)</li>
-</ul>
-
-<h5 class="section-title">4. MESYUARAT YANG DIHADIRI</h5>
-<ul>
-    <li>Mesyuarat yang dihadiri (Laporan lengkap di <strong>LAMPIRAN VI</strong>)</li>
-</ul>
-
-<h5 class="section-title">5. KES TATATERTIB</h5>
-<ul><li>Laporan lengkap adalah seperti di <strong>LAMPIRAN VII</strong></li></ul>
-
-<h5 class="section-title">6. LAIN-LAIN TUGASAN</h5>
-<ul><li>Laporan lengkap adalah seperti di <strong>LAMPIRAN VIII</strong></li></ul>
+                                    <div class="text-dark" style="font-size: 0.75rem;">
+                                        Mula: {{ optional($item->tarikh_terima)->format('d/m/Y') }}
+                                    </div>
+                                </td>
+                                
+                                <td>{{ Str::limit($item->fakta_ringkasan, 80) }}</td>
+                                <td>{{ Str::limit($item->isu, 80) }}</td>
+                                <td>{{ Str::limit($item->ringkasan_pandangan, 80) }}</td>
+                                
+                                <td class="text-center">
+                                    @if ($item->jenis_pandangan === 'Lisan')
+                                        <span class="badge bg-soft-secondary border">Lisan</span>
+                                    @else
+                                        <span class="badge bg-soft-primary border">Bertulis</span>
+                                    @endif
+                                </td>
+                                
+                                <td>
+                                    @if($item->tarikh_selesai)
+                                        <span class="badge bg-soft-success mb-1">Selesai</span>
+                                        <small class="d-block text-muted" style="font-size: 0.7rem;">
+                                            {{ \Carbon\Carbon::parse($item->tarikh_selesai)->format('d/m/Y') }}
+                                        </small>
+                                    @else
+                                        <span class="badge bg-soft-warning">Dalam Tindakan</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="text-center text-muted fst-italic py-3 small">
+                                    Tiada rekod untuk kategori ini.
+                                </td>
+                            </tr>
+                        @endforelse
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
 
 
-<div class="section-spacer"></div>
+    {{-- BAHAGIAN 4: LAPORAN KES MAHKAMAH (Terperinci) --}}
+    <div class="report-card">
+        <div class="report-header">
+            <h5 class="report-title">
+                <i class="fas fa-gavel me-2 text-primary"></i> 2. Laporan Kes Mahkamah
+            </h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-custom mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th class="text-center">Bil</th>
+                        <th>Tarikh Daftar</th>
+                        <th>Jenis Kes / Pihak</th>
+                        <th>Sebutan / Bicara</th>
+                        <th>Fakta / Isu</th>
+                        <th>Ringkasan Hujahan</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($laporan_kesmahkamah as $index => $laporan)
+                        <tr>
+                            <td class="text-center">{{ $index + 1 }}</td>
+                            <td>{{ \Carbon\Carbon::parse($laporan->tarikh_daftar)->format('d/m/Y') }}</td>
+                            <td class="fw-bold">{{ $laporan->jenis_kes ?? '-' }}</td>
+                            <td>{{ $laporan->tarikh_sebutan ? \Carbon\Carbon::parse($laporan->tarikh_sebutan)->format('d/m/Y') : '-' }}</td>
+                            <td>
+                                <small class="d-block fw-bold text-dark">Fakta:</small> {{ $laporan->fakta_ringkas ?? '-' }}
+                                <div class="mt-2 border-top pt-1">
+                                    <small class="d-block fw-bold text-dark">Isu:</small> {{ $laporan->isu ?? '-' }}
+                                </div>
+                            </td>
+                            <td>{{ $laporan->ringkasan_hujahan ?? '-' }}</td>
+                            <td>
+                                @if(!empty($laporan->tarikh_selesai))
+                                    <span class="badge bg-soft-success">Selesai</span>
+                                    <div class="small text-muted mt-1">{{ \Carbon\Carbon::parse($laporan->tarikh_selesai)->format('d/m/Y') }}</div>
+                                @else
+                                    <span class="badge bg-soft-warning">{{ $laporan->status ?? 'Aktif' }}</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="fas fa-folder-open fa-2x mb-3 d-block opacity-25"></i>
+                                Tiada laporan kes mahkamah direkodkan.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-<h5 class="section-title">LAMPIRAN I: SENARAI PANDANGAN UNDANG-UNDANG TERPERINCI</h5>
 
-<table>
-    <thead>
-        <tr>
-            <th style="width: 5%;">Bil</th>
-            <th style="width: 10%;">Tarikh</th>
-            <th style="width: 15%;">Kategori</th>
-            <th style="width: 20%;">Fakta Ringkas</th>
-            <th style="width: 15%;">Isu</th>
-            <th style="width: 15%;">Ringkasan Pandangan</th>
-            <th style="width: 10%;">Jenis</th>
-            <th style="width: 10%;">Status</th>
-        </tr>
-    </thead>
-    <tbody>
-        @php $bil = 1; @endphp
-        @foreach ($kategori_list as $index => $kategori)
-            @php $laporanKategori = $laporan->where('kategori', $kategori); @endphp
-            <tr style="background-color: #f9f9f9; page-break-inside: auto;">
-                <td colspan="8" class="fw-bold text-start">({{ $index + 1 }}) {{ strtoupper($kategori) }}</td>
-            </tr>
-            @forelse ($laporanKategori as $item)
-                <tr>
-                    <td class="text-center">{{ $bil++ }}</td>
-                    <td class="text-center">{{ \Carbon\Carbon::parse($item->tarikh_terima)->format('d/m/Y') }}</td>
-                    <td>{{ $item->kategori }}</td>
-                    <td>{{ $item->fakta_ringkasan }}</td>
-                    <td>{{ $item->isu }}</td>
-                    <td>{{ $item->ringkasan_pandangan }}</td>
-                    <td class="text-center">{{ $item->jenis_pandangan === 'Lisan' ? 'Lisan' : 'Bertulis' }}</td>
-                    <td class="text-center">
-                        {{ $item->status }}
-                        @if ($item->tarikh_selesai)
-                            <br><br><span class="text-muted" style="font-size: 9px;">Selesai:<br>{{ \Carbon\Carbon::parse($item->tarikh_selesai)->format('d/m/Y') }}</span>
-                        @endif
-                    </td>
-                </tr>
-            @empty
-                <tr><td colspan="8" class="text-center text-muted fst-italic">Tiada laporan.</td></tr>
-            @endforelse
-        @endforeach
-    </tbody>
-</table>
+    {{-- BAHAGIAN 5: PENGGUBALAN --}}
+    <div class="report-card">
+        <div class="report-header">
+            <h5 class="report-title">
+                <i class="fas fa-pen-nib me-2 text-primary"></i> 3. Penggubalan
+            </h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-custom mb-0">
+                <thead>
+                    <tr>
+                        <th width="5%" class="text-center">Bil</th>
+                        <th>Tajuk Rang Undang-Undang / Perundangan</th>
+                        <th width="30%">Tindakan</th>
+                        <th width="20%">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($laporan_gubalan as $index => $item)
+                        <tr>
+                            <td class="text-center">{{ $index + 1 }}</td>
+                            <td class="fw-semibold">{{ $item->tajuk }}</td>
+                            <td>{{ $item->tindakan }}</td>
+                            <td><span class="badge bg-soft-secondary border text-dark">{{ $item->status }}</span></td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="4" class="text-center py-3 text-muted fst-italic">Tiada rekod penggubalan.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-<div class="section-spacer"></div>
 
-<h5 class="section-title">LAMPIRAN II: LAPORAN KES MAHKAMAH TERPERINCI</h5> 
-<table>
-    <thead>
-        <tr>
-            <th style="width: 5%;">Bil</th>
-            <th style="width: 10%;">Tarikh Daftar</th>
-            <th style="width: 15%;">Jenis Kes / Pihak</th>
-            <th style="width: 10%;">Sebutan / Bicara</th>
-            <th style="width: 20%;">Fakta / Isu</th>
-            <th style="width: 10%;">Skop Tugas</th>
-            <th style="width: 20%;">Ringkasan Hujahan</th>
-            <th style="width: 10%;">Status</th>
-        </tr>
-    </thead>
-    <tbody>
-        @forelse ($laporan_kesmahkamah as $index => $laporan)
-            <tr>
-                <td class="text-center">{{ $index + 1 }}</td>
-                <td class="text-center">{{ \Carbon\Carbon::parse($laporan->tarikh_daftar)->format('d/m/Y') }}</td>
-                <td>{{ $laporan->jenis_kes ?? '-' }}</td>
-                <td class="text-center">{{ $laporan->tarikh_sebutan ? \Carbon\Carbon::parse($laporan->tarikh_sebutan)->format('d/m/Y') : '-' }}</td>
-                <td>
-                    <strong>Fakta:</strong> {{ $laporan->fakta_ringkas ?? '-' }}<br>
-                    <strong>Isu:</strong> {{ $laporan->isu ?? '-' }}
-                </td>
-                <td>{{ $laporan->skop_tugas ?? '-' }}</td>
-                <td>{{ $laporan->ringkasan_hujahan ?? '-' }}</td>
-                <td class="text-center">
-                    {{ $laporan->status ?? '-' }}
-                    @if (!empty($laporan->tarikh_selesai))
-                        <br><br><span class="text-muted" style="font-size: 9px;">Selesai:<br>{{ \Carbon\Carbon::parse($laporan->tarikh_selesai)->format('d/m/Y') }}</span>
-                    @endif
-                </td>
-            </tr>
-        @empty
-            <tr><td colspan="8" class="text-center text-muted fst-italic">Tiada rekod.</td></tr>
-        @endforelse
-    </tbody>
-</table>
+    {{-- BAHAGIAN 6: PINDAAN --}}
+    <div class="report-card">
+        <div class="report-header">
+            <h5 class="report-title">
+                <i class="fas fa-edit me-2 text-primary"></i> 4. Pindaan
+            </h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-custom mb-0">
+                <thead>
+                    <tr>
+                        <th width="5%" class="text-center">Bil</th>
+                        <th>Tajuk Rang Undang-Undang / Perundangan</th>
+                        <th width="30%">Tindakan</th>
+                        <th width="20%">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($laporan_pindaan as $index => $item)
+                        <tr>
+                            <td class="text-center">{{ $index + 1 }}</td>
+                            <td class="fw-semibold">{{ $item->tajuk }}</td>
+                            <td>{{ $item->tindakan }}</td>
+                            <td><span class="badge bg-soft-secondary border text-dark">{{ $item->status }}</span></td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="4" class="text-center py-3 text-muted fst-italic">Tiada rekod pindaan.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-<div class="section-spacer"></div>
 
-<h5 class="section-title">LAMPIRAN III: PENGGUBALAN RANG UNDANG-UNDANG</h5>
-<table>
-    <thead>
-        <tr>
-            <th style="width: 5%;">Bil</th>
-            <th style="width: 45%;">Tajuk RUU / Perundangan Subsidiari</th>
-            <th style="width: 30%;">Tindakan</th>
-            <th style="width: 20%;">Status</th>
-        </tr>
-    </thead>
-    <tbody>
-        @forelse ($laporan_gubalan as $index => $item)
-            <tr>
-                <td class="text-center">{{ $index + 1 }}</td>
-                <td>{{ $item->tajuk }}</td>
-                <td>{{ $item->tindakan }}</td>
-                <td class="text-center">{{ $item->status }}</td>
-            </tr>
-        @empty
-            <tr><td colspan="4" class="text-center text-muted fst-italic">Tiada rekod.</td></tr>
-        @endforelse
-    </tbody>
-</table>
+    {{-- BAHAGIAN 7: SEMAKAN --}}
+    <div class="report-card">
+        <div class="report-header">
+            <h5 class="report-title">
+                <i class="fas fa-search me-2 text-primary"></i> 5. Semakan
+            </h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-custom mb-0">
+                <thead>
+                    <tr>
+                        <th width="5%" class="text-center">Bil</th>
+                        <th>Tajuk Rang Undang-Undang / Perundangan</th>
+                        <th width="30%">Tindakan</th>
+                        <th width="20%">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($laporan_semakan as $index => $item)
+                        <tr>
+                            <td class="text-center">{{ $index + 1 }}</td>
+                            <td class="fw-semibold">{{ $item->tajuk }}</td>
+                            <td>{{ $item->tindakan }}</td>
+                            <td><span class="badge bg-soft-secondary border text-dark">{{ $item->status }}</span></td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="4" class="text-center py-3 text-muted fst-italic">Tiada rekod semakan.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-<div class="section-spacer"></div>
 
-<h5 class="section-title">LAMPIRAN IV: PINDAAN RANG UNDANG-UNDANG</h5>
-<table>
-    <thead>
-        <tr>
-            <th style="width: 5%;">Bil</th>
-            <th style="width: 45%;">Tajuk RUU / Perundangan Subsidiari</th>
-            <th style="width: 30%;">Tindakan</th>
-            <th style="width: 20%;">Status</th>
-        </tr>
-    </thead>
-    <tbody>
-        @forelse ($laporan_pindaan as $index => $item)
-            <tr>
-                <td class="text-center">{{ $index + 1 }}</td>
-                <td>{{ $item->tajuk }}</td>
-                <td>{{ $item->tindakan }}</td>
-                <td class="text-center">{{ $item->status }}</td>
-            </tr>
-        @empty
-            <tr><td colspan="4" class="text-center text-muted fst-italic">Tiada rekod.</td></tr>
-        @endforelse
-    </tbody>
-</table>
+    {{-- BAHAGIAN 8: MESYUARAT --}}
+    <div class="report-card">
+        <div class="report-header">
+            <h5 class="report-title">
+                <i class="fas fa-users me-2 text-primary"></i> 6. Laporan Mesyuarat
+            </h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-custom mb-0 text-center">
+                <thead>
+                    <tr>
+                        <th rowspan="2">Bil</th>
+                        <th rowspan="2" class="text-start">Mesyuarat / Isu</th>
+                        <th rowspan="2">Tarikh</th>
+                        <th rowspan="2">Status</th>
+                        <th colspan="2" class="bg-secondary bg-opacity-10 text-dark">Jenis Pandangan</th>
+                    </tr>
+                    <tr>
+                        <th style="font-size: 0.75rem;">Lisan</th>
+                        <th style="font-size: 0.75rem;">Bertulis</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($laporan_mesyuarat as $index => $laporan)
+                        <tr>
+                            <td>{{ $index + 1 }}</td>
+                            <td class="text-start">
+                                <div class="fw-bold text-dark">{{ $laporan->mesyuarat }}</div>
+                                <small class="text-muted">{{ $laporan->isu }}</small>
+                            </td>
+                            <td>{{ \Carbon\Carbon::parse($laporan->tarikh_mesyuarat)->format('d/m/Y') }}</td>
+                            <td>{{ $laporan->status }}</td>
+                            <td>
+                                @if($laporan->pandangan === 'Lisan') <i class="fas fa-check-circle text-success"></i> @endif
+                            </td>
+                            <td>
+                                @if($laporan->pandangan === 'Bertulis') <i class="fas fa-check-circle text-success"></i> @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="6" class="text-center py-3 text-muted fst-italic">Tiada mesyuarat direkodkan.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-<div class="section-spacer"></div>
 
-<h5 class="section-title">LAMPIRAN V: SEMAKAN RANG UNDANG-UNDANG</h5>
-<table>
-    <thead>
-        <tr>
-            <th style="width: 5%;">Bil</th>
-            <th style="width: 45%;">Tajuk RUU / Perundangan Subsidiari</th>
-            <th style="width: 30%;">Tindakan</th>
-            <th style="width: 20%;">Status</th>
-        </tr>
-    </thead>
-    <tbody>
-        @forelse ($laporan_semakan as $index => $item)
-            <tr>
-                <td class="text-center">{{ $index + 1 }}</td>
-                <td>{{ $item->tajuk }}</td>
-                <td>{{ $item->tindakan }}</td>
-                <td class="text-center">{{ $item->status }}</td>
-            </tr>
-        @empty
-            <tr><td colspan="4" class="text-center text-muted fst-italic">Tiada rekod.</td></tr>
-        @endforelse
-    </tbody>
-</table>
+    {{-- BAHAGIAN 9: KES TATATERTIB --}}
+    <div class="report-card">
+        <div class="report-header">
+            <h5 class="report-title">
+                <i class="fas fa-exclamation-triangle me-2 text-primary"></i> 7. Kes Tatatertib
+            </h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-custom mb-0">
+                <thead>
+                    <tr>
+                        <th class="text-center" width="5%">Bil</th>
+                        <th width="10%">Tarikh Terima</th>
+                        <th width="30%">Fakta / Isu</th>
+                        <th>Pandangan</th>
+                        <th width="15%">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @php $bil = 1; 
+                         $kategori_tatatertib = [
+                            'PRIMA FACIE' => 'Menyemak Penentuan Kes Prima Facie / Kertas Pertuduhan',
+                            'SURCAJ' => 'Kes Surcaj / Laporan Jawatankuasa Siasatan',
+                            'PENAMATAN' => 'Ulasan Penamatan Demi Kepentingan Awam'
+                         ];
+                    @endphp
 
-<div class="section-spacer"></div>
+                    @foreach ($kategori_tatatertib as $key => $tajuk)
+                        <tr class="table-light">
+                            <td colspan="5" class="fw-bold ps-4 text-dark border-top border-bottom text-uppercase" style="font-size: 0.85rem;">
+                                <i class="fas fa-caret-right me-2 text-muted"></i> {{ $tajuk }}
+                            </td>
+                        </tr>
+                        @php $laporanKategori = $laporan_tatatertib->where('kategori', $key); @endphp
 
-<h5 class="section-title">LAMPIRAN VI: LAPORAN MESYUARAT</h5>
-<p class="fst-italic mb-3" style="font-size: 10px;">(*Sila nyatakan rujukan jika berkaitan dengan Lampiran I)</p>
+                        @forelse ($laporanKategori as $laporan)
+                            <tr>
+                                <td class="text-center">{{ $bil++ }}</td>
+                                <td>{{ \Carbon\Carbon::parse($laporan->tarikh_terima)->format('d/m/Y') }}</td>
+                                <td>
+                                    <small class="fw-bold">Fakta:</small> {{ $laporan->fakta_ringkasan }}<br>
+                                    <small class="fw-bold">Isu:</small> {{ $laporan->isu }}
+                                </td>
+                                <td>{{ $laporan->ringkasan_pandangan }}</td>
+                                <td>
+                                    @if($laporan->tarikh_selesai)
+                                        <span class="badge bg-soft-success">Selesai</span>
+                                        <div class="small text-muted mt-1">{{ \Carbon\Carbon::parse($laporan->tarikh_selesai)->format('d/m/Y') }}</div>
+                                    @else
+                                        <span class="badge bg-soft-warning">{{ $laporan->status }}</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="5" class="text-center text-muted small py-2">Tiada rekod.</td></tr>
+                        @endforelse
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-<table>
-    <thead>
-        <tr>
-            <th style="width: 5%;">Bil</th>
-            <th style="width: 25%;">Mesyuarat</th>
-            <th style="width: 25%;">Isu</th>
-            <th style="width: 15%;">Tarikh</th>
-            <th style="width: 15%;">Status</th>
-            <th style="width: 15%;">Pandangan</th>
-        </tr>
-    </thead>
-    <tbody>
-        @forelse ($laporan_mesyuarat as $index => $laporan)
-            <tr>
-                <td class="text-center">{{ $index + 1 }}</td>
-                <td>{{ $laporan->mesyuarat }}</td>
-                <td>{{ $laporan->isu }}</td>
-                <td class="text-center">{{ \Carbon\Carbon::parse($laporan->tarikh_mesyuarat)->format('d/m/Y') }}</td>
-                <td class="text-center">{{ $laporan->status }}</td>
-                <td class="text-center">{{ $laporan->pandangan }}</td>
-            </tr>
-        @empty
-            <tr><td colspan="6" class="text-center text-muted fst-italic">Tiada rekod.</td></tr>
-        @endforelse
-    </tbody>
-</table>
 
-<div class="section-spacer"></div>
+    {{-- BAHAGIAN 10: LAIN-LAIN TUGASAN --}}
+    <div class="report-card">
+        <div class="report-header">
+            <h5 class="report-title">
+                <i class="fas fa-tasks me-2 text-primary"></i> 8. Lain-Lain Tugasan
+            </h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-custom mb-0">
+                <thead>
+                    <tr>
+                        <th class="text-center" width="5%">Bil</th>
+                        <th>Perihal Tugasan</th>
+                        <th class="text-center" width="15%">Tarikh</th>
+                        <th width="25%">Tindakan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($laporan_lainlain as $index => $item)
+                        <tr>
+                            <td class="text-center">{{ $index + 1 }}</td>
+                            <td class="fw-semibold">{{ $item->perihal }}</td>
+                            <td class="text-center">{{ \Carbon\Carbon::parse($item->tarikh)->format('d/m/Y') }}</td>
+                            <td>{{ $item->tindakan }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="4" class="text-center py-3 text-muted fst-italic">Tiada tugasan lain direkodkan.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-<h5 class="section-title">LAMPIRAN VII: KES TATATERTIB</h5>
-<table>
-    <thead>
-        <tr>
-            <th style="width: 5%">Bil</th>
-            <th style="width: 10%">Tarikh</th>
-            <th style="width: 25%">Fakta Ringkasan</th>
-            <th style="width: 15%">Isu</th>
-            <th style="width: 25%">Ringkasan Pandangan</th>
-            <th style="width: 20%">Status</th>
-        </tr>
-    </thead>
-    <tbody>
-        @php
-            $kategori_tatatertib = [
-                'PRIMA FACIE' => 'PRIMA FACIE / KERTAS PERTUDUHAN',
-                'SURCAJ' => 'KES SURCAJ / LAPORAN SIASATAN',
-                'PENAMATAN' => 'PENAMATAN DEMI KEPENTINGAN AWAM',
-            ];
-            $bil = 1;
-        @endphp
-        @foreach ($kategori_tatatertib as $key => $tajuk)
-            @php $laporanKategori = $laporan_tatatertib->where('kategori', $key); @endphp
-            <tr style="background-color: #f9f9f9;">
-                <td colspan="6" class="fw-bold text-start">{{ $tajuk }}</td>
-            </tr>
-            @forelse ($laporanKategori as $laporan)
-                <tr>
-                    <td class="text-center">{{ $bil++ }}</td>
-                    <td class="text-center">{{ \Carbon\Carbon::parse($laporan->tarikh_terima)->format('d/m/Y') }}</td>
-                    <td>{{ $laporan->fakta_ringkasan }}</td>
-                    <td>{{ $laporan->isu }}</td>
-                    <td>{{ $laporan->ringkasan_pandangan }}</td>
-                    <td class="text-center">
-                        {{ $laporan->status }}
-                        @if ($laporan->tarikh_selesai)
-                            <br><span class="text-muted" style="font-size: 9px;">{{ \Carbon\Carbon::parse($laporan->tarikh_selesai)->format('d/m/Y') }}</span>
-                        @endif
-                    </td>
-                </tr>
-            @empty
-                <tr><td colspan="6" class="text-center text-muted fst-italic">Tiada rekod.</td></tr>
-            @endforelse
-        @endforeach
-    </tbody>
-</table>
+</div>
 
-<div class="section-spacer"></div>
+{{-- Skrip Auto-Calculate untuk Input (Jika ada input form) --}}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Kekalkan skrip asal jika ada penggunaan input di masa hadapan
+    });
+</script>
 
-<h5 class="section-title">LAMPIRAN VIII: LAIN-LAIN TUGASAN</h5>
-<table>
-    <thead>
-        <tr>
-            <th style="width: 5%;">Bil</th>
-            <th style="width: 50%;">Perihal Tugasan</th>
-            <th style="width: 20%;">Tarikh</th>
-            <th style="width: 25%;">Tindakan</th>
-        </tr>
-    </thead>
-    <tbody>
-        @forelse ($laporan_lainlain as $index => $item)
-            <tr>
-                <td class="text-center">{{ $index + 1 }}</td>
-                <td>{{ $item->perihal }}</td>
-                <td class="text-center">{{ \Carbon\Carbon::parse($item->tarikh_daftar)->format('d/m/Y') }}</td>
-                <td>{{ $item->tindakan }}</td>
-            </tr>
-        @empty
-            <tr><td colspan="4" class="text-center text-muted fst-italic">Tiada rekod.</td></tr>
-        @endforelse
-    </tbody>
-</table>
-
-</body>
-</html>
+@endsection

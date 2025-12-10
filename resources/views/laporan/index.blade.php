@@ -5,57 +5,25 @@
 {{-- Custom CSS untuk halaman ini --}}
 <style>
     .report-card {
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-        border: 1px solid rgba(0,0,0,0.05);
-        margin-bottom: 30px;
-        overflow: hidden;
+        background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+        border: 1px solid rgba(0,0,0,0.05); margin-bottom: 30px; overflow: hidden;
     }
     .report-header {
-        background: #f8fafc;
-        padding: 20px 25px;
-        border-bottom: 1px solid #e2e8f0;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+        background: #f8fafc; padding: 20px 25px; border-bottom: 1px solid #e2e8f0;
+        display: flex; align-items: center; justify-content: space-between;
     }
     .report-title {
-        font-weight: 700;
-        color: #1e293b;
-        margin: 0;
-        font-size: 1.1rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        font-weight: 700; color: #1e293b; margin: 0; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.5px;
     }
     .table-custom thead th {
-        background-color: #1e293b; /* Dark Navy */
-        color: #ffffff;
-        font-weight: 600;
-        border: none;
-        text-transform: uppercase;
-        font-size: 0.85rem;
-        letter-spacing: 0.5px;
-        padding: 15px;
-        vertical-align: middle;
+        background-color: #1e293b; color: #ffffff; font-weight: 600; border: none;
+        text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px; padding: 15px; vertical-align: middle;
     }
     .table-custom tbody td {
-        padding: 15px;
-        vertical-align: middle;
-        font-size: 0.95rem;
-        border-color: #f1f5f9;
-        color: #475569;
+        padding: 15px; vertical-align: middle; font-size: 0.95rem; border-color: #f1f5f9; color: #475569;
     }
-    .table-custom tbody tr:hover {
-        background-color: #f8fafc;
-    }
-    .status-badge {
-        padding: 5px 12px;
-        border-radius: 50px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-    }
+    .table-custom tbody tr:hover { background-color: #f8fafc; }
+    .status-badge { padding: 5px 12px; border-radius: 50px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
     .bg-soft-primary { background-color: #e0f2fe; color: #0284c7; }
     .bg-soft-success { background-color: #dcfce7; color: #166534; }
     .bg-soft-warning { background-color: #fef9c3; color: #854d0e; }
@@ -63,14 +31,9 @@
     
     /* STYLE BARU UNTUK GROUPING */
     .group-header-row {
-        background-color: #e3f2fd !important; 
-        font-weight: 700;
-        color: #0d47a1 !important; 
-        text-align: left !important;
-        padding: 8px 15px !important;
-        font-size: 0.9rem !important;
-        border-bottom: 2px solid #bbdefb !important;
-        border-top: 2px solid #bbdefb !important;
+        background-color: #e3f2fd !important; font-weight: 700; color: #0d47a1 !important; 
+        text-align: left !important; padding: 8px 15px !important; font-size: 0.9rem !important;
+        border-bottom: 2px solid #bbdefb !important; border-top: 2px solid #bbdefb !important;
     }
 </style>
 
@@ -221,10 +184,7 @@
                     @php
                         $kategori = $row->kategori;
                         
-                        // 1. Dapatkan nama kumpulan utama (cth: 'Tanah' dari 'Tanah (Sivil)' atau 'Perlembagaan' dari 'Perlembagaan')
                         $mainGroupName = str_contains($kategori, '(') ? trim(explode('(', $kategori)[0]) : $kategori;
-                        
-                        // 2. Dapatkan label pecahan (cth: (Sivil), atau nama penuh jika tidak pecah)
                         $displayLabel = str_contains($kategori, '(') ? substr($kategori, strpos($kategori, '(')) : $kategori;
                     @endphp
                     
@@ -291,12 +251,12 @@
                 <thead>
                     <tr>
                         <th width="5%" class="text-center">Bil</th>
-                        <th width="10%">Tarikh</th>
+                        <th width="12%">Tarikh</th> {{-- KOLUM INI DIUBAH --}}
                         <th width="20%">Fakta Ringkas</th>
                         <th width="20%">Isu</th>
-                        <th width="25%">Ringkasan Pandangan</th>
-                        <th width="10%" class="text-center">Jenis</th>
-                        <th width="10%">Status</th>
+                        <th width="20%">Ringkasan Pandangan</th>
+                        <th width="8%" class="text-center">Jenis</th>
+                        <th width="15%">Status</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -312,12 +272,23 @@
                         @forelse ($kategori['laporan'] as $item)
                             <tr>
                                 <td class="text-center text-muted">{{ $bil++ }}</td>
+                                {{-- 🔥 PAPARAN DUAL-DATE (UPDATED_AT vs TARIKH_TERIMA) 🔥 --}}
                                 <td>
-                                    <span class="d-block fw-bold text-dark">{{ \Carbon\Carbon::parse($item->tarikh_terima)->format('d/m/Y') }}</span>
+                                    <div class="fw-bold text-primary" style="font-size: 0.85rem;">
+                                        <i class="fas fa-calendar-check me-1"></i> {{ $item->updated_at->format('d/m/Y') }}
+                                    </div>
+                                    <div class="small text-muted fst-italic" style="font-size: 0.65rem;">(Tindakan)</div>
+
+                                    <hr class="my-1" style="opacity: 0.1">
+
+                                    <div class="text-dark" style="font-size: 0.75rem;">
+                                        Mula: {{ optional($item->tarikh_terima)->format('d/m/Y') }}
+                                    </div>
                                 </td>
-                                <td>{{ Str::limit($item->fakta_ringkasan, 100) }}</td>
-                                <td>{{ Str::limit($item->isu, 100) }}</td>
-                                <td>{{ Str::limit($item->ringkasan_pandangan, 100) }}</td>
+                                
+                                <td>{{ Str::limit($item->fakta_ringkasan, 80) }}</td>
+                                <td>{{ Str::limit($item->isu, 80) }}</td>
+                                <td>{{ Str::limit($item->ringkasan_pandangan, 80) }}</td>
                                 <td class="text-center">
                                     @if ($item->jenis_pandangan === 'Lisan')
                                         <span class="badge bg-soft-secondary border">Lisan</span>
@@ -657,7 +628,6 @@
 
 {{-- Skrip Auto-Calculate untuk Input (Jika ada input form) --}}
 <script>
-    // Kekalkan skrip asal jika ada penggunaan input di masa hadapan
     document.addEventListener('DOMContentLoaded', function () {
         // Logic pengiraan boleh diletakkan di sini jika perlu
     });

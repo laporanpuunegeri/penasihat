@@ -21,6 +21,12 @@ class LaporanController extends Controller
         $bulan = $request->get('bulan', now()->month);
         $tahun = now()->year;
 
+        // Filter Role (Negeri vs User ID)
+        // Kita guna logik sama dengan LaporanPandanganUndangController
+        $filter = in_array(strtolower($user->role), ['pa', 'yb']) 
+            ? ['negeri' => $user->negeri] 
+            : ['user_id' => $user->id];
+
         $kategori_list = [
             'Perlembagaan',
             'Tanah / PBT',
@@ -32,15 +38,44 @@ class LaporanController extends Controller
             'Lain-lain',
         ];
 
-        $filter = in_array(strtolower($user->role), ['pa', 'yb']) 
-            ? ['negeri' => $user->negeri] 
-            : ['user_id' => $user->id];
-
-        $laporan = LaporanPandanganUndang::where($filter)
-            ->whereMonth('tarikh_terima', $bulan)
-            ->whereYear('tarikh_terima', $tahun)
+        // --- 1. PANDANGAN UNDANG-UNDANG (LOGIC INCLUSIVE BARU) ---
+        // Rekod muncul jika: Diterima bulan ni ATAU Ada Tindakan (Update) bulan ni ATAU Selesai bulan ni
+        $laporan = LaporanPandanganUndang::where(function($q) use ($user, $filter) {
+            $role = strtolower($user->role);
+            
+            if ($role === 'super_admin') {
+                // Super Admin melihat semua data (Global)
+            } elseif (in_array($role, ['yb', 'pa'])) {
+                // YB/PA melihat data di Negeri mereka
+                $q->where('negeri', $user->negeri);
+            } else {
+                // User biasa
+                $q->where('user_id', $user->id);
+            }
+        })
+            ->where('is_current', true)
+            ->where(function($q) use ($tahun, $bulan) {
+                // A: Tarikh Terima
+                $q->where(function($sub) use ($tahun, $bulan) {
+                    $sub->whereYear('tarikh_terima', $tahun)
+                        ->whereMonth('tarikh_terima', $bulan);
+                })
+                // B: Tarikh Kemaskini (Tindakan)
+                ->orWhere(function($sub) use ($tahun, $bulan) {
+                    $sub->whereYear('updated_at', $tahun)
+                        ->whereMonth('updated_at', $bulan);
+                })
+                // C: Tarikh Selesai
+                ->orWhere(function($sub) use ($tahun, $bulan) {
+                    $sub->whereYear('tarikh_selesai', $tahun)
+                        ->whereMonth('tarikh_selesai', $bulan);
+                });
+            })
+            ->orderBy('updated_at', 'desc')
             ->get();
+        // --- END PANDANGAN UNDANG-UNDANG ---
 
+        // DATA LAIN KEKAL SAMA (Menggunakan filter asal)
         $laporan_kesmahkamah = LaporanKesMahkamah::where($filter)
             ->whereMonth('tarikh_sebutan', $bulan)
             ->whereYear('tarikh_sebutan', $tahun)
@@ -76,7 +111,7 @@ class LaporanController extends Controller
             ->whereYear('created_at', $tahun)
             ->get();
 
-        // ✅ Papar data Lampiran II (betul ikut role)
+        // Data Statistik Lampiran II
         $lampiran_kesmahkamah = LampiranKesMahkamah::query()
             ->when(in_array(strtolower($user->role), ['pa', 'yb']), fn($q) => $q->where('negeri', $user->negeri))
             ->when(!in_array(strtolower($user->role), ['pa', 'yb']), fn($q) => $q->where('user_id', $user->id))
@@ -85,18 +120,9 @@ class LaporanController extends Controller
             ->get();
 
         return view('laporan.index', compact(
-            'kategori_list',
-            'laporan',
-            'laporan_kesmahkamah',
-            'laporan_gubalan',
-            'laporan_pindaan',
-            'laporan_semakan',
-            'laporan_mesyuarat',
-            'laporan_tatatertib',
-            'laporan_lainlain',
-            'lampiran_kesmahkamah',
-            'bulan',
-            'tahun'
+            'kategori_list', 'laporan', 'laporan_kesmahkamah', 'laporan_gubalan', 
+            'laporan_pindaan', 'laporan_semakan', 'laporan_mesyuarat', 'laporan_tatatertib', 
+            'laporan_lainlain', 'lampiran_kesmahkamah', 'bulan', 'tahun'
         ));
     }
 
@@ -105,14 +131,8 @@ class LaporanController extends Controller
         $this->authorizePA();
 
         $kategori_list = [
-            'Perlembagaan',
-            'Tanah / PBT',
-            'Rujukan tanah',
-            'Undang-Undang Pentadbiran / Perkhidmatan',
-            'Kemalangan',
-            'Perjanjian / Penswastaan',
-            'Pendakwaan',
-            'Lain-lain',
+            'Perlembagaan', 'Tanah / PBT', 'Rujukan tanah', 'Undang-Undang Pentadbiran / Perkhidmatan',
+            'Kemalangan', 'Perjanjian / Penswastaan', 'Pendakwaan', 'Lain-lain',
         ];
 
         $bulan = now()->month;
@@ -132,14 +152,8 @@ class LaporanController extends Controller
         $this->authorizePA();
 
         $kategori_list = [
-            'Perlembagaan',
-            'Tanah / PBT',
-            'Rujukan tanah',
-            'Undang-Undang Pentadbiran / Perkhidmatan',
-            'Kemalangan',
-            'Perjanjian / Penswastaan',
-            'Pendakwaan',
-            'Lain-lain',
+            'Perlembagaan', 'Tanah / PBT', 'Rujukan tanah', 'Undang-Undang Pentadbiran / Perkhidmatan',
+            'Kemalangan', 'Perjanjian / Penswastaan', 'Pendakwaan', 'Lain-lain',
         ];
 
         $data = $request->input('data');
@@ -154,18 +168,10 @@ class LaporanController extends Controller
 
         foreach ($kategori_list as $i => $kategori) {
             LampiranKesMahkamah::create([
-                'user_id'   => $user->id,
-                'negeri'    => $user->negeri,
-                'kategori'  => $kategori,
-                'bil_aktif' => $data[$i][0] ?? 0,
-                'majistret' => $data[$i][1] ?? 0,
-                'sesi'      => $data[$i][2] ?? 0,
-                'tinggi'    => $data[$i][3] ?? 0,
-                'rayuan'    => $data[$i][4] ?? 0,
-                'persk'     => $data[$i][5] ?? 0,
-                'status'    => $data[$i][6] ?? '-',
-                'bulan'     => $bulan,
-                'tahun'     => $tahun,
+                'user_id' => $user->id, 'negeri' => $user->negeri, 'kategori' => $kategori,
+                'bil_aktif' => $data[$i][0] ?? 0, 'majistret' => $data[$i][1] ?? 0, 'sesi' => $data[$i][2] ?? 0,
+                'tinggi' => $data[$i][3] ?? 0, 'rayuan' => $data[$i][4] ?? 0, 'persk' => $data[$i][5] ?? 0,
+                'status' => $data[$i][6] ?? '-', 'bulan' => $bulan, 'tahun' => $tahun,
             ]);
         }
 

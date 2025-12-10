@@ -14,7 +14,6 @@ class LaporanPandanganUndangController extends Controller
 {
     /**
      * 1. INDEX: Filter Paling Inclusive (Terima OR Update OR Selesai)
-     * Memastikan rekod muncul jika ia aktif/diterima/diselesaikan pada bulan tersebut.
      */
     public function index(Request $request)
     {
@@ -24,9 +23,16 @@ class LaporanPandanganUndangController extends Controller
         // 1. Ambil rekod terkini sahaja (elak rekod sejarah berulang)
         $query->where('is_current', true);
 
-        // 2. Filter Role
-        $allowedRoles = ['super_admin', 'YB', 'PUUN', 'admin']; 
-        if (!in_array($user->role, $allowedRoles)) {
+        // 🔥 2. Filter Role (VISIBILITY LOGIC) 🔥
+        $role = strtolower($user->role);
+        
+        if ($role === 'super_admin') {
+            // Super Admin melihat semua data (Global)
+        } elseif (in_array($role, ['yb', 'pa', 'puun', 'admin'])) {
+            // YB/PA/PUUN/Admin melihat semua data di Negeri mereka
+            $query->where('negeri', $user->negeri);
+        } else {
+            // User biasa hanya melihat data yang mereka masukkan
             $query->where('user_id', $user->id);
         }
 
@@ -98,7 +104,7 @@ class LaporanPandanganUndangController extends Controller
         }
 
         $user = Auth::user();
-        $bossId = ($user->role === 'pa' || $request->has('hantar_kepada_boss')) ? $user->boss_id : null;
+        $bossId = (strtolower($user->role) === 'pa' || $request->has('hantar_kepada_boss')) ? $user->boss_id : null;
 
         LaporanPandanganUndang::create([
             'kategori' => $request->kategori,
@@ -127,11 +133,17 @@ class LaporanPandanganUndangController extends Controller
     }
 
     /**
-     * 4. EDIT: Borang Kemaskini
+     * 4. EDIT: Borang Kemaskini (DENGAN KAWALAN AKSES)
      */
     public function edit($id) 
     {
         $laporan = LaporanPandanganUndang::findOrFail($id);
+        
+        // 🔥 KAWALAN AKSES 🔥
+        if (!$this->authorizeAction($laporan)) {
+            abort(403, 'Anda tidak mempunyai kebenaran untuk mengemaskini laporan ini.');
+        }
+
         $user = Auth::user();
         
         $agensiList = Agensi::where('negeri', $user->negeri)
@@ -143,11 +155,16 @@ class LaporanPandanganUndangController extends Controller
     }
 
     /**
-     * 5. UPDATE: Logic Log Status Baru (Set updated_at = Input User)
+     * 5. UPDATE: Logic Log Status Baru (DENGAN KAWALAN AKSES)
      */
     public function update(Request $request, $id)
     {
         $laporan = LaporanPandanganUndang::findOrFail($id);
+        
+        // 🔥 KAWALAN AKSES 🔥
+        if (!$this->authorizeAction($laporan)) {
+            abort(403, 'Anda tidak mempunyai kebenaran untuk mengemaskini laporan ini.');
+        }
 
         $status_text = $request->input('status');
         $status_index = (int)substr($status_text, 0, 1);
@@ -160,7 +177,7 @@ class LaporanPandanganUndangController extends Controller
         $rules = [
             'status' => 'required|string',
             'ringkasan_pandangan' => 'nullable|string',
-            // jenis_pandangan tak perlu validate sebab locked/hidden
+            'jenis_pandangan' => 'nullable|string', 
         ];
 
         // Validation ikut status
@@ -178,9 +195,8 @@ class LaporanPandanganUndangController extends Controller
             $laporan->update([
                 'status' => $validated['status'],
                 'ringkasan_pandangan' => $validated['ringkasan_pandangan'],
-                // Jenis pandangan kekal lama
+                'jenis_pandangan' => $request->jenis_pandangan, // KEKALKAN update jenis pandangan jika ada
             ]);
-            // Laravel auto update 'updated_at' ke masa sekarang
             return redirect()->route('laporanpandanganundang.index')->with('success', 'Kemaskini berjaya.');
         }
 
@@ -197,32 +213,26 @@ class LaporanPandanganUndangController extends Controller
             // 3. Update info baru
             $rekod_baru->status = $validated['status'];
             $rekod_baru->ringkasan_pandangan = $validated['ringkasan_pandangan'];
-            // Jenis pandangan copy dari asal (sebab disabled di view)
+            $rekod_baru->jenis_pandangan = $request->jenis_pandangan; // KEKALKAN nilai
             
             // Handle Tarikh Selesai & Tarikh Tindakan
             if ($is_status_8) {
                 // Status 8: Set tarikh selesai
                 $rekod_baru->tarikh_selesai = $validated['tarikh_selesai'];
-                $rekod_baru->belum_selesai = false; // Status 8 bermaksud selesai
-                
-                // Guna Tarikh Selesai sebagai tarikh rujukan tindakan
+                $rekod_baru->belum_selesai = false;
                 $tarikhTindakan = $validated['tarikh_selesai']; 
             } else {
                 // Status 2-7: Belum selesai
                 $rekod_baru->tarikh_selesai = null; 
                 $rekod_baru->belum_selesai = true;
-
-                // Guna Tarikh Status Baru sebagai tarikh rujukan tindakan
                 $tarikhTindakan = $validated['tarikh_status_baru'];
             }
             
             // Set 'dirujuk_jpn' jika ada input (optional)
             $rekod_baru->dirujuk_jpn = $request->has('dirujuk_jpn');
 
-            // 🔥 LOGIC TARIKH SUPAYA MUNCUL DALAM FILTER BULAN TINDAKAN 🔥
-            // Kita set 'updated_at' & 'created_at' kepada tarikh status yang user isi.
+            // LOGIC TARIKH SUPAYA MUNCUL DALAM FILTER BULAN TINDAKAN
             $tarikhBaru = Carbon::parse($tarikhTindakan)->setTimeFrom(now());
-            
             $rekod_baru->created_at = $tarikhBaru; 
             $rekod_baru->updated_at = $tarikhBaru; 
             
@@ -242,12 +252,18 @@ class LaporanPandanganUndangController extends Controller
     }
 
     /**
-     * 6. DESTROY: Padam Rekod
+     * 6. DESTROY: Padam Rekod (DENGAN KAWALAN AKSES)
      */
     public function destroy($id) 
     { 
         $laporan = LaporanPandanganUndang::findOrFail($id); 
         
+        // 🔥 KAWALAN AKSES 🔥
+        if (!$this->authorizeAction($laporan)) {
+            abort(403, 'Anda tidak mempunyai kebenaran untuk memadam laporan ini.');
+        }
+
+        // Padam dokumen (jika ada)
         if ($laporan->dokumen_path) { 
             Storage::disk('public')->delete($laporan->dokumen_path); 
         } 
@@ -259,7 +275,6 @@ class LaporanPandanganUndangController extends Controller
     
     /**
      * 7. PECAHAN BULAN (Drill-down Statistik)
-     * Menggunakan logic filter yang sama dengan Index (Triple Threat)
      */
     public function pecahanBulan(Request $request) 
     {
@@ -292,5 +307,33 @@ class LaporanPandanganUndangController extends Controller
         $dataAgensi = collect(); $labelsAgensi = []; $totalsAgensi = [];
         
         return view('laporanpandanganundang.pecahan', compact('bulan', 'tahun', 'namaBulan', 'labels', 'totals', 'dataPecahan', 'dataAgensi', 'labelsAgensi', 'totalsAgensi'));
+    }
+
+    /**
+     * 🔥 HELPER FUNCTION BARU: authorizeAction (Check Edit/Delete Access) 🔥
+     * Rule: PA, YB, super_admin boleh delete/edit (skop negeri/global)
+     */
+    protected function authorizeAction(LaporanPandanganUndang $laporan)
+    {
+        $user = Auth::user();
+        $role = strtolower($user->role);
+        
+        // 1. Super Admin boleh buat semua (Global)
+        if ($role === 'super_admin') {
+            return true;
+        }
+        
+        // 2. PA, YB, PUUN, Admin boleh buat semua dalam Negeri yang sama
+        $stateRoles = ['pa', 'yb', 'puun', 'admin'];
+        if (in_array($role, $stateRoles) && $user->negeri === $laporan->negeri) {
+            return true;
+        }
+        
+        // 3. User asal boleh edit/padam rekod sendiri
+        if ($user->id === $laporan->user_id) {
+            return true;
+        }
+        
+        return false;
     }
 }

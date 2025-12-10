@@ -79,7 +79,7 @@ class LaporankesmahkamahController extends Controller
         LaporanKesMahkamah::create(array_merge($validated, [
             'user_id' => $user->id,
             'negeri' => $user->negeri,
-            'perkara' => $request->perkara,
+            // 'perkara' => $request->perkara,  <-- BARIS INI DIBUANG SEBAB COLUMN TIADA
             'tarikh_daftar' => $request->tarikh_daftar ?? now(),
             'hantar_kepada_boss' => $request->has('hantar_kepada_boss'),
         ]));
@@ -120,7 +120,7 @@ class LaporankesmahkamahController extends Controller
 
         $laporan = LaporanKesMahkamah::findOrFail($id);
         
-        $laporan->perkara = $request->perkara;
+        // $laporan->perkara = $request->perkara; <-- BARIS INI JUGA DIBUANG
         $laporan->tarikh_daftar = $request->tarikh_daftar;
         $laporan->hantar_kepada_boss = $request->has('hantar_kepada_boss');
         
