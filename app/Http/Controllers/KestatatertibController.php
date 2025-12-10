@@ -11,165 +11,197 @@ use Carbon\Carbon;
 class KestatatertibController extends Controller
 {
     /**
-     * INDEX: Senarai Laporan (Kekal Ketat mengikut user_id, melainkan YB/PA)
+     * 1. INDEX: Senarai Laporan (Filter guna 'tarikh_terima')
      */
     public function index(Request $request)
     {
         $user = Auth::user();
         $query = Kestatatertib::query();
 
-        // 1. Filter Ikut Peranan
-        if ($user->role === 'pa' || $user->role === 'yb') {
-            $query->where('negeri', $user->negeri);
-        } elseif ($user->role === 'super_admin') {
-            // Super Admin melihat SEMUA data (tiada filter)
+        // --- A. FILTER VISIBILITI (Global vs User) ---
+        // Rule: PA, YB, Admin, Super Admin nampak SEMUA data.
+        $role = strtolower($user->role);
+        $globalViewRoles = ['super_admin', 'pa', 'yb', 'admin'];
+
+        if (in_array($role, $globalViewRoles)) {
+            // Global View: Tiada filter tambahan (Nampak semua)
         } else {
-            // User biasa nampak rekod sendiri sahaja
-            $query->where('user_id', $user->id); 
+            // User View: Hanya nampak data sendiri
+            $query->where('user_id', $user->id);
         }
 
-        // 2. Filter Ikut Bulan 
-        $bulanPilihan = $request->input('bulan', date('n'));
-        $tahunSemasa = date('Y');
+        // --- B. FILTER TARIKH (Guna column 'tarikh_terima') ---
+        $bulan = $request->input('bulan', 'all'); 
+        $tahun = $request->input('tahun', date('Y'));
 
-        if ($bulanPilihan !== 'all') {
-            $query->whereMonth('created_at', $bulanPilihan)
-                  ->whereYear('created_at', $tahunSemasa);
+        // Filter Tahun
+        if ($tahun != 'all') {
+            $query->whereYear('tarikh_terima', $tahun);
         }
 
-        $data = $query->orderBy('created_at', 'desc')->get();
+        // Filter Bulan (Jika user pilih 'all', jangan filter bulan)
+        if ($bulan != 'all') {
+            $query->whereMonth('tarikh_terima', $bulan);
+        }
 
-        return view('kestatatertib.index', compact('data', 'user'));
+        $data = $query->orderBy('tarikh_terima', 'desc')->get();
+
+        return view('kestatatertib.index', compact('data', 'user', 'tahun', 'bulan'));
     }
 
+    /**
+     * 2. CREATE
+     */
     public function create()
     {
         return view('kestatatertib.create');
     }
 
+    /**
+     * 3. STORE
+     */
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $request->validate([
             'tarikh_terima' => 'required|date',
-            'kategori' => 'required|string|max:255',
+            'kategori' => 'required|string',
             'fakta_ringkasan' => 'nullable|string',
             'isu' => 'nullable|string',
             'ringkasan_pandangan' => 'nullable|string',
-            'status' => 'nullable|string|max:255',
+            'status' => 'nullable|string',
             'tarikh_selesai' => 'nullable|date',
         ]);
 
-        $validated['hantar_kepada_boss'] = $request->has('hantar_kepada_boss');
-        $validated['tarikh_daftar'] = now();
-        $validated['user_id'] = auth()->id();
-        $validated['negeri'] = auth()->user()->negeri;
+        $user = Auth::user();
 
-        Kestatatertib::create($validated);
-
-        return redirect()->route('kestatatertib.index')->with('success', 'Laporan berjaya disimpan.');
-    }
-
-    public function edit(Kestatatertib $kestatatertib)
-    {
-        if (! $this->canEdit($kestatatertib)) {
-            abort(403);
-        }
-
-        return view('kestatatertib.edit', ['laporan' => $kestatatertib]);
-    }
-
-    public function update(Request $request, Kestatatertib $kestatatertib)
-    {
-        if (! $this->canEdit($kestatatertib)) {
-            abort(403);
-        }
-
-        $validated = $request->validate([
-            'tarikh_terima' => 'required|date',
-            'kategori' => 'required|string|max:255',
-            'fakta_ringkasan' => 'nullable|string',
-            'isu' => 'nullable|string',
-            'ringkasan_pandangan' => 'nullable|string',
-            'status' => 'nullable|string|max:255',
-            'tarikh_selesai' => 'nullable|date',
+        Kestatatertib::create([
+            'tarikh_terima' => $request->tarikh_terima,
+            'kategori' => $request->kategori,
+            'fakta_ringkasan' => $request->fakta_ringkasan,
+            'isu' => $request->isu,
+            'ringkasan_pandangan' => $request->ringkasan_pandangan,
+            'status' => $request->status,
+            'tarikh_selesai' => $request->tarikh_selesai,
+            'hantar_kepada_boss' => $request->has('hantar_kepada_boss'),
+            'user_id' => $user->id,
+            'negeri' => $user->negeri,
+            'created_by' => $user->id,
         ]);
 
-        $validated['hantar_kepada_boss'] = $request->has('hantar_kepada_boss');
-
-        $kestatatertib->update($validated);
-
-        return redirect()->route('kestatatertib.index')->with('success', 'Laporan berjaya dikemaskini.');
-    }
-
-    public function destroy(Kestatatertib $kestatatertib)
-    {
-        if (! $this->canEdit($kestatatertib)) {
-            abort(403);
-        }
-
-        $kestatatertib->delete();
-
-        return back()->with('success', 'Laporan berjaya dipadam.');
+        return redirect()->route('kestatatertib.index')->with('success', 'Kes berjaya direkodkan.');
     }
 
     /**
-     * Helper: Check Permission
+     * 4. EDIT
      */
-    protected function canEdit(Kestatatertib $laporan)
+    public function edit($id)
     {
-        $user = auth()->user();
-        return ($user->role === 'pa' && $user->negeri === $laporan->negeri)
-            || ($laporan->user_id === $user->id);
+        $laporan = Kestatatertib::findOrFail($id);
+
+        if (! $this->authorizeAction($laporan)) {
+            abort(403, 'Tiada kebenaran untuk edit.');
+        }
+
+        return view('kestatatertib.edit', compact('laporan'));
     }
 
     /**
-     * FUNGSI DRILL-DOWN: Pecahan Kes Tatatertib Mengikut KATEGORI
+     * 5. UPDATE
+     */
+    public function update(Request $request, $id)
+    {
+        $laporan = Kestatatertib::findOrFail($id);
+
+        if (! $this->authorizeAction($laporan)) {
+            abort(403, 'Tiada kebenaran untuk kemaskini.');
+        }
+
+        $request->validate([
+            'tarikh_terima' => 'required|date',
+            'kategori' => 'required|string',
+            'fakta_ringkasan' => 'nullable|string',
+            'isu' => 'nullable|string',
+            'ringkasan_pandangan' => 'nullable|string',
+            'status' => 'nullable|string',
+            'tarikh_selesai' => 'nullable|date',
+        ]);
+
+        $laporan->update([
+            'tarikh_terima' => $request->tarikh_terima,
+            'kategori' => $request->kategori,
+            'fakta_ringkasan' => $request->fakta_ringkasan,
+            'isu' => $request->isu,
+            'ringkasan_pandangan' => $request->ringkasan_pandangan,
+            'status' => $request->status,
+            'tarikh_selesai' => $request->tarikh_selesai,
+            'hantar_kepada_boss' => $request->has('hantar_kepada_boss'),
+        ]);
+
+        return redirect()->route('kestatatertib.index')->with('success', 'Kes berjaya dikemaskini.');
+    }
+
+    /**
+     * 6. DESTROY
+     */
+    public function destroy($id)
+    {
+        $laporan = Kestatatertib::findOrFail($id);
+
+        if (! $this->authorizeAction($laporan)) {
+            abort(403, 'Tiada kebenaran untuk padam.');
+        }
+
+        $laporan->delete();
+
+        return redirect()->route('kestatatertib.index')->with('success', 'Kes berjaya dipadam.');
+    }
+
+    /**
+     * 7. PECAHAN BULAN (Data Grafik)
      */
     public function pecahanBulan(Request $request)
     {
         $bulan = $request->bulan;
         $tahun = $request->tahun;
-        $user = Auth::user();
-        
-        $namaBulan = Carbon::create()->month($bulan)->format('F');
+        $namaBulan = \Carbon\Carbon::create()->month($bulan)->format('F');
 
-        // 1. Re-apply Filter Logic (DILONGGARKAN untuk statistik pecahan)
-        $query = Kestatatertib::query();
-        
-        // Filter ikut NEGERI/Wilayah, kecuali Super Admin (yang nampak semua)
-        if ($user->role !== 'super_admin') {
-            $query->where('negeri', $user->negeri);
-        }
-        
-        // 2. Build Query Pecahan (Guna column 'kategori')
-        try {
-            // 🔥 PERUBAHAN UTAMA: Guna COALESCE/IFNULL untuk pastikan rekod NULL dikira 🔥
-            // COALESCE digunakan untuk PostgreSQL/MySQL untuk menukar NULL kepada 'Tiada Kategori'
-            $dataPecahan = $query->select(
-                DB::raw("COALESCE(kategori, 'Tiada Kategori') as kategori"),
-                DB::raw('count(*) as jumlah')
-            )
-            ->whereMonth('created_at', $bulan)
-            ->whereYear('created_at', $tahun)
-            ->groupBy(DB::raw("COALESCE(kategori, 'Tiada Kategori')"))
-            ->orderBy('jumlah', 'desc')
+        // Gunakan 'tarikh_terima' untuk statistik supaya tally dengan index
+        $dataPecahan = Kestatatertib::select('kategori', DB::raw('count(*) as total'))
+            ->whereMonth('tarikh_terima', $bulan)
+            ->whereYear('tarikh_terima', $tahun)
+            ->groupBy('kategori')
+            ->orderBy('total', 'desc')
             ->get();
-            
-        } catch (\Exception $e) {
-            // Jika terdapat ralat SQL (cth: column 'kategori' tiada), set data kosong
-            $dataPecahan = collect(); 
-        }
-            
-        // 3. Kira Jumlah Keseluruhan
-        $labels = $dataPecahan->pluck('kategori');
-        $totals = $dataPecahan->pluck('jumlah');
-        $jumlahKeseluruhan = $dataPecahan->sum('jumlah');
 
-        // 4. Return ke View
+        $labels = $dataPecahan->pluck('kategori');
+        $totals = $dataPecahan->pluck('total');
+        $jumlahKeseluruhan = $dataPecahan->sum('total');
+
         return view('kestatatertib.pecahan', compact(
             'bulan', 'tahun', 'namaBulan', 
             'labels', 'totals', 'dataPecahan', 
             'jumlahKeseluruhan'
         ));
+    }
+
+    /**
+     * 🔥 HELPER: Authorize Action
+     */
+    protected function authorizeAction(Kestatatertib $laporan)
+    {
+        $user = Auth::user();
+        $role = strtolower($user->role);
+        
+        // 1. Super Admin, PA, YB, Admin boleh buat semua (Global)
+        if (in_array($role, ['super_admin', 'pa', 'yb', 'admin'])) {
+            return true;
+        }
+        
+        // 2. User asal boleh edit/padam rekod sendiri
+        if ($user->id === $laporan->user_id) {
+            return true;
+        }
+        
+        return false;
     }
 }

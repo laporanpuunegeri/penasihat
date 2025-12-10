@@ -6,45 +6,52 @@ use Illuminate\Http\Request;
 use App\Models\LaporanPindaanUndang;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class LaporanpindaanundangController extends Controller
 {
     /**
-     * Papar senarai semua laporan dengan tapisan bulan & peranan
-     * DEFAULT: Bulan Semasa
+     * 1. INDEX: Senarai Laporan
      */
     public function index(Request $request)
     {
         $user = Auth::user();
         $query = LaporanPindaanUndang::query();
 
-        // 1. Filter Ikut Peranan (Role)
-        if ($user->role === 'pa' || $user->role === 'yb') {
-            $query->where('negeri', $user->negeri);
+        // --- A. FILTER VISIBILITI (Global vs User) ---
+        // Rule: PA, YB, Admin, Super Admin nampak SEMUA data (Global).
+        $role = strtolower($user->role);
+        $globalViewRoles = ['super_admin', 'pa', 'yb', 'admin'];
+
+        if (in_array($role, $globalViewRoles)) {
+            // Global View: Tiada filter tambahan (Nampak semua)
         } else {
+            // User View: Hanya nampak data sendiri
             $query->where('user_id', $user->id);
         }
 
-        // 2. Filter Ikut Bulan (Logic Baru)
-        // Ambil input 'bulan'. Jika kosong, guna bulan semasa (date('n')).
-        $bulanPilihan = $request->input('bulan', date('n'));
-        $tahunSemasa = date('Y');
+        // --- B. FILTER TARIKH (Guna created_at) ---
+        $bulan = $request->input('bulan', 'all'); 
+        $tahun = $request->input('tahun', date('Y'));
 
-        if ($bulanPilihan !== 'all') {
-            // Tapis ikut bulan yang dipilih (atau default bulan semasa)
-            $query->whereMonth('created_at', $bulanPilihan)
-                  ->whereYear('created_at', $tahunSemasa);
+        // Filter Tahun
+        if ($tahun != 'all') {
+            $query->whereYear('created_at', $tahun);
         }
 
-        // 3. Susunan Data
+        // Filter Bulan
+        if ($bulan != 'all') {
+            $query->whereMonth('created_at', $bulan);
+        }
+
         $data = $query->orderBy('created_at', 'desc')->get();
 
-        return view('laporanpindaanundang.index', compact('data', 'user'));
+        return view('laporanpindaanundang.index', compact('data', 'user', 'tahun', 'bulan'));
     }
 
     /**
-     * Papar borang daftar laporan baru
+     * 2. CREATE
      */
     public function create()
     {
@@ -52,7 +59,7 @@ class LaporanpindaanundangController extends Controller
     }
 
     /**
-     * Simpan laporan baru
+     * 3. STORE
      */
     public function store(Request $request)
     {
@@ -79,21 +86,21 @@ class LaporanpindaanundangController extends Controller
     }
 
     /**
-     * Papar borang sunting laporan
+     * 4. EDIT
      */
     public function edit($id)
     {
         $laporan = LaporanPindaanUndang::findOrFail($id);
 
         if (! $this->canEdit($laporan)) {
-            abort(403);
+            abort(403, 'Tiada kebenaran untuk edit.');
         }
 
         return view('laporanpindaanundang.edit', compact('laporan'));
     }
 
     /**
-     * Kemaskini laporan sedia ada
+     * 5. UPDATE
      */
     public function update(Request $request, $id)
     {
@@ -106,7 +113,7 @@ class LaporanpindaanundangController extends Controller
         $laporan = LaporanPindaanUndang::findOrFail($id);
 
         if (! $this->canEdit($laporan)) {
-            abort(403);
+            abort(403, 'Tiada kebenaran untuk kemaskini.');
         }
 
         $laporan->update($validated);
@@ -116,14 +123,14 @@ class LaporanpindaanundangController extends Controller
     }
 
     /**
-     * Padam laporan
+     * 6. DESTROY
      */
     public function destroy($id)
     {
         $laporan = LaporanPindaanUndang::findOrFail($id);
 
         if (! $this->canEdit($laporan)) {
-            abort(403);
+            abort(403, 'Tiada kebenaran untuk padam.');
         }
 
         $laporan->delete();
@@ -133,30 +140,35 @@ class LaporanpindaanundangController extends Controller
     }
 
     /**
-     * Tentukan hak akses semasa untuk edit / padam
+     * Helper: Check Permission
      */
     protected function canEdit(LaporanPindaanUndang $laporan)
     {
         $user = auth()->user();
+        $role = strtolower($user->role);
 
-        return ($user->role === 'pa' && $user->negeri === $laporan->negeri)
-            || ($laporan->user_id === $user->id);
+        // 1. Super Admin, PA, YB, Admin boleh edit SEMUA
+        if (in_array($role, ['super_admin', 'pa', 'yb', 'admin'])) {
+            return true;
+        }
+
+        // 2. User biasa edit sendiri
+        return ($laporan->user_id === $user->id);
     }
 
     /**
-     * --- FUNGSI DRILL-DOWN: PINDAAN UNDANG-UNDANG ---
+     * 7. PECAHAN BULAN (Data Grafik)
      */
     public function pecahanBulan(Request $request)
     {
         $bulan = $request->bulan;
         $tahun = $request->tahun;
-        $namaBulan = Carbon::create()->month($bulan)->format('F');
+        $namaBulan = \Carbon\Carbon::create()->month($bulan)->format('F');
 
-        // --- SETTING: NAMA COLUMN DATABASE ---
         $colKategori = 'tajuk'; 
 
-        // 1. Ambil Data Pecahan
-        $dataPecahan = LaporanPindaanUndang::select($colKategori, \Illuminate\Support\Facades\DB::raw('count(*) as total'))
+        // Query Database
+        $dataPecahan = LaporanPindaanUndang::select($colKategori, DB::raw('count(*) as total'))
             ->whereMonth('created_at', $bulan)
             ->whereYear('created_at', $tahun)
             ->groupBy($colKategori)

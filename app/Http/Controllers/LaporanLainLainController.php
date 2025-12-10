@@ -11,40 +11,55 @@ use Carbon\Carbon;
 class LaporanLainLainController extends Controller
 {
     /**
-     * INDEX: Senarai Laporan (Default Bulan Semasa)
+     * 1. INDEX: Senarai Laporan (Filter guna 'tarikh')
      */
     public function index(Request $request)
     {
         $user = Auth::user();
         $query = LainLainTugasan::query();
 
-        // 1. Filter Ikut Peranan
-        if ($user->role === 'pa' || $user->role === 'yb') {
-            $query->where('negeri', $user->negeri);
+        // --- A. FILTER VISIBILITI (Global vs User) ---
+        // Rule: PA, YB, Admin, Super Admin nampak SEMUA data.
+        $role = strtolower($user->role);
+        $globalViewRoles = ['super_admin', 'pa', 'yb', 'admin'];
+
+        if (in_array($role, $globalViewRoles)) {
+            // Global View: Tiada filter user_id (nampak semua)
         } else {
+            // User View: Hanya nampak data sendiri
             $query->where('user_id', $user->id);
         }
 
-        // 2. Filter Ikut Bulan (Default: Bulan Semasa)
-        $bulanPilihan = $request->input('bulan', date('n'));
-        $tahunSemasa = date('Y');
+        // --- B. FILTER TARIKH (Guna column 'tarikh') ---
+        $bulan = $request->input('bulan', 'all'); 
+        $tahun = $request->input('tahun', date('Y'));
 
-        if ($bulanPilihan !== 'all') {
-            // Filter ikut 'created_at' atau 'tarikh' (ikut kesesuaian)
-            $query->whereMonth('created_at', $bulanPilihan)
-                  ->whereYear('created_at', $tahunSemasa);
+        // Filter Tahun
+        if ($tahun != 'all') {
+            $query->whereYear('tarikh', $tahun);
         }
 
-        $data = $query->latest()->get();
+        // Filter Bulan (Jika user pilih 'all', jangan filter bulan)
+        if ($bulan != 'all') {
+            $query->whereMonth('tarikh', $bulan);
+        }
 
-        return view('lainlaintugasan.index', compact('data', 'user'));
+        $data = $query->orderBy('tarikh', 'desc')->get();
+
+        return view('lainlaintugasan.index', compact('data', 'user', 'tahun', 'bulan'));
     }
 
+    /**
+     * 2. CREATE
+     */
     public function create()
     {
         return view('lainlaintugasan.create');
     }
 
+    /**
+     * 3. STORE
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -55,7 +70,6 @@ class LaporanLainLainController extends Controller
 
         $user = Auth::user();
 
-        // Simpan single entry (bukan loop) sebab borang create.blade.php hantar satu rekod je
         LainLainTugasan::create([
             'perihal' => $request->perihal,
             'tarikh' => $request->tarikh,
@@ -63,28 +77,35 @@ class LaporanLainLainController extends Controller
             'user_id' => $user->id,
             'negeri' => $user->negeri,
             'hantar_kepada_boss' => $request->has('hantar_kepada_boss'),
+            'created_by' => $user->id,
         ]);
 
         return redirect()->route('lainlaintugasan.index')->with('success', 'Laporan berjaya dihantar.');
     }
 
+    /**
+     * 4. EDIT
+     */
     public function edit($id)
     {
         $tugasan = LainLainTugasan::findOrFail($id);
 
         if (! $this->canEdit($tugasan)) {
-            abort(403);
+            abort(403, 'Tiada kebenaran untuk edit.');
         }
 
         return view('lainlaintugasan.edit', compact('tugasan'));
     }
 
+    /**
+     * 5. UPDATE
+     */
     public function update(Request $request, $id)
     {
         $tugasan = LainLainTugasan::findOrFail($id);
 
         if (! $this->canEdit($tugasan)) {
-            abort(403);
+            abort(403, 'Tiada kebenaran untuk kemaskini.');
         }
 
         $request->validate([
@@ -98,12 +119,15 @@ class LaporanLainLainController extends Controller
         return redirect()->route('lainlaintugasan.index')->with('success', 'Laporan berjaya dikemaskini.');
     }
 
+    /**
+     * 6. DESTROY
+     */
     public function destroy($id)
     {
         $tugasan = LainLainTugasan::findOrFail($id);
 
         if (! $this->canEdit($tugasan)) {
-            abort(403);
+            abort(403, 'Tiada kebenaran untuk padam.');
         }
 
         $tugasan->delete();
@@ -112,17 +136,7 @@ class LaporanLainLainController extends Controller
     }
 
     /**
-     * Helper: Check Permission
-     */
-    protected function canEdit(LainLainTugasan $tugasan)
-    {
-        $user = Auth::user();
-        return ($user->role === 'pa' && $user->negeri === $tugasan->negeri)
-            || ($user->id === $tugasan->user_id);
-    }
-
-    /**
-     * 7. PECAHAN BULAN (Data Grafik: Tindakan)
+     * 7. PECAHAN BULAN (Data Grafik)
      */
     public function pecahanBulan(Request $request)
     {
@@ -130,21 +144,13 @@ class LaporanLainLainController extends Controller
         $tahun = $request->tahun;
         $namaBulan = \Carbon\Carbon::create()->month($bulan)->format('F');
 
-        // Setting Column
         $colKategori = 'tindakan'; 
+        $standardList = ['Telah Hadir', 'Telah Bincang', 'Telah Disemak', 'Selesai'];
 
-        // Senarai Tetap
-        $standardList = [
-            'Telah Hadir',
-            'Telah Bincang',
-            'Telah Disemak',
-            'Selesai'
-        ];
-
-        // Query Database
+        // Query guna 'tarikh' supaya konsisten dengan index
         $dbData = LainLainTugasan::select($colKategori, DB::raw('count(*) as total'))
-            ->whereMonth('created_at', $bulan)
-            ->whereYear('created_at', $tahun)
+            ->whereMonth('tarikh', $bulan) 
+            ->whereYear('tarikh', $tahun)
             ->groupBy($colKategori)
             ->pluck('total', $colKategori)
             ->toArray();
@@ -155,22 +161,37 @@ class LaporanLainLainController extends Controller
 
         foreach ($standardList as $item) {
             $count = $dbData[$item] ?? 0;
-
-            // Masuk ke collection
             if ($count > 0) {
-                $dataPecahan->push((object)[
-                    'kategori' => $item,
-                    'total' => $count
-                ]);
-                
+                $dataPecahan->push((object)['kategori' => $item, 'total' => $count]);
                 $labels[] = $item;
                 $totals[] = $count;
             }
         }
 
-        return view('lainlaintugasan.pecahan', compact(
-            'bulan', 'tahun', 'namaBulan', 
-            'labels', 'totals', 'dataPecahan'
-        ));
+        // Dummy data for view compatibility
+        $dataAgensi = collect(); $labelsAgensi = []; $totalsAgensi = [];
+
+        return view('lainlaintugasan.pecahan', compact('bulan', 'tahun', 'namaBulan', 'labels', 'totals', 'dataPecahan', 'dataAgensi', 'labelsAgensi', 'totalsAgensi'));
+    }
+
+    /**
+     * Helper: Check Permission
+     */
+    protected function canEdit(LainLainTugasan $tugasan)
+    {
+        $user = Auth::user();
+        $role = strtolower($user->role);
+        
+        // 1. Super Admin, PA, YB, Admin boleh buat semua (Global)
+        if (in_array($role, ['super_admin', 'pa', 'yb', 'admin'])) {
+            return true;
+        }
+        
+        // 2. User asal boleh edit/padam rekod sendiri
+        if ($user->id === $tugasan->user_id) {
+            return true;
+        }
+        
+        return false;
     }
 }

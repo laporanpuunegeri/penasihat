@@ -37,7 +37,7 @@
                     @endif
 
                     {{-- 🔥 PENTING: Tambah enctype="multipart/form-data" untuk upload gambar --}}
-                    <form method="POST" action="{{ route('register.store') }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ route('register') }}" enctype="multipart/form-data">
                         @csrf
 
                         {{-- Baris 1: Nama & Emel --}}
@@ -107,7 +107,6 @@
                                     <option value="cc" {{ old('role') == 'cc' ? 'selected' : '' }}>CC (Terhad 1/Negeri)</option>
                                     <option value="pa" {{ old('role') == 'pa' ? 'selected' : '' }}>PA (Terhad 1/Negeri)</option>
                                     <option value="yb" {{ old('role') == 'yb' ? 'selected' : '' }}>YB Penasihat (Terhad 1/Negeri)</option>
-                                    <option value="super_admin" {{ old('role') == 'super_admin' ? 'selected' : '' }}>Super Admin</option>
                                 </select>
                             </div>
                         </div>

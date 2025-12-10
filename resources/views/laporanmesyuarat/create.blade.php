@@ -4,53 +4,13 @@
 
 {{-- CSS Khas --}}
 <style>
-    .page-header {
-        background: #fff;
-        padding: 20px 25px;
-        border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-        margin-bottom: 25px;
-        border-left: 5px solid #0f172a; /* Dark Navy Accent */
-    }
-
-    .form-card {
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-        border: 1px solid #f1f5f9;
-        overflow: hidden;
-    }
-
-    .form-section-title {
-        color: #1e293b;
-        font-weight: 700;
-        font-size: 1rem;
-        margin-bottom: 15px;
-        padding-bottom: 10px;
-        border-bottom: 2px solid #f1f5f9;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .form-label {
-        font-weight: 600;
-        color: #475569;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-    }
-
-    .form-control:focus, .form-select:focus {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-
-    /* Radio Button Style */
-    .btn-check:checked + .btn-outline-primary {
-        background-color: #eff6ff;
-        color: #1d4ed8;
-        border-color: #3b82f6;
-        font-weight: bold;
-    }
+    .page-header { background: #fff; padding: 20px 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); margin-bottom: 25px; border-left: 5px solid #0f172a; }
+    .form-card { background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; overflow: hidden; }
+    .form-section-title { color: #1e293b; font-weight: 700; font-size: 1rem; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #f1f5f9; text-transform: uppercase; letter-spacing: 0.5px; }
+    .form-label { font-weight: 600; color: #475569; font-size: 0.85rem; text-transform: uppercase; }
+    .form-control:focus, .form-select:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+    .btn-check:checked + .btn-outline-primary { background-color: #eff6ff; color: #1d4ed8; border-color: #3b82f6; font-weight: bold; }
+    .multiday-box { background-color: #f0fdf4; border: 1px dashed #16a34a; padding: 15px; border-radius: 8px; margin-top: 10px; display: none; }
 </style>
 
 <div class="container-fluid px-4 py-4">
@@ -110,8 +70,24 @@
                     <h5 class="form-section-title"><i class="fas fa-calendar-check me-2 text-primary"></i> Status & Tarikh</h5>
 
                     <div class="mb-3">
-                        <label for="tarikh_mesyuarat" class="form-label">Tarikh Mesyuarat</label>
+                        <label for="tarikh_mesyuarat" class="form-label">Tarikh Mesyuarat (Mula)</label>
                         <input type="date" name="tarikh_mesyuarat" id="tarikh_mesyuarat" class="form-control" value="{{ old('tarikh_mesyuarat') }}" required>
+                    </div>
+
+                    {{-- 🔥 TAMBAHAN: FUNGSI MULTI-DAY 🔥 --}}
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="is_multiday" name="is_multiday" {{ old('is_multiday') ? 'checked' : '' }}>
+                            <label class="form-check-label small text-muted cursor-pointer" for="is_multiday">
+                                Mesyuarat ini berlangsung lebih dari 1 hari?
+                            </label>
+                        </div>
+
+                        {{-- Ruang Tarikh Akhir (Hidden) --}}
+                        <div id="div_tarikh_akhir" class="multiday-box">
+                            <label class="form-label text-success fw-bold small">Hingga Tarikh (Akhir)</label>
+                            <input type="date" name="tarikh_akhir" id="tarikh_akhir" class="form-control border-success" value="{{ old('tarikh_akhir') }}">
+                        </div>
                     </div>
 
                     <div class="mb-2">
@@ -159,9 +135,10 @@
     </form>
 </div>
 
-{{-- SCRIPT: Auto-fill Status --}}
+{{-- SCRIPT: Auto-fill Status & Multi-Day Toggle --}}
 <script>
     document.addEventListener("DOMContentLoaded", function () {
+        // 1. Logic Status Preset
         const presetSelect = document.getElementById('status_preset');
         const statusTextarea = document.getElementById('status');
         
@@ -173,6 +150,28 @@
                 }
             });
         }
+
+        // 2. Logic Multi-Day Checkbox
+        const checkMulti = document.getElementById('is_multiday');
+        const divAkhir = document.getElementById('div_tarikh_akhir');
+        const inputAkhir = document.getElementById('tarikh_akhir');
+
+        function toggleMultiDay() {
+            if(checkMulti.checked) {
+                divAkhir.style.display = 'block';
+                inputAkhir.setAttribute('required', 'required');
+            } else {
+                divAkhir.style.display = 'none';
+                inputAkhir.removeAttribute('required');
+                inputAkhir.value = ''; // Reset date bila untick
+            }
+        }
+
+        // Run on load (in case validation fails and reloads page)
+        toggleMultiDay();
+
+        // Run on change
+        checkMulti.addEventListener('change', toggleMultiDay);
     });
 </script>
 

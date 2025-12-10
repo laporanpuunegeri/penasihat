@@ -18,28 +18,35 @@ class LaporansemakanundangController extends Controller
         $user = Auth::user();
         $query = LaporanSemakanUndang::query();
 
-        // 1. Filter Ikut Peranan
-        if ($user->role === 'pa' || $user->role === 'yb') {
-            $query->where('negeri', $user->negeri);
+        // --- A. FILTER VISIBILITI (Global vs User) ---
+        // Rule: PA, YB, Admin, Super Admin nampak SEMUA data (Global).
+        $role = strtolower($user->role);
+        $globalViewRoles = ['super_admin', 'pa', 'yb', 'admin'];
+
+        if (in_array($role, $globalViewRoles)) {
+            // Global View: Tiada filter tambahan (Nampak semua data)
         } else {
+            // User View: Hanya nampak data sendiri
             $query->where('user_id', $user->id);
         }
 
-        // 2. Filter Ikut Bulan (Logic Baru)
+        // --- B. FILTER TARIKH (Guna 'created_at') ---
         // Default: Bulan Semasa (date('n'))
         $bulanPilihan = $request->input('bulan', date('n'));
-        $tahunSemasa = date('Y');
+        $tahunSemasa = $request->input('tahun', date('Y')); // Tambah input tahun
 
         if ($bulanPilihan !== 'all') {
-            // Tapis ikut bulan yang dipilih (atau default bulan semasa)
-            $query->whereMonth('created_at', $bulanPilihan)
-                  ->whereYear('created_at', $tahunSemasa);
+            $query->whereMonth('created_at', $bulanPilihan);
         }
+        
+        // Filter tahun sentiasa aktif (kecuali logic khas, tapi standardnya perlu tahun)
+        $query->whereYear('created_at', $tahunSemasa);
 
         // 3. Susunan Data
         $data = $query->orderBy('created_at', 'desc')->get();
 
-        return view('laporansemakanundang.index', compact('data', 'user'));
+        // Pass tahun ke view supaya dropdown tahun tak reset
+        return view('laporansemakanundang.index', compact('data', 'user', 'tahunSemasa', 'bulanPilihan'));
     }
 
     public function create()
@@ -72,7 +79,7 @@ class LaporansemakanundangController extends Controller
         $laporan = LaporanSemakanUndang::findOrFail($id);
 
         if (! $this->canEdit($laporan)) {
-            abort(403);
+            abort(403, 'Tiada kebenaran untuk edit.');
         }
 
         return view('laporansemakanundang.edit', compact('laporan'));
@@ -89,7 +96,7 @@ class LaporansemakanundangController extends Controller
         $laporan = LaporanSemakanUndang::findOrFail($id);
 
         if (! $this->canEdit($laporan)) {
-            abort(403);
+            abort(403, 'Tiada kebenaran untuk kemaskini.');
         }
 
         $laporan->update($validated);
@@ -103,7 +110,7 @@ class LaporansemakanundangController extends Controller
         $laporan = LaporanSemakanUndang::findOrFail($id);
 
         if (! $this->canEdit($laporan)) {
-            abort(403);
+            abort(403, 'Tiada kebenaran untuk padam.');
         }
 
         $laporan->delete();
@@ -114,12 +121,20 @@ class LaporansemakanundangController extends Controller
 
     /**
      * Helper: Check Permission
+     * Rule: Global Roles boleh semua, User biasa hanya sendiri.
      */
     protected function canEdit(LaporanSemakanUndang $laporan)
     {
-        $user = auth()->user();
-        return ($user->role === 'pa' && $user->negeri === $laporan->negeri)
-            || ($laporan->user_id === $user->id);
+        $user = Auth::user();
+        $role = strtolower($user->role);
+
+        // 1. Super Admin, PA, YB, Admin boleh edit SEMUA
+        if (in_array($role, ['super_admin', 'pa', 'yb', 'admin'])) {
+            return true;
+        }
+
+        // 2. User biasa edit sendiri
+        return ($laporan->user_id === $user->id);
     }
 
     /**
@@ -129,7 +144,7 @@ class LaporansemakanundangController extends Controller
     {
         $bulan = $request->bulan;
         $tahun = $request->tahun;
-        $namaBulan = Carbon::create()->month($bulan)->format('F');
+        $namaBulan = \Carbon\Carbon::create()->month($bulan)->format('F');
 
         // Setting Column
         $colKategori = 'tajuk'; 

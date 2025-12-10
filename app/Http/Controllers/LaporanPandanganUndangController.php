@@ -13,26 +13,26 @@ use Illuminate\Support\Facades\Storage;
 class LaporanPandanganUndangController extends Controller
 {
     /**
-     * 1. INDEX: Filter Paling Inclusive (Terima OR Update OR Selesai)
+     * 1. INDEX: Filter ikut User vs Global (PA/YB/Admin)
      */
     public function index(Request $request)
     {
         $user = Auth::user();
         $query = LaporanPandanganUndang::query();
 
-        // 1. Ambil rekod terkini sahaja (elak rekod sejarah berulang)
+        // 1. Ambil rekod terkini sahaja (is_current=true)
         $query->where('is_current', true);
 
-        // 🔥 2. Filter Role (VISIBILITY LOGIC) 🔥
+        // 🔥 2. Filter Role (VISIBILITY LOGIC BARU) 🔥
         $role = strtolower($user->role);
         
-        if ($role === 'super_admin') {
-            // Super Admin melihat semua data (Global)
-        } elseif (in_array($role, ['yb', 'pa', 'puun', 'admin'])) {
-            // YB/PA/PUUN/Admin melihat semua data di Negeri mereka
-            $query->where('negeri', $user->negeri);
+        // Kumpulan yang boleh tengok SEMUA data (Global View)
+        $globalViewRoles = ['super_admin', 'pa', 'yb', 'admin']; 
+
+        if (in_array($role, $globalViewRoles)) {
+            // PA, YB, Admin, Super Admin nampak SEMUA data (Tiada filter user_id)
         } else {
-            // User biasa hanya melihat data yang mereka masukkan
+            // User biasa hanya nampak data SENDIRI
             $query->where('user_id', $user->id);
         }
 
@@ -43,17 +43,17 @@ class LaporanPandanganUndangController extends Controller
         $query->where(function($q) use ($tahun, $bulan) {
             
             if ($tahun != 'all') {
-                // A: Filter ikut Tarikh Terima (Surat masuk bulan ni)
+                // A: Tarikh Terima
                 $q->where(function($sub) use ($tahun, $bulan) {
                     $sub->whereYear('tarikh_terima', $tahun);
                     if ($bulan != 'all') $sub->whereMonth('tarikh_terima', $bulan);
                 })
-                // B: ATAU Filter ikut Tarikh Kemaskini (Ada tindakan/status baru bulan ni)
+                // B: Updated At (Tindakan)
                 ->orWhere(function($sub) use ($tahun, $bulan) {
                     $sub->whereYear('updated_at', $tahun);
                     if ($bulan != 'all') $sub->whereMonth('updated_at', $bulan);
                 })
-                // C: ATAU Filter ikut Tarikh Selesai (Kes selesai bulan ni)
+                // C: Tarikh Selesai
                 ->orWhere(function($sub) use ($tahun, $bulan) {
                     $sub->whereYear('tarikh_selesai', $tahun);
                     if ($bulan != 'all') $sub->whereMonth('tarikh_selesai', $bulan);
@@ -61,7 +61,7 @@ class LaporanPandanganUndangController extends Controller
             }
         });
 
-        // Susun ikut yang paling baru dikemaskini/tindakan
+        // Susun ikut yang paling baru dikemaskini
         $senaraiLaporan = $query->orderBy('updated_at', 'desc')->get();
 
         return view('laporanpandanganundang.index', compact('senaraiLaporan', 'tahun'));
@@ -73,7 +73,6 @@ class LaporanPandanganUndangController extends Controller
     public function create() 
     { 
         $user = Auth::user();
-        // Dapatkan senarai agensi ikut negeri user
         $agensiList = Agensi::where('negeri', $user->negeri)
                             ->orWhere('negeri', 'Persekutuan')
                             ->orderBy('nama_agensi', 'ASC')
@@ -311,25 +310,19 @@ class LaporanPandanganUndangController extends Controller
 
     /**
      * 🔥 HELPER FUNCTION BARU: authorizeAction (Check Edit/Delete Access) 🔥
-     * Rule: PA, YB, super_admin boleh delete/edit (skop negeri/global)
+     * Rule: PA, YB, Admin, Super Admin boleh buat semua. User biasa hanya sendiri.
      */
     protected function authorizeAction(LaporanPandanganUndang $laporan)
     {
         $user = Auth::user();
         $role = strtolower($user->role);
         
-        // 1. Super Admin boleh buat semua (Global)
-        if ($role === 'super_admin') {
+        // 1. Kumpulan Global (Super Admin, PA, YB, Admin) boleh edit/delete SEMUA
+        if (in_array($role, ['super_admin', 'pa', 'yb', 'admin'])) {
             return true;
         }
         
-        // 2. PA, YB, PUUN, Admin boleh buat semua dalam Negeri yang sama
-        $stateRoles = ['pa', 'yb', 'puun', 'admin'];
-        if (in_array($role, $stateRoles) && $user->negeri === $laporan->negeri) {
-            return true;
-        }
-        
-        // 3. User asal boleh edit/padam rekod sendiri
+        // 2. User asal boleh edit/padam rekod sendiri
         if ($user->id === $laporan->user_id) {
             return true;
         }

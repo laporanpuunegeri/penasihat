@@ -11,42 +11,57 @@ use Carbon\Carbon;
 class LaporanGubalanUndangController extends Controller
 {
     /**
-     * 1. INDEX: Senarai Laporan (Default Bulan Semasa)
+     * 1. INDEX: Senarai Laporan (Global View untuk YB/PA/Admin)
      */
     public function index(Request $request)
     {
         $user = Auth::user();
         $query = LaporanGubalanUndang::query();
 
-        // A. Filter Ikut Role
-        if ($user->role === 'pa' || $user->role === 'yb') {
-            $query->where('negeri', $user->negeri);
+        // --- A. FILTER VISIBILITI (Global vs User) ---
+        // Rule: PA, YB, Admin, Super Admin nampak SEMUA data.
+        $role = strtolower($user->role);
+        $globalViewRoles = ['super_admin', 'pa', 'yb', 'admin'];
+
+        if (in_array($role, $globalViewRoles)) {
+            // Global View: Nampak semua data (Tiada filter user_id/negeri)
         } else {
+            // User View: Hanya nampak data sendiri
             $query->where('user_id', $user->id);
         }
 
-        // B. Filter Bulan (Updated)
-        // Default: Bulan Semasa (date('n'))
-        // Jika user pilih 'all', set variable jadi 'all'
-        $bulanPilihan = $request->input('bulan', date('n'));
-        $tahunSemasa = date('Y');
+        // --- B. FILTER TARIKH (Guna created_at) ---
+        $bulan = $request->input('bulan', 'all'); 
+        
+        // 🔥 UPDATE: Default Tahun 'all' supaya data lama keluar jika tak pilih tahun
+        $tahun = $request->input('tahun', 'all');
 
-        if ($bulanPilihan !== 'all') {
-            // Filter ikut bulan 'created_at'
-            $query->whereMonth('created_at', $bulanPilihan)
-                  ->whereYear('created_at', $tahunSemasa);
+        // Filter Tahun
+        if ($tahun != 'all') {
+            $query->whereYear('created_at', $tahun);
         }
 
-        $data = $query->latest()->get();
+        // Filter Bulan
+        if ($bulan != 'all') {
+            $query->whereMonth('created_at', $bulan);
+        }
 
-        return view('laporangubalanundang.index', compact('data', 'user'));
+        $data = $query->orderBy('created_at', 'desc')->get();
+
+        return view('laporangubalanundang.index', compact('data', 'user', 'tahun', 'bulan'));
     }
 
+    /**
+     * 2. CREATE
+     */
     public function create()
     {
         return view('laporangubalanundang.create');
     }
 
+    /**
+     * 3. STORE
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -57,25 +72,35 @@ class LaporanGubalanUndangController extends Controller
 
         $user = Auth::user();
 
-        $validated['user_id'] = $user->id;
-        $validated['negeri'] = $user->negeri;
-
-        LaporanGubalanUndang::create($validated);
+        // Simpan data
+        LaporanGubalanUndang::create([
+            'tajuk' => $request->tajuk,
+            'tindakan' => $request->tindakan,
+            'status' => $request->status,
+            'user_id' => $user->id,
+            'negeri' => $user->negeri,
+        ]);
 
         return redirect()->route('laporangubalanundang.index')->with('success', 'Laporan berjaya disimpan.');
     }
 
+    /**
+     * 4. EDIT
+     */
     public function edit($id)
     {
         $laporan = LaporanGubalanUndang::findOrFail($id);
 
         if (! $this->canEdit($laporan)) {
-            abort(403);
+            abort(403, 'Tiada kebenaran untuk edit.');
         }
 
         return view('laporangubalanundang.edit', compact('laporan'));
     }
 
+    /**
+     * 5. UPDATE
+     */
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
@@ -87,7 +112,7 @@ class LaporanGubalanUndangController extends Controller
         $laporan = LaporanGubalanUndang::findOrFail($id);
 
         if (! $this->canEdit($laporan)) {
-            abort(403);
+            abort(403, 'Tiada kebenaran untuk kemaskini.');
         }
 
         $laporan->update($validated);
@@ -95,12 +120,15 @@ class LaporanGubalanUndangController extends Controller
         return redirect()->route('laporangubalanundang.index')->with('success', 'Laporan berjaya dikemas kini.');
     }
 
+    /**
+     * 6. DESTROY
+     */
     public function destroy($id)
     {
         $laporan = LaporanGubalanUndang::findOrFail($id);
 
         if (! $this->canEdit($laporan)) {
-            abort(403);
+            abort(403, 'Tiada kebenaran untuk padam.');
         }
 
         $laporan->delete();
@@ -109,16 +137,20 @@ class LaporanGubalanUndangController extends Controller
     }
 
     /**
-     * Helper: Check Permission
+     * Helper: Check Permission (Global Access)
      */
     protected function canEdit(LaporanGubalanUndang $laporan)
     {
         $user = Auth::user();
+        $role = strtolower($user->role);
 
-        return (
-            ($user->role === 'pa' && $user->negeri === $laporan->negeri) ||
-            ($user->id === $laporan->user_id)
-        );
+        // 1. Super Admin, PA, YB, Admin boleh edit SEMUA
+        if (in_array($role, ['super_admin', 'pa', 'yb', 'admin'])) {
+            return true;
+        }
+
+        // 2. User biasa edit sendiri
+        return ($laporan->user_id === $user->id);
     }
 
     /**
@@ -128,12 +160,11 @@ class LaporanGubalanUndangController extends Controller
     {
         $bulan = $request->bulan;
         $tahun = $request->tahun;
-        $namaBulan = Carbon::create()->month($bulan)->format('F');
+        $namaBulan = \Carbon\Carbon::create()->month($bulan)->format('F');
 
-        // Setting Column
         $colKategori = 'tajuk'; 
-
-        // Senarai Tetap (3 Item Utama)
+        
+        // Senarai Tetap
         $standardList = [
             'Rang Undang-Undang',
             'Perundangan Subsidiari Substantif',
@@ -152,18 +183,15 @@ class LaporanGubalanUndangController extends Controller
         $labels = [];
         $totals = [];
 
-        // Loop untuk pastikan 3 kategori tu sentiasa keluar walaupun 0
         foreach ($standardList as $item) {
             $count = $dbData[$item] ?? 0;
-
-            // Masuk ke collection (untuk Table)
+            
+            // Masukkan data jika ada ( > 0 )
             if ($count > 0) {
                 $dataPecahan->push((object)[
                     'kategori' => $item,
                     'total' => $count
                 ]);
-                
-                // Masuk ke array (untuk Graf)
                 $labels[] = $item;
                 $totals[] = $count;
             }
