@@ -250,26 +250,41 @@ class LaporanPandanganUndangController extends Controller
         return redirect()->route('laporanpandanganundang.index')->with('success', 'Status baru berjaya direkodkan.');
     }
 
-    /**
-     * 6. DESTROY: Padam Rekod (DENGAN KAWALAN AKSES)
+/**
+     * 6. DESTROY: Padam Rekod (HANYA PEMILIK ASAL)
      */
-    public function destroy($id) 
-    { 
-        $laporan = LaporanPandanganUndang::findOrFail($id); 
-        
-        // 🔥 KAWALAN AKSES 🔥
-        if (!$this->authorizeAction($laporan)) {
-            abort(403, 'Anda tidak mempunyai kebenaran untuk memadam laporan ini.');
+    public function destroy($id)
+    {
+        $laporan = LaporanPandanganUndang::findOrFail($id);
+
+        // SYARAT MUTLAK: Hanya user yang mencipta rekod ini boleh memadamnya.
+        // Tiada pengecualian untuk Admin/Boss.
+        if ($laporan->user_id !== Auth::id()) {
+            abort(403, 'Maaf, hanya pemilik asal rekod ini dibenarkan untuk memadam.');
         }
 
-        // Padam dokumen (jika ada)
-        if ($laporan->dokumen_path) { 
-            Storage::disk('public')->delete($laporan->dokumen_path); 
-        } 
-        
-        $laporan->delete(); 
-        
-        return redirect()->route('laporanpandanganundang.index')->with('success', 'Laporan berjaya dipadam.'); 
+        $laporan->delete();
+
+        return redirect()->route('laporanpandanganundang.index')
+                         ->with('success', 'Laporan berjaya dipadam.');
+    }
+
+    /**
+     * Helper: Semak Siapa Boleh Padam
+     */
+    protected function canDelete($laporan)
+    {
+        $user = Auth::user();
+        $role = strtolower($user->role);
+
+        // 1. Geng "Kayangan" (Boleh padam semua orang punya)
+        // Tambah role lain kat sini kalau perlu (contoh: 'boss', 'cc')
+        if (in_array($role, ['super_admin', 'admin', 'pa', 'yb'])) {
+            return true;
+        }
+
+        // 2. Rakyat Marhaen (Boleh padam hak sendiri je)
+        return ($laporan->user_id === $user->id);
     }
     
     /**

@@ -201,7 +201,7 @@
                                 <td>
                                     <div class="d-flex justify-content-center gap-1">
                                         
-                                        {{-- 🔥 LOGIK BARU: Butang Edit HANYA MUNCUL jika Belum Selesai --}}
+                                        {{-- Butang Edit: HANYA jika Belum Selesai --}}
                                         @if(!$item->tarikh_selesai)
                                             <a href="{{ route('laporanpandanganundang.edit', $item->id) }}" 
                                                class="btn btn-outline-warning btn-sm btn-icon" 
@@ -210,7 +210,8 @@
                                             </a>
                                         @endif
                                         
-                                        @if ($currentUser->id === $item->user_id || in_array($currentUser->role, ['super_admin', 'admin']))
+                                        {{-- 🔥 BUTANG DELETE: HANYA PEMILIK ASAL SAHAJA (Admin pun tak boleh) 🔥 --}}
+                                        @if ($currentUser->id === $item->user_id)
                                             <form action="{{ route('laporanpandanganundang.destroy', $item->id) }}" method="POST" class="d-inline">
                                                 @csrf @method('DELETE')
                                                 <button type="submit" class="btn btn-outline-danger btn-sm btn-icon" onclick="return confirm('Hapus rekod ini?')"><i class="fas fa-trash"></i></button>
