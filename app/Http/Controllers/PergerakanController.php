@@ -10,12 +10,13 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage; 
 use PDF;
 use Carbon\Carbon;
+use Carbon\CarbonPeriod; 
 
 class PergerakanController extends Controller
 {
-    /**
-     * Paparkan Kalendar Pergerakan (index).
-     */
+    // =========================================================================
+    // 1. INDEX & PAPARAN
+    // =========================================================================
     public function index(Request $request)
     {
         $query = Pergerakan::query();
@@ -34,7 +35,7 @@ class PergerakanController extends Controller
         }
 
         $pergerakan = $query->get()->map(function ($event) {
-            $userName = $event->user->name ?? 'Pengguna Dipadam (ID: ' . $event->user_id . ')';
+            $userName = $event->user->name ?? 'Pengguna Dipadam';
             $title = $userName . ' - ' . $event->tujuan_penggunaan;
             
             $color = '#6c757d'; 
@@ -71,20 +72,19 @@ class PergerakanController extends Controller
         return view('pergerakan.create');
     }
 
+    // =========================================================================
+    // 2. SIMPAN DATA (STORE)
+    // =========================================================================
     public function store(Request $request)
     {
         $validated = $request->validate([
             'jenis' => 'required',
             'tarikh_mula' => 'required|date',
-            'tarikh_akhir' => 'required|date',
+            'tarikh_akhir' => 'required|date|after_or_equal:tarikh_mula',
             'kenderaan' => 'required',
             'tujuan_penggunaan' => 'required',
             'destinasi' => 'required',
-            'lampiran' => 'required|file|mimes:jpg,jpeg,png|max:5120', 
-        ], [
-            'lampiran.required' => 'Sila muat naik dokumen lampiran/surat arahan.',
-            'lampiran.mimes' => 'Harap maaf, hanya format GAMBAR (JPG, JPEG, PNG) sahaja dibenarkan.',
-            'lampiran.max' => 'Saiz fail terlalu besar (Maksimum 5MB).',
+            'lampiran' => 'required|file|max:10240', 
         ]);
 
         try {
@@ -98,16 +98,34 @@ class PergerakanController extends Controller
                 $data['lampiran'] = $path;
             }
 
-            Pergerakan::create($data);
+            if ($request->has('is_multiday')) {
+                $start = Carbon::parse($request->tarikh_mula);
+                $end = Carbon::parse($request->tarikh_akhir);
+                $period = CarbonPeriod::create($start, $end);
+                $dayCount = 1;
+                foreach ($period as $date) {
+                    $dailyData = $data;
+                    $dailyData['tarikh_mula'] = $date->format('Y-m-d');
+                    $dailyData['tarikh_akhir'] = $date->format('Y-m-d');
+                    $dailyData['tujuan_penggunaan'] = $data['tujuan_penggunaan'] . ' (Hari ke-' . $dayCount++ . ')';
+                    Pergerakan::create($dailyData);
+                }
+                $message = 'Permohonan bersiri berjaya dihantar.';
+            } else {
+                Pergerakan::create($data);
+                $message = 'Permohonan berjaya dihantar.';
+            }
 
-            return redirect()->route('pergerakan.index')->with('success', 'Permohonan berjaya dihantar.');
+            return redirect()->route('pergerakan.index')->with('success', $message);
 
         } catch (\Exception $e) {
-            return back()->with('error', 'Gagal menyimpan data: ' . $e->getMessage())->withInput();
+            return back()->with('error', 'Gagal: ' . $e->getMessage())->withInput();
         }
     }
 
-    // 🔥🔥🔥 FUNGSI UTAMA YANG DIKEMASKINI 🔥🔥🔥
+    // =========================================================================
+    // 3. SEMAKAN & KELULUSAN
+    // =========================================================================
     public function cc_review(Request $request, Pergerakan $pergerakan)
     {
         if (!Gate::allows('review-cc', $pergerakan)) { abort(403); }
@@ -115,79 +133,42 @@ class PergerakanController extends Controller
         $actionType = $request->input('action_type');
         $catatan_cc = $request->input('catatan_cc');
 
-        // KES 1: SOKONG KENDERAAN PEJABAT (Ada kenderaan & pemandu)
         if ($actionType === 'support') {
             $validated = $request->validate([
                 'no_kenderaan' => 'required|string|max:50', 
                 'nama_pemandu' => 'required|string|max:255',
             ]);
-            
             $pergerakan->status_cc = 'Sokong'; 
             $pergerakan->catatan_cc = $catatan_cc; 
-            $pergerakan->cc_id = Auth::id(); // Simpan ID CC
+            $pergerakan->cc_id = Auth::id(); 
             $pergerakan->no_kenderaan = $validated['no_kenderaan']; 
             $pergerakan->nama_pemandu = $validated['nama_pemandu'];
-            
             $pergerakan->save();
-            $message = 'Permohonan disokong dan kenderaan berjaya ditugaskan.';
+            $message = 'Permohonan disokong (Kenderaan Pejabat).';
 
-        // KES 2: SOKONG KENDERAAN SENDIRI (Hanya Catatan) - MODAL KHAS
         } elseif ($actionType === 'support_sendiri') {
-            $validated = $request->validate([
-                'catatan_cc' => 'required|string|max:500' // Wajibkan catatan
-            ]);
-
+            $validated = $request->validate(['catatan_cc' => 'required|string|max:500']);
             $pergerakan->status_cc = 'Sokong';
-            $pergerakan->cc_id = Auth::id(); // Simpan ID CC
-            $pergerakan->catatan_cc = $validated['catatan_cc']; // Simpan catatan
-            
-            // Kosongkan kenderaan rasmi
+            $pergerakan->cc_id = Auth::id();
+            $pergerakan->catatan_cc = $validated['catatan_cc'];
             $pergerakan->no_kenderaan = null;
             $pergerakan->nama_pemandu = null;
-
             $pergerakan->save();
-            $message = 'Permohonan (Kenderaan Sendiri) berjaya disokong dengan catatan.';
+            $message = 'Permohonan disokong (Kenderaan Sendiri).';
 
-        // KES 3: TOLAK
         } elseif ($actionType === 'reject') {
             $validated = $request->validate(['catatan_cc' => 'required|string|max:500']);
-            
             $pergerakan->status_cc = 'Tolak'; 
             $pergerakan->status_yb = 'Tolak';
-            $pergerakan->cc_id = Auth::id(); // Simpan ID CC
+            $pergerakan->cc_id = Auth::id(); 
             $pergerakan->catatan_cc = $validated['catatan_cc'];
-            
             $pergerakan->save();
-            $message = 'Permohonan pergerakan telah ditolak.';
+            $message = 'Permohonan ditolak.';
         }
 
         return redirect()->route('pergerakan.index')->with('success', $message);
     }
     
-    // --- FUNGSI RINGKAS (MUNGKIN TAK DIGUNAKAN LAGI TAPI SIMPAN UNTUK BACKUP) ---
-    public function lulusCc($id)
-    {
-        $pergerakan = Pergerakan::findOrFail($id);
-        if (!Gate::allows('review-cc', $pergerakan)) { abort(403); }
-        $pergerakan->status_cc = 'Sokong';
-        $pergerakan->cc_id = Auth::id();
-        $pergerakan->catatan_cc = 'Disokong tanpa penetapan kenderaan (Kenderaan Sendiri)';
-        $pergerakan->save();
-        return redirect()->route('pergerakan.index')->with('success', 'Permohonan berjaya disokong.');
-    }
-
-    public function tolakCc($id)
-    {
-        $pergerakan = Pergerakan::findOrFail($id);
-        if (!Gate::allows('review-cc', $pergerakan)) { abort(403); }
-        $pergerakan->status_cc = 'Tolak'; $pergerakan->status_yb = 'Tolak';
-        $pergerakan->cc_id = Auth::id();
-        $pergerakan->catatan_cc = 'Ditolak oleh CC/Boss melalui pautan segera.';
-        $pergerakan->save();
-        return redirect()->route('pergerakan.index')->with('success', 'Permohonan telah ditolak.');
-    }
-
-    // --- Tindakan YB ---
     public function lulusYb($id)
     {
         $pergerakan = Pergerakan::findOrFail($id);
@@ -195,7 +176,7 @@ class PergerakanController extends Controller
         $pergerakan->status_yb = 'Lulus';
         $pergerakan->yb_id = Auth::id();
         $pergerakan->save();
-        return redirect()->route('pergerakan.index')->with('success', 'Permohonan pergerakan berjaya DILULUSKAN.');
+        return redirect()->route('pergerakan.index')->with('success', 'Permohonan DILULUSKAN.');
     }
 
     public function tolakYb($id)
@@ -205,10 +186,9 @@ class PergerakanController extends Controller
         $pergerakan->status_yb = 'Tolak';
         $pergerakan->yb_id = Auth::id();
         $pergerakan->save();
-        return redirect()->route('pergerakan.index')->with('success', 'Permohonan pergerakan telah DITOLAK oleh YB.');
+        return redirect()->route('pergerakan.index')->with('success', 'Permohonan DITOLAK.');
     }
 
-    // --- CRUD dan Cetak Borang ---
     public function destroy($id)
     {
         $pergerakan = Pergerakan::findOrFail($id);
@@ -227,80 +207,92 @@ class PergerakanController extends Controller
         }
     }
 
+    // =========================================================================
+    // 4. CETAK BORANG (PATH FIZIKAL)
+    // =========================================================================
     public function cetakBorang($id)
     {
-        // 1. Muatkan relation 'cc' supaya kita tahu siapa yang sokong
         $pergerakan = Pergerakan::with(['user', 'cc'])->findOrFail($id);
         
         if ($pergerakan->status_yb !== 'Lulus') {
             abort(403, 'Hanya borang yang DILULUSKAN sahaja boleh dicetak.');
         }
         
-        // Tentukan View
         $viewName = str_contains($pergerakan->kenderaan, 'Pejabat') 
                     ? 'pergerakan.borang_kenderaan_pejabat' 
                     : 'pergerakan.borang_kenderaan_sendiri';
         
-        // --- OPERASI CARI SIAPA CC SEBENAR ---
         $cc_user = $pergerakan->cc; 
-        
         if (!$cc_user) {
-            $bahagianPemohon = $pergerakan->user->bahagian;
-            $cc_user = User::where('role', 'boss')->where('bahagian', $bahagianPemohon)->first();
-            if (!$cc_user) {
-                $cc_user = User::whereIn('role', ['super_admin', 'admin'])->where('bahagian', $bahagianPemohon)->first();
-            }
-            if (!$cc_user) { $cc_user = Auth::user(); }
+            $bahagian = $pergerakan->user->bahagian;
+            $cc_user = User::where('role', 'boss')->where('bahagian', $bahagian)->first() 
+                       ?? User::where('role', 'super_admin')->first()
+                       ?? Auth::user();
         }
-
         $penasihat = User::where('role', 'yb')->first();
-        $sig_yb = $penasihat ? $this->getSignatureBase64($penasihat) : null;
-        $sig_applicant = $this->getSignatureBase64($pergerakan->user);
-        $sig_cc = $cc_user ? $this->getSignatureBase64($cc_user) : null;
+
+        // 🔥 PANGGIL HELPER (CUMA SEKALI DI SINI)
+        $sig_yb = $penasihat ? $this->getSignaturePath($penasihat) : null;
+        $sig_applicant = $this->getSignaturePath($pergerakan->user);
+        $sig_cc = $cc_user ? $this->getSignaturePath($cc_user) : null;
 
         $data = [
             'pergerakan' => $pergerakan,
-            'namaYB' => $penasihat->name ?? 'TIADA MAKLUMAT YB', 
-            'bahagianYB' => $penasihat->bahagian ?? '', 
-            'jawatanYB' => $penasihat->nama_jawatan ?? 'Penasihat Undang-Undang Negeri', 
+            'namaYB' => $penasihat->name ?? 'TIADA',
+            'bahagianYB' => $penasihat->bahagian ?? '',
+            'jawatanYB' => $penasihat->nama_jawatan ?? '',
             'sig_yb' => $sig_yb,
-            'sig_applicant' => $sig_applicant, 
-            'sig_cc' => $sig_cc, 
-            'cc_name' => $cc_user->name ?? 'TIADA NAMA PENYOKONG',
-            'cc_jawatan' => $cc_user->nama_jawatan ?? 'Ketua Bahagian', 
+            'sig_applicant' => $sig_applicant,
+            'sig_cc' => $sig_cc,
+            'cc_name' => $cc_user->name ?? '',
+            'cc_jawatan' => $cc_user->nama_jawatan ?? '',
             'pemandu_ditugaskan' => $pergerakan->nama_pemandu,
             'no_kenderaan_rasmi' => $pergerakan->no_kenderaan,
         ];
         
         $pdf = PDF::loadView($viewName, $data);
+        $pdf->setOptions(['isRemoteEnabled' => true, 'chroot' => [base_path()]]); 
+        
         return $pdf->stream('Borang_Pergerakan_' . $pergerakan->id . '.pdf');
     }
 
-    protected function getSignatureBase64(User $user)
+    /**
+     * HELPER: Cari path fizikal fail tandatangan
+     * (Hanya satu fungsi ini sahaja dalam fail!)
+     */
+    protected function getSignaturePath(User $user)
     {
-        $signature_url = null;
-        if ($user->signature_file) {
-            try {
-                $path = 'public/signatures/' . $user->signature_file; 
-                if (Storage::exists($path)) {
-                    $contents = Storage::get($path);
-                    $type = Storage::mimeType($path);
-                    $signature_url = 'data:' . $type . ';base64,' . base64_encode($contents);
-                }
-            } catch (\Exception $e) { }
+        if (!$user->signature_file) return null;
+
+        $filename = $user->signature_file;
+        
+        // Senarai kemungkinan lokasi fail
+        $candidates = [
+            public_path($filename), // Jika DB ada "signatures/file.png"
+            public_path('storage/' . $filename), // Jika melalui storage link
+            storage_path('app/public/' . $filename), // Direct storage
+        ];
+
+        // Backup: Jika DB cuma "file.png", kita tambah folder manual
+        if (!str_contains($filename, 'signatures/')) {
+            $candidates[] = public_path('signatures/' . $filename);
+            $candidates[] = storage_path('app/public/signatures/' . $filename);
         }
-        return $signature_url;
+
+        foreach ($candidates as $path) {
+            if (file_exists($path)) {
+                return $path; // JUMPA!
+            }
+        }
+
+        return null; // Tak jumpa
     }
 
     public function cetakKalendarKeseluruhan(Request $request)
     {
-        $month = $request->input('month');
-        $year = $request->input('year');
-        if (!$month || !$year) {
-            $currentDate = Carbon::now();
-            $month = $currentDate->month;
-            $year = $currentDate->year;
-        }
+        $month = $request->input('month', Carbon::now()->month);
+        $year = $request->input('year', Carbon::now()->year);
+        
         $penasihat = User::where('role', 'yb')->first();
         $startOfMonth = Carbon::createFromDate($year, $month, 1)->startOfMonth();
         $endOfMonth = Carbon::createFromDate($year, $month, 1)->endOfMonth();
@@ -326,10 +318,12 @@ class PergerakanController extends Controller
             'tarikh_cetak' => Carbon::now()->format('d/m/Y H:i:s'),
             'namaYB' => $penasihat->name ?? 'YANG BERHORMAT',
             'jawatanYB' => $penasihat->nama_jawatan ?? 'Jawatan',
-            'sig_yb' => $penasihat ? $this->getSignatureBase64($penasihat) : null,
+            'sig_yb' => $penasihat ? $this->getSignaturePath($penasihat) : null,
         ];
         
         $pdf = PDF::loadView('pergerakan.kalendar_keseluruhan_pdf', $data)->setPaper('a4', 'landscape');
+        $pdf->setOptions(['isRemoteEnabled' => true, 'chroot' => [base_path()]]); 
+        
         return $pdf->stream('Kalendar_Pergerakan_' . $startOfMonth->format('Ym') . '.pdf');
     }
 }

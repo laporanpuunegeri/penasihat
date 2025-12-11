@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage; // Pastikan ini ada untuk debug route
 
 // Controllers
 use App\Http\Controllers\ProfileController;
@@ -94,7 +95,6 @@ Route::middleware('auth')->group(function () {
 
     // =========================================================================
     // 🔥 ROUTE KHAS UNTUK DRILL-DOWN GRAF (PECAHAN BULAN) 🔥
-    // Ini wajib ada supaya bila klik graf, dia pergi ke page detail
     // =========================================================================
     Route::get('laporanpandanganundang/pecahan', [LaporanPandanganUndangController::class, 'pecahanBulan'])->name('laporanpandanganundang.pecahan');
     Route::get('laporankesmahkamah/pecahan', [LaporanKesMahkamahController::class, 'pecahanBulan'])->name('laporankesmahkamah.pecahan');
