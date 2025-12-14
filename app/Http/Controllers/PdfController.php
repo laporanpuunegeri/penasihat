@@ -15,7 +15,6 @@ use App\Models\LampiranKesMahkamah;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\DB; // Tambah DB facade jika diperlukan
 
 class PdfController extends Controller
 {
@@ -25,31 +24,21 @@ class PdfController extends Controller
         $tahun = $request->get('tahun', now()->year);
 
         $user = Auth::user();
-        // Filter Role (Negeri vs User ID)
+        
         $filter = in_array(strtolower($user->role), ['pa', 'yb']) 
             ? ['negeri' => $user->negeri] 
             : ['user_id' => $user->id];
 
-        $kategori_list = [
-            'Perlembagaan', 'Tanah / PBT', 'Undang-Undang Pentadbiran / Perkhidmatan',
-            'Perjanjian / MOU', 'Penswastaan', 'Lain-lain',
-        ];
+        $kategori_list = ['Perlembagaan', 'Tanah / PBT', 'Undang-Undang Pentadbiran / Perkhidmatan', 'Perjanjian / MOU', 'Penswastaan', 'Lain-lain'];
 
-        $kategori_kes = collect([
-            'Perlembagaan', 'Tanah / PBT', 'Rujukan tanah', 'Undang-Undang Pentadbiran / Perkhidmatan',
-            'Kemalangan', 'Perjanjian / Penswastaan', 'Pendakwaan', 'Lain-lain'
-        ])->map(fn($label) => [
-            'label' => $label, 'key' => Str::lower(trim($label)),
-        ]);
+        $kategori_kes = collect(['Perlembagaan', 'Tanah / PBT', 'Rujukan tanah', 'Undang-Undang Pentadbiran / Perkhidmatan', 'Kemalangan', 'Perjanjian / Penswastaan', 'Pendakwaan', 'Lain-lain'])
+            ->map(fn($label) => ['label' => $label, 'key' => Str::lower(trim($label))]);
 
-        // Ambil data lampiran kes dan susun ikut kategori
         $lampiran = LampiranKesMahkamah::query()
             ->when(in_array(strtolower($user->role), ['pa', 'yb']), fn($q) => $q->where('negeri', $user->negeri))
             ->when(!in_array(strtolower($user->role), ['pa', 'yb']), fn($q) => $q->where('user_id', $user->id))
-            ->where('bulan', $bulan)
-            ->where('tahun', $tahun)
-            ->get()
-            ->keyBy(fn($item) => Str::lower(trim($item->kategori)));
+            ->where('bulan', $bulan)->where('tahun', $tahun)
+            ->get()->keyBy(fn($item) => Str::lower(trim($item->kategori)));
 
         $lampiranKes = $lampiran->map(fn($item) => [
             'bil_aktif' => $item->bil_aktif ?? 0, 'majistret' => $item->majistret ?? 0, 'sesi' => $item->sesi ?? 0,
@@ -57,45 +46,33 @@ class PdfController extends Controller
             'status' => $item->status ?? '-',
         ])->toArray();
 
-        // Jumlah Keseluruhan
         $jumlahKeseluruhan = [
             'bil_aktif' => $lampiran->sum('bil_aktif'), 'majistret' => $lampiran->sum('majistret'),
             'sesi' => $lampiran->sum('sesi'), 'tinggi' => $lampiran->sum('tinggi'),
             'rayuan' => $lampiran->sum('rayuan'), 'persk' => $lampiran->sum('persk'),
         ];
 
-        // --- 1. PANDANGAN UNDANG-UNDANG (QUERY INCLUSIVE UTK PDF) ---
+        // --- PANDANGAN UNDANG-UNDANG ---
         $laporan_pandangan = LaporanPandanganUndang::where($filter)
             ->where('is_current', true)
             ->where(function($q) use ($tahun, $bulan) {
-                // A: Tarikh Terima
                 $q->where(function($sub) use ($tahun, $bulan) {
                     $sub->whereYear('tarikh_terima', $tahun)->whereMonth('tarikh_terima', $bulan);
                 })
-                // B: Updated At (Tindakan)
                 ->orWhere(function($sub) use ($tahun, $bulan) {
                     $sub->whereYear('updated_at', $tahun)->whereMonth('updated_at', $bulan);
                 })
-                // C: Tarikh Selesai
                 ->orWhere(function($sub) use ($tahun, $bulan) {
                     $sub->whereYear('tarikh_selesai', $tahun)->whereMonth('tarikh_selesai', $bulan);
                 });
             })
-            ->orderBy('updated_at', 'asc') 
-            ->get();
-
+            ->orderBy('updated_at', 'asc')->get();
 
         return Pdf::loadView('laporan.pdf', [
-            'bulan' => $bulan,
-            'tahun' => $tahun,
-            'user' => $user,
-            'kategori_list' => $kategori_list,
-            'kategori_kes' => $kategori_kes,
-
-            // 🔥 GUNAKAN QUERY BARU 🔥
+            'bulan' => $bulan, 'tahun' => $tahun, 'user' => $user,
+            'kategori_list' => $kategori_list, 'kategori_kes' => $kategori_kes,
             'laporan' => $laporan_pandangan, 
 
-            // Query lain kekal standard, cuma pastikan order by asc
             'laporan_kesmahkamah' => LaporanKesMahkamah::where($filter)
                 ->whereMonth('tarikh_sebutan', $bulan)->whereYear('tarikh_sebutan', $tahun)
                 ->orderBy('tarikh_sebutan', 'asc')->get(),
@@ -112,17 +89,21 @@ class PdfController extends Controller
                 ->whereMonth('created_at', $bulan)->whereYear('created_at', $tahun)
                 ->orderBy('created_at', 'asc')->get(),
 
+            // 🔥 FIX: Mesyuarat (Guna tarikh_mesyuarat) 🔥
             'laporan_mesyuarat' => LaporanMesyuarat::where($filter)
-                ->whereMonth('created_at', $bulan)->whereYear('created_at', $tahun)
-                ->orderBy('created_at', 'asc')->get(),
+                ->whereMonth('tarikh_mesyuarat', $bulan)
+                ->whereYear('tarikh_mesyuarat', $tahun)
+                ->orderBy('tarikh_mesyuarat', 'asc')->get(),
 
             'laporan_tatatertib' => Kestatatertib::where($filter)
                 ->whereMonth('tarikh_terima', $bulan)->whereYear('tarikh_terima', $tahun)
                 ->orderBy('tarikh_terima', 'asc')->get(),
 
+            // 🔥 FIX: Lain-Lain Tugasan (Guna tarikh) 🔥
             'laporan_lainlain' => LainLainTugasan::where($filter)
-                ->whereMonth('created_at', $bulan)->whereYear('created_at', $tahun)
-                ->orderBy('created_at', 'asc')->get(),
+                ->whereMonth('tarikh', $bulan)
+                ->whereYear('tarikh', $tahun)
+                ->orderBy('tarikh', 'asc')->get(),
 
             'lampiran_kesmahkamah' => $lampiranKes,
             'jumlah_keseluruhan' => $jumlahKeseluruhan,
