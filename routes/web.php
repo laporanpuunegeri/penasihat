@@ -14,13 +14,13 @@ use App\Http\Controllers\AgensiController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\LaporanPPUUNController;
 use App\Http\Controllers\DbusController;
-use App\Http\Controllers\DbusPecahanController; 
+use App\Http\Controllers\DbusPecahanController;
 use App\Http\Controllers\GuamanController;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\KestatatertibController;
 use App\Http\Controllers\LaporanLainLainController;
 use App\Http\Controllers\PdfController;
-use App\Http\Controllers\LampiranKesMahkamahController; 
+use App\Http\Controllers\LampiranKesMahkamahController;
 
 // Controllers Laporan (Untuk Grafik & CRUD)
 use App\Http\Controllers\LaporanPandanganUndangController;
@@ -36,7 +36,7 @@ use App\Http\Controllers\CustomPasswordResetController;
 
 // Dashboard Controllers (Bahagian)
 use App\Http\Controllers\DashboardBahagian\GuamanDashboardController;
-use App\Http\Controllers\DashboardBahagian\KewanganPentadbiranDashboardController; 
+use App\Http\Controllers\DashboardBahagian\KewanganPentadbiranDashboardController;
 use App\Http\Controllers\DashboardBahagian\PenasihatDashboardController;
 
 // =========================================================================
@@ -84,13 +84,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/kewangan', [KewanganPentadbiranDashboardController::class, 'dashboard'])->name('dashboard.kewangan');
         Route::get('/pentadbiran-kewangan', [KewanganPentadbiranDashboardController::class, 'dashboard'])->name('dashboard.pentadbirandankewangan');
         Route::get('/guaman', [GuamanDashboardController::class, 'dashboard'])->name('dashboard.guaman');
-        
+
         // Dashboard Penasihat (8 Graf Utama)
         Route::get('/penasihat', [PenasihatDashboardController::class, 'index'])->name('dashboard.penasihat');
 
         Route::view('/pendakwaan', 'dashboard.pendakwaan')->name('dashboard.pendakwaan');
-        Route::view('/semakan', 'dashboard.semakan')->name('dashboard.semakan');
-        Route::view('/syariah', 'dashboard.syariah')->name('dashboard.syariah');
+
+        // 🔥 UBAH SINI: Route Semakan & Syariah GUNA CONTROLLER YANG SAMA (PenasihatDashboardController) 🔥
+        Route::get('/semakan', [PenasihatDashboardController::class, 'index'])->name('dashboard.semakan');
+        Route::get('/syariah', [PenasihatDashboardController::class, 'index'])->name('dashboard.syariah');
     });
 
     // =========================================================================
@@ -144,20 +146,20 @@ Route::middleware('auth')->group(function () {
     // MODUL PENTADBIRAN
     // =========================================================================
     Route::prefix('pentadbiran')->name('pentadbiran.')->group(function () {
-        Route::resource('/', PentadbiranController::class)->names(['index' => 'dashboard']); 
-        
+        Route::resource('/', PentadbiranController::class)->names(['index' => 'dashboard']);
+
         // WARAN
-        Route::get('/waran', [PentadbiranController::class, 'indexWaran'])->name('waran.index'); 
+        Route::get('/waran', [PentadbiranController::class, 'indexWaran'])->name('waran.index');
         Route::get('/waran/edit', [PentadbiranController::class, 'editWaran'])->name('waran.edit');
         Route::post('/waran/update', [PentadbiranController::class, 'updateWaran'])->name('waran.update');
 
         // DBUS (OBB)
         Route::prefix('dbus')->name('dbus.')->group(function () {
             Route::get('/cetak-pdf', [DbusController::class, 'cetakPdf'])->name('cetak_pdf');
-            
+
             // AJAX Update OA
-            Route::post('/update-oa-am', [DbusController::class, 'updateOaAm'])->name('updateOaAm'); 
-            
+            Route::post('/update-oa-am', [DbusController::class, 'updateOaAm'])->name('updateOaAm');
+
             // Index & Master
             Route::get('/', [DbusController::class, 'index'])->name('index');
             Route::get('/create', [DbusController::class, 'create'])->name('create');
@@ -177,7 +179,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/edit-os27000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs27000'])->name('edit_os27000');
             Route::get('/edit-os28000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs28000'])->name('edit_os28000');
             Route::get('/edit-os29000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs29000'])->name('edit_os29000');
-            
+
             // Pecahan Updates (POST)
             Route::post('/pecahan/store', [DbusPecahanController::class, 'storePegawai'])->name('pecahan.store');
             Route::post('/update-ol14101', [DbusPecahanController::class, 'updateOt'])->name('update_ol14101');
@@ -231,10 +233,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/laporan/pdf', [PdfController::class, 'laporan'])->name('laporan.pdf');
 
     Route::prefix('lampiran')->name('lampiran.')->group(function () {
-        Route::get('/', [LampiranKesMahkamahController::class, 'index'])->name('index'); 
+        Route::get('/', [LampiranKesMahkamahController::class, 'index'])->name('index');
         Route::post('/', [LampiranKesMahkamahController::class, 'store'])->name('store');
     });
-    
+
     // Resource Routes untuk Modul (CRUD Standard)
     Route::resources([
         'laporanpandanganundang' => LaporanPandanganUndangController::class,
