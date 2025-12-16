@@ -11,26 +11,28 @@ use Carbon\Carbon;
 class KestatatertibController extends Controller
 {
     /**
-     * 1. INDEX: Senarai Laporan (Filter guna 'tarikh_terima')
+     * 1. INDEX: Senarai Laporan
      */
     public function index(Request $request)
     {
         $user = Auth::user();
         $query = Kestatatertib::query();
 
-        // --- A. FILTER VISIBILITI (Global vs User) ---
-        // Rule: PA, YB, Admin, Super Admin nampak SEMUA data.
-        $role = strtolower($user->role);
-        $globalViewRoles = ['super_admin', 'pa', 'yb', 'admin'];
-
-        if (in_array($role, $globalViewRoles)) {
-            // Global View: Tiada filter tambahan (Nampak semua)
-        } else {
-            // User View: Hanya nampak data sendiri
+        // --- A. FILTER VISIBILITI (LOGIC BARU) ---
+        // 1. VIP (YB, PA, Super Admin, Admin) -> Nampak SEMUA (Tiada Filter)
+        if (in_array(strtolower($user->role), ['super_admin', 'yb', 'pa', 'admin'])) {
+            // Global View: Jangan letak filter
+        } 
+        // 2. EO -> Nampak Ikut Negeri
+        elseif (in_array(strtolower($user->role), ['eo'])) {
+            $query->where('negeri', $user->negeri);
+        }
+        // 3. User Biasa -> Nampak Rekod Sendiri
+        else {
             $query->where('user_id', $user->id);
         }
 
-        // --- B. FILTER TARIKH (Guna column 'tarikh_terima') ---
+        // --- B. FILTER TARIKH ---
         $bulan = $request->input('bulan', 'all'); 
         $tahun = $request->input('tahun', date('Y'));
 
@@ -39,7 +41,7 @@ class KestatatertibController extends Controller
             $query->whereYear('tarikh_terima', $tahun);
         }
 
-        // Filter Bulan (Jika user pilih 'all', jangan filter bulan)
+        // Filter Bulan
         if ($bulan != 'all') {
             $query->whereMonth('tarikh_terima', $bulan);
         }
@@ -157,35 +159,66 @@ class KestatatertibController extends Controller
     }
 
     /**
-     * 7. PECAHAN BULAN (Data Grafik)
+     * 7. PECAHAN BULAN (DRILL DOWN DARI DASHBOARD)
+     * 🔥 Ini yang penting untuk fix graf kosong & undefined variable 🔥
      */
     public function pecahanBulan(Request $request)
     {
         $bulan = $request->bulan;
         $tahun = $request->tahun;
-        $namaBulan = \Carbon\Carbon::create()->month($bulan)->format('F');
+        $user = auth()->user();
 
-        // Gunakan 'tarikh_terima' untuk statistik supaya tally dengan index
-        $dataPecahan = Kestatatertib::select('kategori', DB::raw('count(*) as total'))
-            ->whereMonth('tarikh_terima', $bulan)
-            ->whereYear('tarikh_terima', $tahun)
+        // Query Asas
+        $query = Kestatatertib::query();
+
+        // 1. FILTER VISIBILITI (YB Nampak Semua)
+        if (in_array(strtolower($user->role), ['super_admin', 'yb', 'pa', 'admin'])) {
+            // Tiada filter
+        } elseif (in_array(strtolower($user->role), ['eo'])) {
+            $query->where('negeri', $user->negeri);
+        } else {
+            $query->where('user_id', $user->id);
+        }
+
+        // 2. GET DATA SENARAI (Guna created_at)
+        $data = $query->whereMonth('created_at', $bulan)
+                      ->whereYear('created_at', $tahun)
+                      ->orderBy('created_at', 'desc')
+                      ->get();
+
+        // 3. KIRA STATISTIK (UNTUK GRAF & TABLE)
+        $pecahanKategori = Kestatatertib::query();
+        
+        // Apply balik filter role
+        if (in_array(strtolower($user->role), ['eo'])) {
+             $pecahanKategori->where('negeri', $user->negeri);
+        } elseif (!in_array(strtolower($user->role), ['super_admin', 'yb', 'pa', 'admin'])) {
+             $pecahanKategori->where('user_id', $user->id);
+        }
+
+        // 🔥 TUKAR SINI: Guna 'as jumlah' supaya Table boleh baca 🔥
+        $dataPecahan = $pecahanKategori->select('kategori', \DB::raw('count(*) as jumlah')) 
+            ->whereMonth('created_at', $bulan)
+            ->whereYear('created_at', $tahun)
             ->groupBy('kategori')
-            ->orderBy('total', 'desc')
+            ->orderBy('jumlah', 'desc')
             ->get();
 
         $labels = $dataPecahan->pluck('kategori');
-        $totals = $dataPecahan->pluck('total');
-        $jumlahKeseluruhan = $dataPecahan->sum('total');
+        $totals = $dataPecahan->pluck('jumlah'); // Chart guna data dari 'jumlah'
+        $jumlahKeseluruhan = $dataPecahan->sum('jumlah'); // Table footer guna 'jumlah'
+
+        $namaBulan = \Carbon\Carbon::create()->month($bulan)->format('F');
 
         return view('kestatatertib.pecahan', compact(
-            'bulan', 'tahun', 'namaBulan', 
+            'data', 'bulan', 'tahun', 'namaBulan', 
             'labels', 'totals', 'dataPecahan', 
             'jumlahKeseluruhan'
         ));
     }
 
     /**
-     * 🔥 HELPER: Authorize Action
+     * HELPER: Authorize Action
      */
     protected function authorizeAction(Kestatatertib $laporan)
     {

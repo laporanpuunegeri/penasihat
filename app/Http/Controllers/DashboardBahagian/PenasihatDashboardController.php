@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+
+// Import Model
 use App\Models\LaporanPandanganUndang;
 use App\Models\LaporanKesMahkamah;
 use App\Models\LaporanGubalanUndang;
@@ -23,28 +25,33 @@ class PenasihatDashboardController extends Controller
         $user = auth()->user();
         if (!$user) abort(403, 'Sila log masuk.');
 
+        // Normalise Bahagian User (Tukar jadi Huruf Besar & Buang Space tepi)
+        // Ini penting supaya "Bahagian Penasihat" sama dengan "BAHAGIAN PENASIHAT"
+        $userBahagian = strtoupper(trim($user->bahagian));
+
         // --- 1. TENDANG KELUAR (Pentadbiran & Kewangan) ---
-        if ($user->bahagian == 'Bahagian Pentadbiran') {
+        if ($userBahagian == 'BAHAGIAN PENTADBIRAN') {
             return redirect()->route('dashboard.pentadbiran');
         }
-        if ($user->bahagian == 'Bahagian Kewangan') {
+        if ($userBahagian == 'BAHAGIAN KEWANGAN') {
             return redirect()->route('dashboard.kewangan');
         }
 
-        // --- 2. BENARKAN MASUK (Penasihat, Semakan, Syariah) ---
+        // --- 2. BENARKAN MASUK (WHITELIST - HURUF BESAR) ---
         $allowedBahagian = [
-            'Bahagian Penasihat', 
-            'Bahagian Semakan', 
-            'Bahagian Syariah'
+            'BAHAGIAN PENASIHAT', 
+            'BAHAGIAN SEMAKAN', 
+            'BAHAGIAN SYARIAH'
         ];
 
-        if (!in_array($user->bahagian, $allowedBahagian) && $user->role !== 'super_admin') {
-             abort(403, 'Anda tiada akses ke Dashboard ini.');
+        // Kalau user BUKAN dari 3 bahagian ni DAN BUKAN Super Admin, kita block
+        if (!in_array($userBahagian, $allowedBahagian) && $user->role !== 'super_admin') {
+             abort(403, 'ANDA TIADA AKSES KE DASHBOARD INI.');
         }
 
         // --- 3. PROSES DATA ---
         
-        // Filter Data (Ikut Role/Negeri)
+        // Filter Data (Ikut Role)
         $filter = $this->getFilterByRole($user);
         $tahun = $request->tahun ?? now()->year;
 
@@ -58,8 +65,18 @@ class PenasihatDashboardController extends Controller
         $dataTataterib       = $this->getMonthlyData(Kestatatertib::class, $filter, $tahun, 'Tatatertib');
         $dataTugasan         = $this->getMonthlyData(LainLainTugasan::class, $filter, $tahun, 'Lain-lain Tugasan');
 
-        // Return ke View
-        return view('dashboard.penasihat', compact(
+        // --- 4. TENTUKAN VIEW BERDASARKAN BAHAGIAN ---
+        $viewName = 'dashboard.penasihat'; // Default view
+
+        if ($userBahagian == 'BAHAGIAN SEMAKAN') {
+            $viewName = 'dashboard.semakan';
+        }
+        if ($userBahagian == 'BAHAGIAN SYARIAH') {
+            $viewName = 'dashboard.syariah'; // Pastikan file syariah.blade.php wujud jika nak guna
+        }
+
+        // Return ke View yang betul dengan Data
+        return view($viewName, compact(
             'dataPandanganUndang',
             'dataKesMahkamah',
             'dataGubalan',
@@ -75,13 +92,19 @@ class PenasihatDashboardController extends Controller
 
     private function getFilterByRole($user)
     {
-        // Admin nampak semua
-        if (in_array($user->role, ['super_admin'])) return [];
+        // 🔥 1. GROUP VIP: NAMPAK SEMUA DATA (FULL) 🔥
+        // YB, PA, dan Super Admin nampak semua tanpa filter negeri/user
+        // Saya tambah strtolower supaya tak kisah 'yb' atau 'YB'
+        if (in_array(strtolower($user->role), ['super_admin', 'yb', 'pa'])) {
+            return []; // Array kosong = SELECT * FROM table (Tanpa WHERE)
+        }
         
-        // YB/PA/EO nampak ikut Negeri
-        if (in_array($user->role, ['yb', 'pa', 'eo'])) return ['negeri' => $user->negeri];
+        // 2. GROUP NEGERI: Nampak ikut negeri sahaja (Contoh: EO)
+        if (in_array(strtolower($user->role), ['eo'])) {
+             return ['negeri' => $user->negeri];
+        }
         
-        // User biasa nampak rekod sendiri sahaja
+        // 3. USER BIASA: Nampak kerja sendiri sahaja
         return ['user_id' => $user->id];
     }
 
@@ -97,6 +120,8 @@ class PenasihatDashboardController extends Controller
     {
         $monthlyCounts = array_fill(0, 12, 0); 
 
+        // Query DB grouping by Month
+        // NOTA: Guna EXTRACT(MONTH) untuk PostgreSQL (Render)
         $data = $model::selectRaw('EXTRACT(MONTH FROM created_at) as bulan, COUNT(*) as jumlah')
             ->when($filter, fn($q) => $this->applyFilter($q, $filter))
             ->whereYear('created_at', $tahun)

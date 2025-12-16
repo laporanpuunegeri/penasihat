@@ -160,46 +160,64 @@ class LaporanGubalanUndangController extends Controller
     {
         $bulan = $request->bulan;
         $tahun = $request->tahun;
+        $user = auth()->user();
         $namaBulan = \Carbon\Carbon::create()->month($bulan)->format('F');
 
+        // Nama column dalam database
         $colKategori = 'tajuk'; 
-        
-        // Senarai Tetap
-        $standardList = [
-            'Rang Undang-Undang',
-            'Perundangan Subsidiari Substantif',
-            'Pemberitahuan Awam (G.N)'
-        ];
 
-        // Query Database
-        $dbData = LaporanGubalanUndang::select($colKategori, DB::raw('count(*) as total'))
+        // 1. SETUP QUERY & FILTER ROLE
+        $query = \App\Models\LaporanGubalanUndang::query();
+
+        // Logic Filter: YB/PA nampak semua
+        if (in_array(strtolower($user->role), ['super_admin', 'yb', 'pa', 'admin'])) {
+            // Tiada filter
+        } elseif (in_array(strtolower($user->role), ['eo'])) {
+            $query->where('negeri', $user->negeri);
+        } else {
+            $query->where('user_id', $user->id);
+        }
+
+        // 2. DAPATKAN SENARAI DATA PENUH ($data)
+        $data = $query->clone()
+                      ->whereMonth('created_at', $bulan)
+                      ->whereYear('created_at', $tahun)
+                      ->orderBy('created_at', 'desc')
+                      ->get();
+
+        // 3. STATISTIK DYNAMIC (KIRA JUMLAH)
+        $dataPecahanRaw = $query->select($colKategori, \DB::raw('count(*) as jumlah'))
             ->whereMonth('created_at', $bulan)
             ->whereYear('created_at', $tahun)
             ->groupBy($colKategori)
-            ->pluck('total', $colKategori)
-            ->toArray();
+            ->orderBy('jumlah', 'desc')
+            ->get();
 
+        // 4. FORMATKAN DATA (HANTAR DUA-DUA 'TOTAL' & 'JUMLAH')
         $dataPecahan = collect();
         $labels = [];
         $totals = [];
 
-        foreach ($standardList as $item) {
-            $count = $dbData[$item] ?? 0;
+        foreach ($dataPecahanRaw as $item) {
+            $namaTajuk = $item->$colKategori ?? 'Tiada Tajuk';
             
-            // Masukkan data jika ada ( > 0 )
-            if ($count > 0) {
-                $dataPecahan->push((object)[
-                    'kategori' => $item,
-                    'total' => $count
-                ]);
-                $labels[] = $item;
-                $totals[] = $count;
-            }
+            $dataPecahan->push((object)[
+                'kategori' => $namaTajuk,      // Untuk View yang guna 'kategori'
+                'jenis_gubalan' => $namaTajuk, // Backup nama
+                'jumlah' => $item->jumlah,     // Backup nama
+                'total' => $item->jumlah       // 🔥 INI WAJIB ADA SEBAB VIEW CARI 'total' 🔥
+            ]);
+
+            $labels[] = $namaTajuk;
+            $totals[] = $item->jumlah;
         }
 
+        $jumlahKeseluruhan = array_sum($totals);
+
         return view('laporangubalanundang.pecahan', compact(
-            'bulan', 'tahun', 'namaBulan', 
-            'labels', 'totals', 'dataPecahan'
+            'data', 'bulan', 'tahun', 'namaBulan', 
+            'labels', 'totals', 'dataPecahan',
+            'jumlahKeseluruhan'
         ));
     }
 }
