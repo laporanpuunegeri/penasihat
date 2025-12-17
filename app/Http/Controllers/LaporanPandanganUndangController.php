@@ -344,4 +344,9 @@ class LaporanPandanganUndangController extends Controller
         
         return false;
     }
+
+    public function show($id)
+    {
+        return redirect()->back(); // Dia akan patah balik kalau user termasuk link ni
+    }
 }

@@ -36,9 +36,16 @@ return [
     */
 
     'guards' => [
+        // Guard untuk Staff (Table users)
         'web' => [
             'driver' => 'session',
             'provider' => 'users',
+        ],
+
+        // Guard untuk Agensi Luar (Table agensi_users)
+        'agensi' => [
+            'driver' => 'session',
+            'provider' => 'pengguna_agensi',
         ],
     ],
 
@@ -60,15 +67,17 @@ return [
     */
 
     'providers' => [
+        // Provider Staff
         'users' => [
             'driver' => 'eloquent',
             'model' => App\Models\User::class,
         ],
 
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+        // Provider Agensi Luar (Model AgensiUser)
+        'pengguna_agensi' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\AgensiUser::class,
+        ],
     ],
 
     /*
@@ -93,6 +102,14 @@ return [
     'passwords' => [
         'users' => [
             'provider' => 'users',
+            'table' => 'password_reset_tokens',
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+
+        // Setup Reset Password Agensi (Optional: Guna table token sama pun boleh)
+        'pengguna_agensi' => [
+            'provider' => 'pengguna_agensi',
             'table' => 'password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,

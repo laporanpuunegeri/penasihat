@@ -4,20 +4,12 @@ namespace App\Http\Controllers\DashboardBahagian;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-// Sila pastikan Model ini wujud dan diimport
 use App\Models\Kewangan;       
 use App\Models\WaranPerjawatan; 
 use Illuminate\Support\Facades\Auth;
-
+use Illuminate\Support\Facades\DB; 
 class KewanganPentadbiranDashboardController extends Controller
 {
-    /**
-     * Method Utama untuk memaparkan Dashboard Pentadbiran/Kewangan/Gabungan
-     * Method ini dipanggil oleh ketiga-tiga route:
-     * - dashboard.pentadbiran
-     * - dashboard.kewangan
-     * - dashboard.pentadbirandankewangan
-     */
     public function dashboard(Request $request)
     {
         $tahun = $request->tahun ?? date('Y');
@@ -41,16 +33,35 @@ class KewanganPentadbiranDashboardController extends Controller
             $start = (int)$kod;
             $end   = $start + 10000;
 
-            // Pastikan model Kewangan wujud sebelum memanggilnya
             if (class_exists(Kewangan::class)) {
                 $query = Kewangan::where('tahun', $tahun)
                     ->where('kod_objek', '>=', $start)
                     ->where('kod_objek', '<', $end);
 
+                // Ambil jumlah Peruntukan
                 $peruntukan = $query->sum('peruntukan');
-                $belanja    = $query->sum('belanja');
-                $baki       = $peruntukan - $belanja;
-                $peratus    = ($peruntukan > 0) ? ($belanja / $peruntukan) * 100 : 0;
+                
+                // ====================================================
+                // 2. PEMBETULAN UTAMA (CAMPUR 12 BULAN)
+                // ====================================================
+                // Kita suruh database campur semua column bulan-bulan tu
+                $belanja = $query->sum(DB::raw('
+                    COALESCE(belanja_jan, 0) + 
+                    COALESCE(belanja_feb, 0) + 
+                    COALESCE(belanja_mac, 0) + 
+                    COALESCE(belanja_apr, 0) + 
+                    COALESCE(belanja_mei, 0) + 
+                    COALESCE(belanja_jun, 0) + 
+                    COALESCE(belanja_jul, 0) + 
+                    COALESCE(belanja_ogos, 0) + 
+                    COALESCE(belanja_sep, 0) + 
+                    COALESCE(belanja_okt, 0) + 
+                    COALESCE(belanja_nov, 0) + 
+                    COALESCE(belanja_dis, 0)
+                '));
+                
+                $baki    = $peruntukan - $belanja;
+                $peratus = ($peruntukan > 0) ? ($belanja / $peruntukan) * 100 : 0;
             } else {
                 $peruntukan = $belanja = $baki = $peratus = 0;
             }
@@ -69,12 +80,19 @@ class KewanganPentadbiranDashboardController extends Controller
         // ==========================================
         if (class_exists(WaranPerjawatan::class)) {
             $waranData = WaranPerjawatan::orderBy('id')->get();
-            $metadata = [
-                'totalWaran'  => $waranData->sum('bil'),
-                'totalIsi'    => $waranData->sum('isi'),
-                'totalKosong' => $waranData->sum('kosong'),
-                'tahun'       => $tahun
-            ];
+            
+            // Check kalau table kosong, elak error sum
+            if($waranData->isNotEmpty()) {
+                $metadata = [
+                    'totalWaran'  => $waranData->sum('bil'),     // Ikut column migration baru
+                    'totalIsi'    => $waranData->sum('isi'),     // Ikut column migration baru
+                    'totalKosong' => $waranData->sum('kosong'),  // Ikut column migration baru
+                    'tahun'       => $tahun
+                ];
+            } else {
+                $metadata = ['totalWaran'=>0, 'totalIsi'=>0, 'totalKosong'=>0, 'tahun'=>$tahun];
+            }
+            
         } else {
              $metadata = [
                 'totalWaran'  => 0,
@@ -84,7 +102,6 @@ class KewanganPentadbiranDashboardController extends Controller
             ];
         }
 
-        // Sentiasa pulangkan view gabungan, tidak kira route mana yang dipanggil
         return view('dashboard.pentadbirandankewangan', compact('data_graf', 'waranData', 'metadata', 'tahun'));
     }
 }

@@ -98,45 +98,46 @@ public function index(Request $request)
 
     // --- 3. STORE ---
     public function store(Request $request)
-    {
-        $data = $request->validate([
-            'kod_utama' => 'required',
-            'kod_objek' => 'required',
-            'butiran' => 'required',
-            'peruntukan' => 'required|numeric',
-            'belanja_jan' => 'nullable|numeric',
-            'belanja_feb' => 'nullable|numeric',
-            'belanja_mac' => 'nullable|numeric',
-            'belanja_apr' => 'nullable|numeric',
-            'belanja_mei' => 'nullable|numeric',
-            'belanja_jun' => 'nullable|numeric',
-            'belanja_jul' => 'nullable|numeric',
-            'belanja_ogos' => 'nullable|numeric',
-            'belanja_sep' => 'nullable|numeric',
-            'belanja_okt' => 'nullable|numeric',
-            'belanja_nov' => 'nullable|numeric',
-            'belanja_dis' => 'nullable|numeric',
-        ]);
+{
+    // 1. Ambil semua input dari form
+    $data = $request->all();
 
-        $totalBelanja = collect([
-            $request->belanja_jan, $request->belanja_feb, $request->belanja_mac,
-            $request->belanja_apr, $request->belanja_mei, $request->belanja_jun,
-            $request->belanja_jul, $request->belanja_ogos, $request->belanja_sep,
-            $request->belanja_okt, $request->belanja_nov, $request->belanja_dis
-        ])->sum();
+    // 2. Senarai semua column belanja yang bermasalah (Not Null)
+    $months = [
+        'belanja_jan', 'belanja_feb', 'belanja_mac', 'belanja_apr', 
+        'belanja_mei', 'belanja_jun', 'belanja_jul', 'belanja_ogos', 
+        'belanja_sep', 'belanja_okt', 'belanja_nov', 'belanja_dis'
+    ];
 
-        $finalData = array_merge($data, [
-            'belanja' => $totalBelanja,
-            'tahun' => $request->input('tahun', date('Y')),
-            'user_id' => Auth::id(),
-            'negeri' => Auth::user()->negeri,
-        ]);
-
-        Kewangan::create($finalData);
-
-        return redirect()->route('kewangan.index')->with('success', 'Rekod kewangan berjaya ditambah.');
+    // 3. Paksa tukar NULL kepada 0 supaya database tak marah
+    foreach ($months as $month) {
+        // Jika input kosong atau null, kita set jadi 0
+        $data[$month] = $request->input($month) ?? 0;
     }
 
+    // 4. Kira jumlah keseluruhan (Total Belanja)
+    $totalBelanja = collect($months)->map(fn($m) => $data[$m])->sum();
+
+    // 5. Gabungkan data tambahan (User, Negeri, Tahun)
+    $finalData = array_merge($data, [
+        'belanja' => $totalBelanja,
+        'tahun' => $request->input('tahun', date('Y')),
+        'user_id' => \Illuminate\Support\Facades\Auth::id(),
+        'negeri' => \Illuminate\Support\Facades\Auth::user()->negeri,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    try {
+        // 6. Simpan ke database
+        \App\Models\Kewangan::create($finalData);
+
+        return redirect()->back()->with('success', 'Rekod kewangan berjaya disimpan!');
+    } catch (\Exception $e) {
+        // Jika ada error lain, dia akan tunjuk kat sini
+        return redirect()->back()->with('error', 'Gagal simpan: ' . $e->getMessage());
+    }
+}
     // --- 4. EDIT ---
     public function edit($id)
     {

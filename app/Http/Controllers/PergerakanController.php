@@ -24,13 +24,24 @@ class PergerakanController extends Controller
         $senarai_pegawai = User::whereIn('role', ['user', 'cc', 'boss', 'yb'])->orderBy('name')->get();
 
         if (in_array($userRole, ['cc', 'boss', 'yb'])) {
-            if ($request->filled('pegawai_id')) { $query->where('user_id', $request->pegawai_id); }
+            // Tapis mengikut Pegawai jika dipilih
+            if ($request->filled('pegawai_id')) { 
+                $query->where('user_id', $request->pegawai_id); 
+            }
+
+            // ⚡ TAMBAHAN LOGIK UNTUK CC: Hanya nampak kenderaan sahaja
+            if ($userRole === 'cc') {
+                $query->whereIn('kenderaan', ['Kenderaan Pejabat', 'Kenderaan Sendiri']);
+            }
+
+            // Filter Status Pending mengikut Role
             if ($request->input('status_filter') === 'cc_pending' && ($userRole === 'cc' || $userRole === 'boss')) {
                 $query->where('status_cc', 'Pending');
             } elseif ($request->input('status_filter') === 'yb_pending' && ($userRole === 'yb' || $userRole === 'boss')) {
                 $query->where('status_yb', 'Pending');
             }
         } else {
+            // Pengguna biasa hanya nampak rekod sendiri
             $query->where('user_id', Auth::id());
         }
 
@@ -288,7 +299,7 @@ class PergerakanController extends Controller
         return null; // Tak jumpa
     }
 
-    public function cetakKalendarKeseluruhan(Request $request)
+   public function cetakKalendarKeseluruhan(Request $request)
     {
         $month = $request->input('month', Carbon::now()->month);
         $year = $request->input('year', Carbon::now()->year);
@@ -306,6 +317,7 @@ class PergerakanController extends Controller
                       });
             })
             ->where('status_yb', 'Lulus') 
+            ->where('kenderaan', 'Kenderaan Sendiri') // Tapis kenderaan sendiri sahaja
             ->orderBy('tarikh_mula')
             ->get()
             ->groupBy(function($date) { return Carbon::parse($date->tarikh_mula)->format('Y-m-d'); });

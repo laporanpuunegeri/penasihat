@@ -126,14 +126,24 @@
                         <tr>
                             <td class="text-muted">{{ $index + 1 }}</td>
                             
-                            {{-- Tarikh Bertingkat --}}
+                            {{-- Tarikh Bertingkat (Fixed with Backup Date) --}}
                             <td>
                                 <div class="d-flex flex-column align-items-center gap-1">
+                                    {{-- Tarikh Daftar: Kalau tak ada, guna created_at --}}
                                     <span class="badge bg-light text-dark border" title="Tarikh Daftar">
-                                        D: {{ optional($laporan->tarikh_daftar)->format('d/m/Y') ?? '-' }}
+                                        D: 
+                                        @if($laporan->tarikh_daftar)
+                                            {{ \Carbon\Carbon::parse($laporan->tarikh_daftar)->format('d/m/Y') }}
+                                        @elseif($laporan->created_at)
+                                            {{ $laporan->created_at->format('d/m/Y') }}
+                                        @else
+                                            -
+                                        @endif
                                     </span>
+                                    
+                                    {{-- Tarikh Terima --}}
                                     <small class="text-muted fst-italic" style="font-size: 0.65rem;" title="Tarikh Terima">
-                                        T: {{ optional($laporan->tarikh_terima)->format('d/m/Y') ?? '-' }}
+                                        T: {{ $laporan->tarikh_terima ? \Carbon\Carbon::parse($laporan->tarikh_terima)->format('d/m/Y') : '-' }}
                                     </small>
                                 </div>
                             </td>

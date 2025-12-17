@@ -122,7 +122,13 @@
                         <tr>
                             <td class="text-muted">{{ $index + 1 }}</td>
                             <td>
-                                <div class="fw-bold text-dark">{{ optional($laporan->tarikh_mesyuarat)->format('d/m/Y') }}</div>
+                                {{-- 
+                                    PEMBETULAN DI SINI:
+                                    Kita paksa tukar tarikh guna Carbon supaya tak jadi kosong 
+                                --}}
+                                <div class="fw-bold text-dark">
+                                    {{ $laporan->tarikh_mesyuarat ? \Carbon\Carbon::parse($laporan->tarikh_mesyuarat)->format('d/m/Y') : '-' }}
+                                </div>
                                 <small class="text-muted" style="font-size: 0.65rem;">Daftar: {{ $laporan->created_at->format('d/m/Y') }}</small>
                             </td>
                             <td class="text-start">{{ Str::limit($laporan->mesyuarat, 60) }}</td>

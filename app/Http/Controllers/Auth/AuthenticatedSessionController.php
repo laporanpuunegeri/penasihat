@@ -4,43 +4,100 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Providers\RouteServiceProvider; // Pastikan import ini ada
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException; // Import untuk error
 use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
 {
+    /**
+     * Display the login view.
+     */
     public function create(): View
     {
         return view('auth.login');
     }
 
+    /**
+     * Handle an incoming authentication request.
+     */
     public function store(LoginRequest $request): RedirectResponse
     {
-        $request->authenticate();
-        $request->session()->regenerate();
+        // 1. Ambil Email & Password
+        $credentials = $request->only('email', 'password');
+        $remember = $request->boolean('remember');
 
-        $user = auth()->user();
+        // =========================================================
+        // STEP 1: CUBA LOGIN SEBAGAI STAFF (GUARD: WEB)
+        // =========================================================
+        if (Auth::guard('web')->attempt($credentials, $remember)) {
+            
+            $request->session()->regenerate();
+            $user = Auth::guard('web')->user();
 
-        // ❗ Sekat login jika bukan dari MELAKA atau KEDAH (kecuali super_admin)
-        if (
-            $user->role !== 'super_admin' &&
-            !in_array(strtoupper($user->negeri), ['MELAKA', 'KEDAH'])
-        ) {
-            Auth::logout();
-            return redirect()->route('login')->withErrors([
-                'email' => 'Log masuk hanya dibenarkan untuk pengguna dari negeri MELAKA atau KEDAH sahaja.',
-            ]);
+            // 🔥 LOGIC SEKATAN NEGERI (MELAKA / KEDAH) 🔥
+            // Kalau bukan Super Admin DAN bukan dari negeri terpilih -> Tendang
+            if (
+                $user->role !== 'super_admin' &&
+                !in_array(strtoupper($user->negeri), ['MELAKA', 'KEDAH'])
+            ) {
+                Auth::guard('web')->logout(); // Logout balik
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return redirect()->route('login')->withErrors([
+                    'email' => 'Log masuk hanya dibenarkan untuk pengguna dari negeri MELAKA atau KEDAH sahaja.',
+                ]);
+            }
+
+            // Kalau lepas sekatan, masuk Dashboard Staff
+            return redirect()->intended(RouteServiceProvider::HOME);
         }
 
-        // ✅ Arahkan ke dashboard jika sah
-        return redirect()->intended(route('dashboard'));
+        // =========================================================
+        // STEP 2: CUBA LOGIN SEBAGAI AGENSI (GUARD: AGENSI)
+        // =========================================================
+        if (Auth::guard('agensi')->attempt($credentials, $remember)) {
+            
+            $user = Auth::guard('agensi')->user();
+            
+            // 🔥 LOGIC CHECK STATUS AKAUN (PENDING/AKTIF) 🔥
+            if ($user->status !== 'aktif') {
+                Auth::guard('agensi')->logout(); // Tendang
+                
+                throw ValidationException::withMessages([
+                    'email' => 'Akaun agensi anda masih dalam semakan (Pending) atau digantung.',
+                ]);
+            }
+
+            $request->session()->regenerate();
+
+            // Redirect Agensi ke Dashboard Warta
+            return redirect()->route('dashboard.warta');
+        }
+
+        // =========================================================
+        // STEP 3: KALAU DUA-DUA TAK JUMPA
+        // =========================================================
+        throw ValidationException::withMessages([
+            'email' => trans('auth.failed'),
+        ]);
     }
 
+    /**
+     * Destroy an authenticated session.
+     */
     public function destroy(Request $request): RedirectResponse
     {
-        Auth::guard('web')->logout();
+        // Check guard mana yang tengah login untuk logout yang betul
+        if (Auth::guard('agensi')->check()) {
+            Auth::guard('agensi')->logout();
+        } else {
+            Auth::guard('web')->logout();
+        }
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

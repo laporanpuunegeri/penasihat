@@ -273,7 +273,71 @@
 {{-- LAMPIRAN VII --}}
 <div class="section-spacer"></div>
 <h5 class="section-title" style="page-break-before: always;">LAMPIRAN VII: KES TATATERTIB</h5>
-<table><thead><tr><th style="width:5%">Bil</th><th style="width:10%">Tarikh</th><th style="width:25%">Fakta Ringkasan</th><th style="width:15%">Isu</th><th style="width:25%">Ringkasan Pandangan</th><th style="width:20%">Status</th></tr></thead><tbody>@php $bil = 1; $kategori_tatatertib = ['PRIMA FACIE' => 'PRIMA FACIE / KERTAS PERTUDUHAN', 'SURCAJ' => 'KES SURCAJ / LAPORAN SIASATAN', 'PENAMATAN' => 'PENAMATAN DEMI KEPENTINGAN AWAM']; @endphp @foreach ($kategori_tatatertib as $key => $tajuk) @php $laporanKategori = $laporan_tatatertib->where('kategori', $key); @endphp <tr style="background-color: #f9f9f9;"><td colspan="6" class="fw-bold text-start">{{ $tajuk }}</td></tr>@forelse ($laporanKategori as $laporan)<tr><td class="text-center">{{ $bil++ }}</td><td class="text-center">{{ \Carbon\Carbon::parse($laporan->tarikh_terima)->format('d/m/Y') }}</td><td>{{ $laporan->fakta_ringkasan }}</td><td>{{ $laporan->isu }}</td><td>{{ $laporan->ringkasan_pandangan }}</td><td class="text-center">{{ $laporan->status }} @if ($laporan->tarikh_selesai)<br><span class="text-muted" style="font-size: 9px;">{{ \Carbon\Carbon::parse($laporan->tarikh_selesai)->format('d/m/Y') }}</span>@endif</td></tr>@empty<tr><td colspan="6" class="text-center text-muted fst-italic">Tiada rekod.</td></tr>@endforelse @endforeach</tbody></table>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width:5%">Bil</th>
+            <th style="width:10%">Tarikh</th>
+            <th style="width:25%">Fakta Ringkasan</th>
+            <th style="width:15%">Isu</th>
+            <th style="width:25%">Ringkasan Pandangan</th>
+            <th style="width:20%">Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @php 
+            $bil = 1; 
+            // Keyword Carian (Key) => Tajuk Display (Value)
+            $kategori_tatatertib = [
+                'PRIMA FACIE' => 'PRIMA FACIE / KERTAS PERTUDUHAN', 
+                'SURCAJ'      => 'KES SURCAJ / LAPORAN SIASATAN', 
+                'PENAMATAN'   => 'PENAMATAN DEMI KEPENTINGAN AWAM'
+            ]; 
+        @endphp 
+
+        @foreach ($kategori_tatatertib as $keyword => $tajuk) 
+            @php 
+                // Guna filter + Str::contains untuk cari keyword dalam ayat panjang
+                $laporanKategori = $laporan_tatatertib->filter(function($item) use ($keyword) {
+                    return \Illuminate\Support\Str::contains(strtoupper($item->kategori), $keyword);
+                });
+            @endphp 
+
+            {{-- Tajuk Kategori --}}
+            <tr style="background-color: #f9f9f9;">
+                <td colspan="6" class="fw-bold text-start">{{ $tajuk }}</td>
+            </tr>
+
+            {{-- Loop Data --}}
+            @forelse ($laporanKategori as $laporan)
+                <tr>
+                    <td class="text-center">{{ $bil++ }}</td>
+                    <td class="text-center">
+                        {{-- Safety Check Tarikh --}}
+                        {{ $laporan->tarikh_terima ? \Carbon\Carbon::parse($laporan->tarikh_terima)->format('d/m/Y') : '-' }}
+                    </td>
+                    <td>{{ $laporan->fakta_ringkasan }}</td>
+                    <td>{{ $laporan->isu }}</td>
+                    <td>{{ $laporan->ringkasan_pandangan }}</td>
+                    <td class="text-center">
+                        {{ $laporan->status }} 
+                        @if ($laporan->tarikh_selesai)
+                            <br>
+                            <span class="text-muted" style="font-size: 9px;">
+                                {{ \Carbon\Carbon::parse($laporan->tarikh_selesai)->format('d/m/Y') }}
+                            </span>
+                        @endif
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="6" class="text-center text-muted fst-italic">Tiada rekod.</td>
+                </tr>
+            @endforelse 
+        @endforeach
+    </tbody>
+</table>
 
 {{-- LAMPIRAN VIII --}}
 <div class="section-spacer"></div>

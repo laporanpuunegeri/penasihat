@@ -187,7 +187,50 @@
     {{-- BAHAGIAN 9: KES TATATERTIB --}}
     <div class="report-card"><div class="report-header"><h5 class="report-title"><i class="fas fa-exclamation-triangle me-2 text-primary"></i> 7. Kes Tatatertib</h5></div>
     <div class="table-responsive"><table class="table table-custom mb-0"><thead><tr><th class="text-center" width="5%">Bil</th><th width="10%">Tarikh Terima</th><th width="30%">Fakta / Isu</th><th>Pandangan</th><th width="15%">Status</th></tr></thead>
-    <tbody>@php $bil=1; $katT=['PRIMA FACIE'=>'Menyemak Penentuan Kes Prima Facie / Kertas Pertuduhan','SURCAJ'=>'Kes Surcaj / Laporan Jawatankuasa Siasatan','PENAMATAN'=>'Ulasan Penamatan Demi Kepentingan Awam']; @endphp @foreach($katT as $k=>$t) <tr class="table-light"><td colspan="5" class="fw-bold ps-4 text-dark border-top border-bottom text-uppercase" style="font-size: 0.85rem;"><i class="fas fa-caret-right me-2 text-muted"></i> {{ $t }}</td></tr> @forelse($laporan_tatatertib->where('kategori',$k) as $l) <tr><td class="text-center">{{ $bil++ }}</td><td>{{ \Carbon\Carbon::parse($l->tarikh_terima)->format('d/m/Y') }}</td><td><small class="fw-bold">Fakta:</small> {{ $l->fakta_ringkasan }}<br><small class="fw-bold">Isu:</small> {{ $l->isu }}</td><td>{{ $l->ringkasan_pandangan }}</td><td>{{ $l->status }}</td></tr> @empty <tr><td colspan="5" class="text-center text-muted small py-2">Tiada rekod.</td></tr> @endforelse @endforeach</tbody></table></div></div>
+<tbody>
+    @php 
+        $bil = 1; 
+        // Keyword untuk carian (Key) => Tajuk untuk paparan (Value)
+        $katT = [
+            'PRIMA FACIE' => 'Menyemak Penentuan Kes Prima Facie / Kertas Pertuduhan',
+            'SURCAJ'      => 'Kes Surcaj / Laporan Jawatankuasa Siasatan',
+            'PENAMATAN'   => 'Ulasan Penamatan Demi Kepentingan Awam'
+        ]; 
+    @endphp 
+
+    @foreach($katT as $keyword => $tajuk) 
+        {{-- Header Kategori --}}
+        <tr class="table-light">
+            <td colspan="5" class="fw-bold ps-4 text-dark border-top border-bottom text-uppercase" style="font-size: 0.85rem;">
+                <i class="fas fa-caret-right me-2 text-muted"></i> {{ $tajuk }}
+            </td>
+        </tr> 
+
+        {{-- Filter Data Guna Keyword --}}
+        @forelse($laporan_tatatertib->filter(fn($item) => \Illuminate\Support\Str::contains(strtoupper($item->kategori), $keyword)) as $l) 
+            <tr>
+                <td class="text-center">{{ $bil++ }}</td>
+                <td>
+                    {{-- Check kalau tarikh ada baru format, kalau tak letak dash --}}
+                    {{ $l->tarikh_terima ? \Carbon\Carbon::parse($l->tarikh_terima)->format('d/m/Y') : '-' }}
+                </td>
+                <td>
+                    <small class="fw-bold">Fakta:</small> {{ $l->fakta_ringkasan }}<br>
+                    <small class="fw-bold">Isu:</small> {{ $l->isu }}
+                </td>
+                <td>{{ $l->ringkasan_pandangan }}</td>
+                <td>{{ $l->status }}</td>
+            </tr> 
+        @empty 
+            <tr>
+                <td colspan="5" class="text-center text-muted small py-2">Tiada rekod.</td>
+            </tr> 
+        @endforelse 
+    @endforeach
+</tbody>
+</table> 
+        </div>      
+    </div>
 
     {{-- BAHAGIAN 10: LAIN-LAIN TUGASAN --}}
     <div class="report-card"><div class="report-header"><h5 class="report-title"><i class="fas fa-tasks me-2 text-primary"></i> 8. Lain-Lain Tugasan</h5></div>

@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage; // Pastikan ini ada untuk debug route
+use Illuminate\Support\Facades\Storage; 
 
 // Controllers
 use App\Http\Controllers\ProfileController;
@@ -21,6 +21,7 @@ use App\Http\Controllers\KestatatertibController;
 use App\Http\Controllers\LaporanLainLainController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\LampiranKesMahkamahController;
+use App\Http\Controllers\AgensiApprovalController;
 
 // Controllers Laporan (Untuk Grafik & CRUD)
 use App\Http\Controllers\LaporanPandanganUndangController;
@@ -39,8 +40,12 @@ use App\Http\Controllers\DashboardBahagian\GuamanDashboardController;
 use App\Http\Controllers\DashboardBahagian\KewanganPentadbiranDashboardController;
 use App\Http\Controllers\DashboardBahagian\PenasihatDashboardController;
 
+// 🔥 CONTROLLER BARU: PORTAL WARTA (AGENSI) 🔥
+use App\Http\Controllers\AgensiAuthController;
+use App\Http\Controllers\PermohonanController; // <--- PENTING: Tambah ni
+
 // =========================================================================
-// ROUTE UTAMA & GUEST
+// ROUTE UTAMA & GUEST (STAFF)
 // =========================================================================
 
 Route::get('/', fn() => redirect()->route('dashboard'))->name('utama');
@@ -55,10 +60,10 @@ Route::middleware('guest')->group(function () {
 });
 
 // =========================================================================
-// ROUTE AUTH (LOGGED IN USERS)
+// ROUTE AUTH (LOGGED IN STAFF / PENGGUNA DALAMAN - TABLE USERS)
 // =========================================================================
 
-Route::middleware('auth')->group(function () {
+Route::middleware('auth')->group(function () { // Default auth (guard: web)
 
     // --- DASHBOARD REDIRECT LOGIC ---
     Route::get('/dashboard', function () {
@@ -85,18 +90,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/pentadbiran-kewangan', [KewanganPentadbiranDashboardController::class, 'dashboard'])->name('dashboard.pentadbirandankewangan');
         Route::get('/guaman', [GuamanDashboardController::class, 'dashboard'])->name('dashboard.guaman');
 
-        // Dashboard Penasihat (8 Graf Utama)
+        // Dashboard Penasihat (8 Graf Utama) - Termasuk Semakan & Syariah
         Route::get('/penasihat', [PenasihatDashboardController::class, 'index'])->name('dashboard.penasihat');
-
         Route::view('/pendakwaan', 'dashboard.pendakwaan')->name('dashboard.pendakwaan');
-
-        // 🔥 UBAH SINI: Route Semakan & Syariah GUNA CONTROLLER YANG SAMA (PenasihatDashboardController) 🔥
         Route::get('/semakan', [PenasihatDashboardController::class, 'index'])->name('dashboard.semakan');
         Route::get('/syariah', [PenasihatDashboardController::class, 'index'])->name('dashboard.syariah');
     });
 
     // =========================================================================
-    // 🔥 ROUTE KHAS UNTUK DRILL-DOWN GRAF (PECAHAN BULAN) 🔥
+    // ROUTE DRILL-DOWN GRAF (PECAHAN BULAN)
     // =========================================================================
     Route::get('laporanpandanganundang/pecahan', [LaporanPandanganUndangController::class, 'pecahanBulan'])->name('laporanpandanganundang.pecahan');
     Route::get('laporankesmahkamah/pecahan', [LaporanKesMahkamahController::class, 'pecahanBulan'])->name('laporankesmahkamah.pecahan');
@@ -108,14 +110,16 @@ Route::middleware('auth')->group(function () {
     Route::get('lainlaintugasan/pecahan', [LaporanLainLainController::class, 'pecahanBulan'])->name('lainlaintugasan.pecahan');
 
 
-    // --- USER PROFILE & LOGOUT ---
+    // --- USER PROFILE & LOGOUT (STAFF) ---
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/', [ProfileController::class, 'show'])->name('show');
         Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
         Route::put('/update', [ProfileController::class, 'update'])->name('update');
     });
+    
+    // Logout Staff
     Route::post('/logout', function(Request $request) {
-        Auth::logout();
+        Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return redirect('/login');
@@ -156,17 +160,13 @@ Route::middleware('auth')->group(function () {
         // DBUS (OBB)
         Route::prefix('dbus')->name('dbus.')->group(function () {
             Route::get('/cetak-pdf', [DbusController::class, 'cetakPdf'])->name('cetak_pdf');
-
-            // AJAX Update OA
             Route::post('/update-oa-am', [DbusController::class, 'updateOaAm'])->name('updateOaAm');
-
-            // Index & Master
             Route::get('/', [DbusController::class, 'index'])->name('index');
             Route::get('/create', [DbusController::class, 'create'])->name('create');
             Route::post('/store', [DbusController::class, 'store'])->name('store');
             Route::get('/edit', [DbusController::class, 'edit'])->name('edit');
 
-            // Pecahan Views (GET)
+            // Pecahan Views
             Route::get('/pecahan/{kod}/{tahun}', [DbusPecahanController::class, 'editPegawai'])->name('pecahan');
             Route::get('/edit-ol14101/{kod}/{tahun}', [DbusPecahanController::class, 'editOt'])->name('edit_ol14101');
             Route::get('/edit-os15000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs15'])->name('edit_os15000');
@@ -180,7 +180,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/edit-os28000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs28000'])->name('edit_os28000');
             Route::get('/edit-os29000/{kod}/{tahun}', [DbusPecahanController::class, 'editOs29000'])->name('edit_os29000');
 
-            // Pecahan Updates (POST)
+            // Pecahan Updates
             Route::post('/pecahan/store', [DbusPecahanController::class, 'storePegawai'])->name('pecahan.store');
             Route::post('/update-ol14101', [DbusPecahanController::class, 'updateOt'])->name('update_ol14101');
             Route::post('/update-os15000', [DbusPecahanController::class, 'updateOs15'])->name('update_os15000');
@@ -249,21 +249,78 @@ Route::middleware('auth')->group(function () {
         'lainlaintugasan' => LaporanLainLainController::class,
     ]);
 
-    // --- TETAPAN ---
+// --- TETAPAN ---
     Route::prefix('tetapan')->group(function () {
-        Route::get('/agensi', [AgensiController::class, 'index'])->name('agensi.index');
-        Route::post('/agensi', [AgensiController::class, 'store'])->name('agensi.store');
-        Route::delete('/agensi/{id}', [AgensiController::class, 'destroy'])->name('agensi.destroy');
+        
+        // 1. URUS AGENSI (Senarai Aktif & CRUD Biasa)
+        // Controller: AgensiController
+        Route::prefix('agensi')->name('agensi.')->group(function() {
+            Route::get('/', [AgensiController::class, 'index'])->name('index');
+            Route::post('/store', [AgensiController::class, 'store'])->name('store');
+            Route::delete('/{id}', [AgensiController::class, 'destroy'])->name('destroy');
+        });
+
+        // 2. 🔥 KELULUSAN PENDAFTARAN (Pending Sahaja) 🔥
+        // Controller: AgensiApprovalController (Baru)
+        Route::prefix('kelulusan-agensi')->name('kelulusan.')->group(function() {
+            Route::get('/', [AgensiApprovalController::class, 'index'])->name('index');
+            Route::post('/{id}/approve', [AgensiApprovalController::class, 'approve'])->name('approve');
+            Route::post('/{id}/reject', [AgensiApprovalController::class, 'reject'])->name('reject');
+        });
+
+        // 3. URUS PENGGUNA (Staff Dalaman)
         Route::prefix('pengguna')->name('tetapan.pengguna.')->group(function () {
             Route::get('/', [UserController::class, 'index'])->name('index');
             Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy');
         });
     });
-});
 
-Route::middleware('auth')->group(function () {
+    // Route Pendaftaran Manual Staff Dalaman (Optional jika perlu)
     Route::get('/register', [UserController::class, 'create'])->name('register');
     Route::post('/register', [UserController::class, 'store'])->name('register.store');
+
+}); // Tutup Middleware Auth (Staff)
+
+
+// =========================================================================
+// 🔥 ROUTE PORTAL WARTA (AGENSI LUAR) - TABLE ASING 🔥
+// =========================================================================
+
+// 1. Guest Agensi (Belum Login)
+// NOTA: Login guna page utama (/login), jadi route 'login khas' kat sini DIBUANG.
+Route::middleware('guest:agensi')->group(function () {
+    // Pendaftaran SAHAJA
+    Route::get('/portal-warta/daftar', [AgensiAuthController::class, 'paparBorangDaftar'])->name('agensi.register');
+    Route::post('/portal-warta/daftar', [AgensiAuthController::class, 'simpanPendaftaran'])->name('agensi.register.store');
 });
+
+// 2. Authenticated Agensi (Dah Login)
+Route::middleware('auth:agensi')->group(function () {
+    
+    // Dashboard Khas Agensi
+    Route::get('/dashboard-warta', function () {
+        return view('dashboard.agensi');
+    })->name('dashboard.warta');
+
+    // SENARAI 11 SEKSYEN PERMOHONAN
+    Route::get('/permohonan/seksyen-12', [PermohonanController::class, 'paparSeksyen12'])->name('permohonan.seksyen12');
+    Route::get('/permohonan/seksyen-62', [PermohonanController::class, 'paparSeksyen62'])->name('permohonan.seksyen62');
+    Route::get('/permohonan/seksyen-64', [PermohonanController::class, 'paparSeksyen64'])->name('permohonan.seksyen64');
+    Route::get('/permohonan/seksyen-97-98', [PermohonanController::class, 'paparSeksyen9798'])->name('permohonan.seksyen9798');
+    Route::get('/permohonan/seksyen-130', [PermohonanController::class, 'paparSeksyen130'])->name('permohonan.seksyen130');
+    Route::get('/permohonan/seksyen-168', [PermohonanController::class, 'paparSeksyen168'])->name('permohonan.seksyen168');
+    Route::get('/permohonan/seksyen-175a', [PermohonanController::class, 'paparSeksyen175A'])->name('permohonan.seksyen175A');
+    Route::get('/permohonan/seksyen-175d', [PermohonanController::class, 'paparSeksyen175D'])->name('permohonan.seksyen175D');
+    Route::get('/permohonan/seksyen-261', [PermohonanController::class, 'paparSeksyen261'])->name('permohonan.seksyen261');
+    Route::get('/permohonan/seksyen-263', [PermohonanController::class, 'paparSeksyen263'])->name('permohonan.seksyen263');
+    Route::get('/permohonan/seksyen-326', [PermohonanController::class, 'paparSeksyen326'])->name('permohonan.seksyen326');
+
+    // STORE (Simpan Data)
+    Route::post('/permohonan/simpan', [PermohonanController::class, 'store'])->name('permohonan.store');
+
+    // Logout Agensi (PENTING)
+    Route::post('/portal-warta/keluar', [AgensiAuthController::class, 'keluar'])->name('agensi.logout');
+});
+
 
 require __DIR__.'/auth.php';

@@ -411,6 +411,18 @@
                             </li>
                             @endif
 
+<a class="nav-link" href="{{ route('agensi.index') }}">
+    <div class="sb-nav-link-icon"><i class="fas fa-building"></i></div>
+    Senarai Agensi (Aktif)
+</a>
+
+@if(auth()->user()->role == 'super_admin')
+    <a class="nav-link" href="{{ route('kelulusan.index') }}">
+        <div class="sb-nav-link-icon">
+            <i class="fas fa-bell text-warning"></i> </div>
+        Kelulusan Pendaftaran
+        </a>
+@endif
                             @if($showTetapanPengguna)
                             <li class="nav-item">
                                 <a class="nav-link {{ Route::is('tetapan.pengguna.*') ? 'active' : '' }}" href="{{ route('tetapan.pengguna.index') }}">

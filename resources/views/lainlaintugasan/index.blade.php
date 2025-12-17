@@ -117,10 +117,10 @@
                         <tr>
                             <td class="text-muted">{{ $index + 1 }}</td>
                             
-                            {{-- Tarikh Daftar --}}
+                            {{-- Tarikh Daftar (Fixed with Optional) --}}
                             <td>
-                                <div class="fw-bold text-dark">{{ $item->created_at->format('d/m/Y') }}</div>
-                                <small class="text-muted" style="font-size: 0.65rem;">{{ $item->created_at->format('H:i A') }}</small>
+                                <div class="fw-bold text-dark">{{ optional($item->created_at)->format('d/m/Y') ?? '-' }}</div>
+                                <small class="text-muted" style="font-size: 0.65rem;">{{ optional($item->created_at)->format('H:i A') ?? '' }}</small>
                             </td>
 
                             {{-- Perihal --}}
@@ -128,10 +128,10 @@
                                 <div class="fw-semibold text-dark">{{ Str::limit($item->perihal, 80) }}</div>
                             </td>
 
-                            {{-- Tarikh Tugasan --}}
+                            {{-- Tarikh Tugasan (Fixed with Check) --}}
                             <td>
                                 <span class="badge bg-light text-dark border">
-                                    {{ \Carbon\Carbon::parse($item->tarikh)->format('d/m/Y') }}
+                                    {{ $item->tarikh ? \Carbon\Carbon::parse($item->tarikh)->format('d/m/Y') : '-' }}
                                 </span>
                             </td>
 

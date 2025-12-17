@@ -243,7 +243,36 @@
         .footer-links a, .footer-links label { color: #8888aa; text-decoration: none; transition: color 0.3s; cursor: pointer; }
         .footer-links a:hover { color: #00ffff; }
 
-        .copyright { margin-top: 50px; text-align: center; color: #444466; font-size: 0.8rem; }
+        .copyright { margin-top: 30px; text-align: center; color: #444466; font-size: 0.8rem; }
+
+        /* --- STYLE TAMBAHAN: PAUTAN AGENSI BARU --- */
+        .agency-link-container {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+        
+        .agency-link {
+            color: #00ffff;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            padding: 8px 15px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 5px;
+            background: rgba(0, 255, 255, 0.05);
+        }
+        
+        .agency-link:hover {
+            background: rgba(0, 255, 255, 0.15);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
 
         /* RESPONSIVE */
         @media (max-width: 992px) {
@@ -330,7 +359,7 @@
                             LOG MASUK SISTEM
                         </button>
                         
-                        {{-- Pautan Bawah --}}
+                        {{-- Pautan Bawah (Forgot Password) --}}
                         <div class="footer-links">
                             <div>
                                 <input type="checkbox" id="remember" name="remember">
@@ -339,6 +368,16 @@
                             <a href="{{ route('custom.password.request') }}">Lupa Kata Laluan?</a>
                         </div>
                     </form>
+                    
+                    {{-- 🔥 TAMBAHAN BARU: PAUTAN PENDAFTARAN AGENSI 🔥 --}}
+                    <div class="agency-link-container">
+                        <span style="color: #8888aa; font-size: 0.85rem; display: block; margin-bottom: 10px;">
+                            Bukan Kakitangan Jabatan?
+                        </span>
+                        <a href="{{ route('agensi.register') }}" class="agency-link">
+                            <i class="fas fa-file-signature"></i> DAFTAR PORTAL WARTA (AGENSI)
+                        </a>
+                    </div>
                     
                     <div class="copyright">
                         &copy; {{ date('Y') }} KuEzyAlpha. Hak Cipta Terpelihara.
