@@ -3,24 +3,26 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\AgensiUser;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route; // Tambah ini untuk cek route
+use App\Models\AgensiUser;
+
+// Tak perlu import model satu-satu sebab kita panggil secara dinamik dalam dashboard()
 
 class AgensiAuthController extends Controller
 {
-    // 1. Papar Borang Daftar (Path Baru)
+    // =================================================================
+    // BAHAGIAN PENDAFTARAN & LOGIN (Kekal sama, tiada perubahan)
+    // =================================================================
+
     public function paparBorangDaftar()
     {
-        // Ubah 'auth.agensi-register' jadi 'agensi.agensi-register'
         return view('agensi.agensi-register'); 
     }
 
-    // ... (Function simpanPendaftaran KEKAL SAMA) ...
-
     public function simpanPendaftaran(Request $request)
     {
-        // ... coding simpan sama macam tadi ...
         $request->validate([
             'nama_pegawai' => 'required|string',
             'email' => 'required|email|unique:agensi_users,email',
@@ -43,13 +45,11 @@ class AgensiAuthController extends Controller
         return redirect()->route('login')->with('success', 'Pendaftaran berjaya. Sila tunggu pengesahan Admin.');
     }
 
-    // 2. Papar Borang Login (Path Baru)
     public function paparBorangLogin()
     {
         return view('agensi.agensi-login');
     }
 
-    // ... (Function prosesLogin & keluar KEKAL SAMA) ...
     public function prosesLogin(Request $request)
     {
         $credentials = $request->validate([
@@ -72,11 +72,66 @@ class AgensiAuthController extends Controller
         return back()->withErrors(['email' => 'Emel atau kata laluan salah.']);
     }
 
-    public function keluar(Request $request)
+    // =================================================================
+    // BAHAGIAN DASHBOARD - DIBETULKAN (DINAMIK)
+    // =================================================================
+
+    public function dashboard()
+    {
+        $agensi_id = Auth::guard('agensi')->id();
+
+        // Senarai Seksyen & Nama Paparan
+        $senaraiSeksyen = [
+            ['kod' => '12',   'nama' => '1. Seksyen 12 (Serah Balik Kurnia Semula)'],
+            ['kod' => '62',   'nama' => '2. Seksyen 62 (Pewartaan Rizab)'],
+            ['kod' => '64',   'nama' => '3. Seksyen 64 (Pembatalan Rizab)'],
+            ['kod' => '97',   'nama' => '4. Seksyen 97 & 98 (Notis Tuntutan)'],
+            ['kod' => '130',  'nama' => '5. Seksyen 130 (Pelucuthakan Tanah)'],
+            ['kod' => '168',  'nama' => '6. Seksyen 168 (Gantian Hakmilik Hilang)'],
+            ['kod' => '175a', 'nama' => '7. Seksyen 175A (Penyelesaian Pusaka)'],
+            ['kod' => '175d', 'nama' => '8. Seksyen 175D (Perintah Pentadbir Tanah)'],
+            ['kod' => '261',  'nama' => '9. Seksyen 261 (Lelongan Tanah)'],
+            ['kod' => '263',  'nama' => '10. Seksyen 263 (Jualan Atas Permintaan Gadai)'],
+            ['kod' => '326',  'nama' => '11. Seksyen 326 (Notis Memotong Kaveat)'],
+        ];
+
+        $stats = [];
+
+        foreach ($senaraiSeksyen as $sek) {
+            // 1. Tentukan Nama Model secara automatik
+            $suffix = ctype_digit($sek['kod']) ? $sek['kod'] : strtoupper($sek['kod']); 
+            $modelClass = "App\\Models\\PermohonanSeksyen" . $suffix;
+
+            // 2. Tentukan Nama Route secara automatik
+            $routeName = 'permohonan.seksyen' . strtolower($sek['kod']);
+
+            // 3. Kira Data (Hanya jika Model wujud)
+            if (class_exists($modelClass)) {
+                $baru = $modelClass::where('agensi_id', $agensi_id)->whereIn('status', ['Baru', 'Semakan'])->count();
+                $selesai = $modelClass::where('agensi_id', $agensi_id)->whereNotIn('status', ['Baru', 'Semakan'])->count();
+                $total = $modelClass::where('agensi_id', $agensi_id)->count();
+            } else {
+                $baru = 0; $selesai = 0; $total = 0;
+            }
+
+            $stats[] = (object) [
+                'tajuk' => $sek['nama'],
+                'route' => $routeName,
+                'baru' => $baru,
+                'selesai' => $selesai,
+                'total' => $total
+            ];
+        }
+
+        // Hantar variable $stats ke View (Pastikan nama fail view betul)
+        return view('dashboard.agensi', compact('stats'));
+    }
+
+    public function logout(Request $request)
     {
         Auth::guard('agensi')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect()->route('login');
+        return redirect('/'); 
     }
 }

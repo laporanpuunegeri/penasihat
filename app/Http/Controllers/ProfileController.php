@@ -30,26 +30,27 @@ class ProfileController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id], 
             'no_telefon' => ['required', 'string', 'max:20'],
-            'negeri' => ['required', 'string'],
-            'bahagian' => ['required', 'string'],
             'nama_jawatan' => ['required', 'string', 'max:255'],
             'gred_jawatan' => ['required', 'string', 'max:50'],
             
-            // Validasi Tandatangan (Optional bila update)
+            // NOTA: Saya dah BUANG validation 'negeri' & 'bahagian' kat sini
+            // supaya Controller tak harap data tu dihantar.
+
             'signature_file' => ['nullable', 'file', 'mimes:png', 'max:2048'], 
-            
             'current_password' => ['nullable', 'required_with:new_password', 'current_password:web'],
             'new_password' => ['nullable', 'min:8', 'max:12', 'confirmed', 'exclude_if:current_password,null', Password::default()],
         ]);
         
+        // UPDATE DATA (Hanya yang dibenarkan)
         $user->fill([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'no_telefon' => $validated['no_telefon'],
-            'negeri' => $validated['negeri'],
-            'bahagian' => $validated['bahagian'],
             'nama_jawatan' => $validated['nama_jawatan'],
             'gred_jawatan' => $validated['gred_jawatan'],
+            
+            // JANGAN letak 'negeri' dan 'bahagian' kat sini.
+            // Biar database kekal dengan nilai asal (yang Super Admin set).
         ]);
         
         // Proses Tukar Tandatangan

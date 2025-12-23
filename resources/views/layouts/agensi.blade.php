@@ -111,7 +111,7 @@
                     <img src="{{ asset('images/logo-ai.png') }}" 
                         onerror="this.src='{{ asset('images/logo.png') }}'" 
                         alt="Logo" class="sidebar-logo-img">
-                    <div class="brand-title">SISTEM LAPORAN WARTA</div>
+                    <div class="brand-title">SISTEM PERMOHONAN WARTA</div>
                     <div class="brand-subtitle">JABATAN PEGUAM NEGARA</div>
                 </div>
 
@@ -132,60 +132,60 @@
             </a>
             
             <a class="nav-link collapsed" href="#menuWarta" data-bs-toggle="collapse" role="button" aria-expanded="false">
-    <div class="sb-nav-link-icon"><i class="fas fa-file-contract"></i></div>
-    Permohonan Baru
-    <div class="sb-sidenav-collapse-arrow"><i class="fas fa-chevron-down ms-auto"></i></div>
-</a>
+                <div class="sb-nav-link-icon"><i class="fas fa-file-contract"></i></div>
+                Permohonan Baru
+                <div class="sb-sidenav-collapse-arrow"><i class="fas fa-chevron-down ms-auto"></i></div>
+            </a>
 
-<div class="collapse" id="menuWarta">
-   <div class="bg-dark bg-opacity-25 py-2 rounded mb-2 ms-3 border-start border-info border-3">
-    
-    <a href="{{ route('permohonan.seksyen12') }}" class="nav-link text-light py-2" style="font-size: 0.85rem;">
-        <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 12
-    </a>
+            <div class="collapse {{ request()->is('permohonan/*') ? 'show' : '' }}" id="menuWarta">
+               <div class="bg-dark bg-opacity-25 py-2 rounded mb-2 ms-3 border-start border-info border-3">
+                
+                <a href="{{ route('permohonan.seksyen12') }}" class="nav-link text-light py-2 {{ request()->routeIs('permohonan.seksyen12*') ? 'text-info fw-bold' : '' }}" style="font-size: 0.85rem;">
+                    <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 12
+                </a>
 
-    <a href="{{ route('permohonan.seksyen62') }}" class="nav-link text-light py-2" style="font-size: 0.85rem;">
-        <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 62
-    </a>
+                <a href="{{ route('permohonan.seksyen62') }}" class="nav-link text-light py-2 {{ request()->routeIs('permohonan.seksyen62*') ? 'text-info fw-bold' : '' }}" style="font-size: 0.85rem;">
+                    <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 62
+                </a>
 
-    <a href="{{ route('permohonan.seksyen64') }}" class="nav-link text-light py-2" style="font-size: 0.85rem;">
-        <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 64
-    </a>
+                <a href="{{ route('permohonan.seksyen64') }}" class="nav-link text-light py-2 {{ request()->routeIs('permohonan.seksyen64*') ? 'text-info fw-bold' : '' }}" style="font-size: 0.85rem;">
+                    <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 64
+                </a>
 
-    <a href="{{ route('permohonan.seksyen9798') }}" class="nav-link text-light py-2" style="font-size: 0.85rem;">
-        <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 97 & 98
-    </a>
+                <a href="{{ route('permohonan.seksyen97') }}" class="nav-link text-light py-2 {{ request()->routeIs('permohonan.seksyen97*') ? 'text-info fw-bold' : '' }}" style="font-size: 0.85rem;">
+                    <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 97 & 98
+                </a>
 
-    <a href="{{ route('permohonan.seksyen130') }}" class="nav-link text-light py-2" style="font-size: 0.85rem;">
-        <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 130
-    </a>
+                <a href="{{ route('permohonan.seksyen130') }}" class="nav-link text-light py-2" style="font-size: 0.85rem;">
+                    <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 130
+                </a>
 
-    <a href="{{ route('permohonan.seksyen168') }}" class="nav-link text-light py-2" style="font-size: 0.85rem;">
-        <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 168
-    </a>
+                <a href="{{ route('permohonan.seksyen168') }}" class="nav-link text-light py-2" style="font-size: 0.85rem;">
+                    <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 168
+                </a>
 
-    <a href="{{ route('permohonan.seksyen175A') }}" class="nav-link text-light py-2" style="font-size: 0.85rem;">
-        <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 175A
-    </a>
+                <a href="{{ route('permohonan.seksyen175a') }}" class="nav-link text-light py-2" style="font-size: 0.85rem;">
+                    <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 175A
+                </a>
 
-    <a href="{{ route('permohonan.seksyen175D') }}" class="nav-link text-light py-2" style="font-size: 0.85rem;">
-        <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 175D
-    </a>
+                <a href="{{ route('permohonan.seksyen175d') }}" class="nav-link text-light py-2" style="font-size: 0.85rem;">
+                    <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 175D
+                </a>
 
-    <a href="{{ route('permohonan.seksyen261') }}" class="nav-link text-light py-2" style="font-size: 0.85rem;">
-        <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 261
-    </a>
+                <a href="{{ route('permohonan.seksyen261') }}" class="nav-link text-light py-2" style="font-size: 0.85rem;">
+                    <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 261
+                </a>
 
-    <a href="{{ route('permohonan.seksyen263') }}" class="nav-link text-light py-2" style="font-size: 0.85rem;">
-        <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 263
-    </a>
+                <a href="{{ route('permohonan.seksyen263') }}" class="nav-link text-light py-2" style="font-size: 0.85rem;">
+                    <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 263
+                </a>
 
-    <a href="{{ route('permohonan.seksyen326') }}" class="nav-link text-light py-2" style="font-size: 0.85rem;">
-        <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 326
-    </a>
+                <a href="{{ route('permohonan.seksyen326') }}" class="nav-link text-light py-2" style="font-size: 0.85rem;">
+                    <i class="fas fa-angle-right me-2 text-info"></i> Seksyen 326
+                </a>
 
-</div>
-</div>
+            </div>
+            </div>
             
             <a href="#" class="nav-link">
                 <i class="fas fa-history"></i> Sejarah Permohonan

@@ -22,6 +22,20 @@ use App\Http\Controllers\LaporanLainLainController;
 use App\Http\Controllers\PdfController;
 use App\Http\Controllers\LampiranKesMahkamahController;
 use App\Http\Controllers\AgensiApprovalController;
+use App\Http\Controllers\AgensiAuthController;
+use App\Http\Controllers\PermohonanController;
+use App\Http\Controllers\seksyenwarta\Seksyen12Controller;
+use App\Http\Controllers\seksyenwarta\Seksyen62Controller;
+use App\Http\Controllers\seksyenwarta\Seksyen64Controller;
+use App\Http\Controllers\seksyenwarta\Seksyen97Controller;
+use App\Http\Controllers\seksyenwarta\Seksyen130Controller;
+use App\Http\Controllers\seksyenwarta\Seksyen168Controller;
+use App\Http\Controllers\seksyenwarta\Seksyen175aController;
+use App\Http\Controllers\seksyenwarta\Seksyen175dController;
+use App\Http\Controllers\seksyenwarta\Seksyen261Controller;
+use App\Http\Controllers\seksyenwarta\Seksyen263Controller;
+use App\Http\Controllers\seksyenwarta\Seksyen326Controller;
+use App\Http\Controllers\seksyenwarta\WartaAdminController;
 
 // Controllers Laporan (Untuk Grafik & CRUD)
 use App\Http\Controllers\LaporanPandanganUndangController;
@@ -40,14 +54,6 @@ use App\Http\Controllers\DashboardBahagian\GuamanDashboardController;
 use App\Http\Controllers\DashboardBahagian\KewanganPentadbiranDashboardController;
 use App\Http\Controllers\DashboardBahagian\PenasihatDashboardController;
 
-// 🔥 CONTROLLER BARU: PORTAL WARTA (AGENSI) 🔥
-use App\Http\Controllers\AgensiAuthController;
-use App\Http\Controllers\PermohonanController; // <--- PENTING: Tambah ni
-
-// =========================================================================
-// ROUTE UTAMA & GUEST (STAFF)
-// =========================================================================
-
 Route::get('/', fn() => redirect()->route('dashboard'))->name('utama');
 
 Route::middleware('guest')->group(function () {
@@ -64,7 +70,19 @@ Route::middleware('guest')->group(function () {
 // =========================================================================
 
 Route::middleware('auth')->group(function () { // Default auth (guard: web)
-
+// Modul Pentadbiran Warta (Staff Semakan)
+Route::prefix('admin/warta')->name('admin.warta.')->group(function () {
+    
+    // 1. Senarai Utama
+    Route::get('/', [WartaAdminController::class, 'index'])->name('index');
+    
+    // 2. Lihat / Cetak (Ganti downloadWord)
+    Route::get('/lihat/{id}', [WartaAdminController::class, 'show'])->name('show'); 
+    
+    // 3. Sahkan Permohonan
+    Route::post('/sahkan/{id}', [WartaAdminController::class, 'sahkan'])->name('sahkan');
+});
+    
     // --- DASHBOARD REDIRECT LOGIC ---
     Route::get('/dashboard', function () {
         $user = Auth::user();
@@ -286,41 +304,54 @@ Route::middleware('auth')->group(function () { // Default auth (guard: web)
 // 🔥 ROUTE PORTAL WARTA (AGENSI LUAR) - TABLE ASING 🔥
 // =========================================================================
 
-// 1. Guest Agensi (Belum Login)
-// NOTA: Login guna page utama (/login), jadi route 'login khas' kat sini DIBUANG.
+// =========================================================================
+// BAHAGIAN 1: Agensi Belum Login (Guest) - DAFTAR & LOGIN
+// =========================================================================
 Route::middleware('guest:agensi')->group(function () {
-    // Pendaftaran SAHAJA
+    
+    // Route Pendaftaran (INI YANG HILANG TADI)
     Route::get('/portal-warta/daftar', [AgensiAuthController::class, 'paparBorangDaftar'])->name('agensi.register');
     Route::post('/portal-warta/daftar', [AgensiAuthController::class, 'simpanPendaftaran'])->name('agensi.register.store');
+
+    // Route Login (Jika ada custom controller, letak sini)
+    Route::get('/portal-warta/login', [AgensiAuthController::class, 'paparBorangLogin'])->name('agensi.login');
+    Route::post('/portal-warta/login', [AgensiAuthController::class, 'prosesLogin'])->name('agensi.login.submit');
 });
 
-// 2. Authenticated Agensi (Dah Login)
-Route::middleware('auth:agensi')->group(function () {
+// =========================================================================
+// BAHAGIAN 2: Agensi Dah Login (Auth) - DASHBOARD & PERMOHONAN
+// =========================================================================
+Route::middleware(['auth:agensi'])->group(function () {
     
-    // Dashboard Khas Agensi
-    Route::get('/dashboard-warta', function () {
-        return view('dashboard.agensi');
-    })->name('dashboard.warta');
+    // 1. Dashboard Utama
+    Route::get('/agensi/dashboard', [AgensiAuthController::class, 'dashboard'])->name('dashboard.warta');
+    
+    // 2. Logout
+    Route::post('/agensi/logout', [AgensiAuthController::class, 'logout'])->name('agensi.logout');
 
-    // SENARAI 11 SEKSYEN PERMOHONAN
-    Route::get('/permohonan/seksyen-12', [PermohonanController::class, 'paparSeksyen12'])->name('permohonan.seksyen12');
-    Route::get('/permohonan/seksyen-62', [PermohonanController::class, 'paparSeksyen62'])->name('permohonan.seksyen62');
-    Route::get('/permohonan/seksyen-64', [PermohonanController::class, 'paparSeksyen64'])->name('permohonan.seksyen64');
-    Route::get('/permohonan/seksyen-97-98', [PermohonanController::class, 'paparSeksyen9798'])->name('permohonan.seksyen9798');
-    Route::get('/permohonan/seksyen-130', [PermohonanController::class, 'paparSeksyen130'])->name('permohonan.seksyen130');
-    Route::get('/permohonan/seksyen-168', [PermohonanController::class, 'paparSeksyen168'])->name('permohonan.seksyen168');
-    Route::get('/permohonan/seksyen-175a', [PermohonanController::class, 'paparSeksyen175A'])->name('permohonan.seksyen175A');
-    Route::get('/permohonan/seksyen-175d', [PermohonanController::class, 'paparSeksyen175D'])->name('permohonan.seksyen175D');
-    Route::get('/permohonan/seksyen-261', [PermohonanController::class, 'paparSeksyen261'])->name('permohonan.seksyen261');
-    Route::get('/permohonan/seksyen-263', [PermohonanController::class, 'paparSeksyen263'])->name('permohonan.seksyen263');
-    Route::get('/permohonan/seksyen-326', [PermohonanController::class, 'paparSeksyen326'])->name('permohonan.seksyen326');
+    // 3. Dynamic Routes untuk Semua Seksyen (12 - 326)
+    $seksyenSiap = ['12', '62', '64', '97', '130', '168', '175a', '175d', '261', '263', '326'];
 
-    // STORE (Simpan Data)
-    Route::post('/permohonan/simpan', [PermohonanController::class, 'store'])->name('permohonan.store');
-
-    // Logout Agensi (PENTING)
-    Route::post('/portal-warta/keluar', [AgensiAuthController::class, 'keluar'])->name('agensi.logout');
+    foreach ($seksyenSiap as $s) {
+        $controller = "App\Http\Controllers\seksyenwarta\Seksyen{$s}Controller";
+        
+        Route::get("/permohonan/seksyen-{$s}", [$controller, 'index'])->name("permohonan.seksyen{$s}");
+        Route::get("/permohonan/seksyen-{$s}/create", [$controller, 'create'])->name("permohonan.seksyen{$s}.create");
+        Route::post("/permohonan/seksyen-{$s}/store", [$controller, 'store'])->name("permohonan.seksyen{$s}.store");
+        Route::get("/permohonan/seksyen-{$s}/lihat/{id}", [$controller, 'show'])->name("permohonan.seksyen{$s}.show");
+        Route::get("/permohonan/seksyen-{$s}/edit/{id}", [$controller, 'edit'])->name("permohonan.seksyen{$s}.edit");
+        Route::put("/permohonan/seksyen-{$s}/update/{id}", [$controller, 'update'])->name("permohonan.seksyen{$s}.update");
+        Route::delete("/permohonan/seksyen-{$s}/delete/{id}", [$controller, 'destroy'])->name("permohonan.seksyen{$s}.destroy");
+    }
+});
+// =========================================================================
+// 3. ROUTE KONGSI (ADMIN & AGENSI BOLEH AKSES) - BARU TAMBAH
+// =========================================================================
+Route::middleware(['auth:web,agensi'])->group(function () {
+    // Pindahkan 3 baris ni ke sini supaya Admin tak kena tendang ke Dashboard
+    Route::get('/permohonan/seksyen12/download/{id}', [Seksyen12Controller::class, 'downloadWord'])->name('seksyen12.download');
+    Route::get('/seksyen12/{id}/edit', [Seksyen12Controller::class, 'edit'])->name('seksyen12.edit');
+    Route::put('/seksyen12/{id}', [Seksyen12Controller::class, 'update'])->name('seksyen12.update');
 });
 
-
-require __DIR__.'/auth.php';
+require __DIR__.'/auth.php'; 

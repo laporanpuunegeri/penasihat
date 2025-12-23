@@ -196,72 +196,56 @@
                     <div class="brand-subtitle">JABATAN PEGUAM NEGARA</div>
                 </div>
 
-                @php
-                    $user = Auth::user();
-                    $role = strtolower(trim($user->role ?? '')); 
-                    $bahagian = strtoupper(trim($user->bahagian ?? '')); 
+@php
+    $user = Auth::user();
+    $role = strtolower(trim($user->role ?? '')); 
+    $bahagian = strtoupper(trim($user->bahagian ?? '')); 
 
-                    $targetRoute = 'dashboard'; 
+    // --- 1. TENTUKAN ROUTE DASHBOARD (INI YANG HILANG TADI) ---
+    $targetRoute = 'dashboard'; 
+    switch ($bahagian) {
+        case 'BAHAGIAN PENTADBIRAN & KEWANGAN':
+        case 'BAHAGIAN PENTADBIRAN DAN KEWANGAN': $targetRoute = 'dashboard.pentadbirandankewangan'; break;
+        case 'BAHAGIAN GUAMAN': $targetRoute = 'dashboard.guaman'; break;
+        case 'BAHAGIAN PENASIHAT': $targetRoute = 'dashboard.penasihat'; break;
+        case 'BAHAGIAN PENDAKWAAN': $targetRoute = 'dashboard.pendakwaan'; break;
+        case 'BAHAGIAN SEMAKAN': $targetRoute = 'dashboard.semakan'; break;
+        case 'BAHAGIAN SYARIAH': $targetRoute = 'dashboard.syariah'; break;
+        default:
+            if (in_array($role, ['super_admin', 'admin', 'administrator'])) {
+                $targetRoute = 'dashboard.admin';
+            }
+            break;
+    }
+    // Variable wajib ini menentukan link "Dashboard" di sidebar pergi ke mana
+    $dashboardRoute = Route::has($targetRoute) ? $targetRoute : 'dashboard';
 
-                    switch ($bahagian) {
-                        case 'BAHAGIAN PENTADBIRAN & KEWANGAN':
-                        case 'BAHAGIAN PENTADBIRAN DAN KEWANGAN':
-                            $targetRoute = 'dashboard.pentadbirandankewangan';
-                            break;
-                        case 'BAHAGIAN GUAMAN':
-                            $targetRoute = 'dashboard.guaman'; 
-                            break;
-                        case 'BAHAGIAN PENASIHAT':
-                            $targetRoute = 'dashboard.penasihat';
-                            break;
-                        case 'BAHAGIAN PENDAKWAAN':
-                            $targetRoute = 'dashboard.pendakwaan';
-                            break;
-                        case 'BAHAGIAN SEMAKAN':
-                            $targetRoute = 'dashboard.semakan';
-                            break;
-                        case 'BAHAGIAN SYARIAH':
-                            $targetRoute = 'dashboard.syariah';
-                            break;
-                        default:
-                            if (in_array($role, ['super_admin', 'admin', 'administrator'])) {
-                                $targetRoute = 'dashboard.admin';
-                            }
-                            break;
-                    }
+    // --- 2. LOGIK ROLE & BAHAGIAN ---
+    $isSuperAdmin = in_array($role, ['super_admin', 'admin', 'administrator']);
+    
+    // Check Bahagian Specific
+    $isStaffSemakan = ($bahagian === 'BAHAGIAN SEMAKAN');
+    $isStaffGuaman  = ($bahagian === 'BAHAGIAN GUAMAN');
+    $isStaffKewPen  = str_contains($bahagian, 'PENTADBIRAN') || str_contains($bahagian, 'KEWANGAN');
+    
+    // Group "Geng Laporan" (Penasihat, Semakan, Syariah, Pendakwaan)
+    $isStaffLaporanPenasihat = in_array($bahagian, ['BAHAGIAN PENASIHAT', 'BAHAGIAN SEMAKAN', 'BAHAGIAN SYARIAH']); 
 
-                    $dashboardRoute = Route::has($targetRoute) ? $targetRoute : 'dashboard';
+    // --- 3. LOGIK PAPARAN MENU (SHOW/HIDE) ---
+    $showKewangan    = ($isSuperAdmin || $isStaffKewPen);
+    $showPentadbiran = ($isSuperAdmin || $isStaffKewPen);
+    $showModulGuaman = ($isSuperAdmin || $isStaffGuaman);
+    $showModulSemakan = ($isSuperAdmin || $isStaffSemakan);
+    $showModulLaporanPenasihat = ($isSuperAdmin || $isStaffLaporanPenasihat); 
 
+    // Menu Tambahan
+    $showLaporanPenuh = ($isSuperAdmin || $isStaffLaporanPenasihat); 
+    $showDbus         = ($isSuperAdmin || (in_array($role, ['cc', 'eo']) && $isStaffKewPen));
+    $showUrusAgensi   = ($isSuperAdmin); 
+    $showTetapanPengguna = ($isSuperAdmin || in_array($role, ['cc', 'eo']));
+    $showMenuTetapan  = ($showTetapanPengguna || $showUrusAgensi);
 
-                    $isSuperAdmin = in_array($role, ['super_admin', 'admin', 'administrator']);
-                    $isBoss = ($role === 'boss');
-                    $isCC = ($role === 'cc'); 
-                    $isEO = ($role === 'eo'); 
-                    $isYB = ($role === 'yb');
-                    $isPA = ($role === 'pa');
-                    $isMidAdmin = ($isPA || $isBoss); 
-
-                    $isStaffKewPen = str_contains($bahagian, 'PENTADBIRAN') || str_contains($bahagian, 'KEWANGAN');
-
-                    $isStaffGuaman = ($bahagian === 'BAHAGIAN GUAMAN');
-                    
-                    $isStaffLaporanPenasihat = in_array($bahagian, ['BAHAGIAN PENASIHAT', 'BAHAGIAN SEMAKAN', 'BAHAGIAN SYARIAH', 'BAHAGIAN PENDAKWAAN']); 
-                    
-                    $showKewangan = ($isSuperAdmin || $isStaffKewPen || $isMidAdmin || $isYB || $isCC || $isEO);
-                    $showPentadbiran = ($isSuperAdmin || $isStaffKewPen || $isMidAdmin || $isYB || $isCC || $isEO);
-                    
-                    $showModulGuaman = ($isSuperAdmin || $isYB || $isBoss || $isStaffGuaman);
-
-                    $showModulLaporanPenasihat = ($isSuperAdmin || $isYB || $isBoss || $isStaffLaporanPenasihat || ($isPA && $isStaffLaporanPenasihat)); 
-
-                    $showDbus = ($isSuperAdmin || (in_array($role, ['cc', 'eo']) && $isStaffKewPen));
-
-                    $showUrusAgensi = ($isSuperAdmin || $isMidAdmin); 
-                    $showTetapanPengguna = ($isSuperAdmin || $isMidAdmin || $isCC || $isEO);
-                    $showMenuTetapan = ($showTetapanPengguna || $showUrusAgensi);
-                    
-                    $showLaporanPenuh = ($isSuperAdmin || $isYB || $isBoss || $isPA) || $isStaffLaporanPenasihat;
-                @endphp
+@endphp
 
                 @if(Auth::check())
                 <div class="user-profile-compact">
@@ -369,6 +353,19 @@
                         </ul>
                     @endif
 
+@if($showModulSemakan)
+    <div class="menu-label" style="color: #22d3ee;">MODUL SEMAKAN</div>
+    <ul class="nav flex-column mb-3">
+        <li class="nav-item">
+            <a class="nav-link {{ Request::is('admin/warta*') ? 'active' : '' }}" 
+               href="{{ url('admin/warta') }}" 
+               style="cursor: pointer !important;">
+                <i class="fas fa-clipboard-check"></i> 
+                <span>Semakan Warta</span>
+            </a>
+        </li>
+    </ul>
+@endif
                     @if($showModulLaporanPenasihat)
                         <div class="menu-label">Modul Laporan</div>
                         <ul class="nav flex-column mb-3">

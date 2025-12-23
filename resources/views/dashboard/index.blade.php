@@ -45,35 +45,45 @@
 @section('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    const configBar = (ctxId, data) => {
-        new Chart(document.getElementById(ctxId), {
+    // Fungsi bantuan untuk memastikan data sentiasa ada format asas Chart.js
+    const prepareData = (data) => {
+        if (!data || !data.labels) {
+            return {
+                labels: ['Tiada Data'],
+                datasets: [{ label: 'N/A', data: [0], backgroundColor: '#eeeeee' }]
+            };
+        }
+        return data;
+    };
+
+    const configBar = (ctxId, rawData) => {
+        const el = document.getElementById(ctxId);
+        if(!el) return;
+        new Chart(el, {
             type: 'bar',
-            data: data,
-            options: {
-                responsive: true,
-                plugins: { legend: { position: 'bottom' } }
-            }
+            data: prepareData(rawData),
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
         });
     };
 
-    const configPie = (ctxId, data) => {
-        new Chart(document.getElementById(ctxId), {
+    const configPie = (ctxId, rawData) => {
+        const el = document.getElementById(ctxId);
+        if(!el) return;
+        new Chart(el, {
             type: 'pie',
-            data: data,
-            options: {
-                responsive: true,
-                plugins: { legend: { position: 'bottom' } }
-            }
+            data: prepareData(rawData),
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
         });
     };
 
-    configBar('grafPandanganUndang', {!! json_encode($dataPandanganUndang) !!});
-    configBar('grafKesMahkamah', {!! json_encode($dataKesMahkamah) !!});
-    configPie('grafGubalanUndang', {!! json_encode($dataGubalan) !!});
-    configPie('grafPindaanUndang', {!! json_encode($dataPindaan) !!});
-    configBar('grafSemakanUndang', {!! json_encode($dataSemakan) !!});
-    configPie('grafMesyuarat', {!! json_encode($dataMesyuarat) !!});
-    configBar('grafTataterib', {!! json_encode($dataTataterib) !!});
-    configPie('grafTugasan', {!! json_encode($dataTugasan) !!});
+    // Panggil fungsi dengan data dari Controller
+    configBar('grafPandanganUndang', {!! json_encode($dataPandanganUndang ?? null) !!});
+    configBar('grafKesMahkamah', {!! json_encode($dataKesMahkamah ?? null) !!});
+    configPie('grafGubalanUndang', {!! json_encode($dataGubalan ?? null) !!});
+    configPie('grafPindaanUndang', {!! json_encode($dataPindaan ?? null) !!});
+    configBar('grafSemakanUndang', {!! json_encode($dataSemakan ?? null) !!});
+    configPie('grafMesyuarat', {!! json_encode($dataMesyuarat ?? null) !!});
+    configBar('grafTataterib', {!! json_encode($dataTataterib ?? null) !!});
+    configPie('grafTugasan', {!! json_encode($dataTugasan ?? null) !!});
 </script>
 @endsection

@@ -1,48 +1,93 @@
-@extends('layouts.agensi') 
+@extends('layouts.agensi')
 
 @section('content')
-<div class="container-fluid p-0">
-    
-    <div class="p-5 mb-4 rounded-3 text-white shadow" 
-         style="background: linear-gradient(135deg, #0f172a 0%, #334155 100%); position: relative; overflow: hidden;">
-        
-        <div style="position: relative; z-index: 2;">
-            <h1 class="display-5 fw-bold">Selamat Datang!</h1>
-            <p class="col-md-8 fs-4">Papan Pemuka Agensi: <span class="text-info fw-bold">{{ auth()->guard('agensi')->user()->nama_agensi }}</span></p>
-        </div>
-        
-        <i class="fas fa-building fa-10x" style="position: absolute; right: 20px; bottom: -20px; opacity: 0.1; color: white;"></i>
+<div class="container-fluid">
+
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Dashboard Agensi</h1>
+        {{-- Butang Report Optional --}}
+        <button class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm" onclick="window.print()">
+            <i class="fas fa-print fa-sm text-white-50"></i> Cetak Laporan
+        </button>
     </div>
 
-    <div class="row g-4">
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="flex-shrink-0 bg-primary bg-opacity-10 p-3 rounded-circle text-primary">
-                        <i class="fas fa-file-invoice fa-2x"></i>
+    <div class="row">
+
+        @foreach($stats as $item)
+        <div class="col-xl-12 col-md-12 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                
+                {{-- HEADER KAD --}}
+                <div class="card-header bg-white py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">{{ $item->tajuk }}</h6>
+                    
+                    <div class="dropdown no-arrow">
+                        {{-- Cek dulu route wujud tak, kalau tak wujud disable button --}}
+                        @if(Route::has($item->route))
+                            <a href="{{ route($item->route) }}" class="btn btn-primary btn-sm shadow-sm">
+                                <i class="fas fa-folder-open text-white-50"></i> Lihat Senarai
+                            </a>
+                        @else
+                            <button class="btn btn-secondary btn-sm shadow-sm" disabled>
+                                <i class="fas fa-lock text-white-50"></i> Belum Sedia
+                            </button>
+                        @endif
                     </div>
-                    <div class="flex-grow-1 ms-3">
-                        <h6 class="text-muted text-uppercase fw-bold mb-1">Permohonan Aktif</h6>
-                        <h2 class="mb-0 fw-bold">0</h2>
+                </div>
+                
+                {{-- BODY KAD (STATISTIK) --}}
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center text-center">
+                        
+                        {{-- 1. STATUS BARU / SEMAKAN --}}
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Dalam Semakan (Baru)
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $item->baru }}</div>
+                            <div class="mt-2 text-gray-300">
+                                <i class="fas fa-clock fa-2x text-warning"></i>
+                            </div>
+                        </div>
+
+                        {{-- GARIS PEMISAH --}}
+                        <div class="col-auto">
+                            <div class="vr h-100 border-left" style="height: 50px; border-color: #e3e6f0;"></div>
+                        </div>
+
+                        {{-- 2. STATUS SELESAI / LULUS --}}
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Selesai / Lulus
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $item->selesai }}</div>
+                            <div class="mt-2 text-gray-300">
+                                <i class="fas fa-check-circle fa-2x text-success"></i>
+                            </div>
+                        </div>
+
+                        {{-- GARIS PEMISAH --}}
+                        <div class="col-auto">
+                            <div class="vr h-100 border-left" style="height: 50px; border-color: #e3e6f0;"></div>
+                        </div>
+
+                        {{-- 3. JUMLAH KESELURUHAN --}}
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Jumlah Permohonan
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $item->total }}</div>
+                            <div class="mt-2 text-gray-300">
+                                <i class="fas fa-folder fa-2x text-info"></i>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
         </div>
+        @endforeach
 
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex align-items-center">
-                    <div class="flex-shrink-0 bg-warning bg-opacity-10 p-3 rounded-circle text-warning">
-                        <i class="fas fa-clock fa-2x"></i>
-                    </div>
-                    <div class="flex-grow-1 ms-3">
-                        <h6 class="text-muted text-uppercase fw-bold mb-1">Menunggu Tindakan</h6>
-                        <h2 class="mb-0 fw-bold">-</h2>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
-
 </div>
 @endsection

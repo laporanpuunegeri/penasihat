@@ -59,39 +59,36 @@
                 </div>
 
                 <div class="row mb-4">
+
                     <div class="col-md-4">
                         <label class="form-label fw-bold text-secondary small">NO. TELEFON</label>
                         <input type="text" class="form-control" name="no_telefon" value="{{ old('no_telefon', $user->no_telefon) }}" required>
                         @error('no_telefon')<div class="text-danger small">{{ $message }}</div>@enderror
                     </div>
+
                     <div class="col-md-4">
                         <label class="form-label fw-bold text-secondary small">NEGERI</label>
-                        <select name="negeri" class="form-select" required>
-                            <option value="">-- Sila Pilih Negeri --</option>
-                            @php
-                                $states = ["Johor","Kedah","Kelantan","Melaka","Negeri Sembilan","Pahang","Perak","Perlis","Pulau Pinang","Sabah","Sarawak","Selangor","Terengganu","Wilayah Persekutuan Kuala Lumpur","Wilayah Persekutuan Labuan","Wilayah Persekutuan Putrajaya"];
-                            @endphp
-                            @foreach ($states as $state)
-                                <option value="{{ $state }}" {{ old('negeri', $user->negeri) == $state ? 'selected' : '' }}>{{ $state }}</option>
-                            @endforeach
+                        {{-- Tambah 'disabled' dan buang 'name' supaya data tak dihantar --}}
+                        <select class="form-select bg-light" disabled>
+                            <option selected>{{ $user->negeri }}</option>
                         </select>
-                        @error('negeri')<div class="text-danger small">{{ $message }}</div>@enderror
+                        <div class="form-text text-muted" style="font-size: 0.7rem;">
+                            <i class="fas fa-lock"></i> Dikunci (Hubungi Admin untuk tukar)
+                        </div>
                     </div>
+
                     <div class="col-md-4">
                         <label class="form-label fw-bold text-secondary small">BAHAGIAN</label>
-                        <select name="bahagian" class="form-select" required>
-                            <option value="">-- Sila Pilih Bahagian --</option>
-                            @php
-                                $bahagians = ["BAHAGIAN PENASIHAT", "BAHAGIAN SEMAKAN", "BAHAGIAN PENTADBIRAN & KEWANGAN", "BAHAGIAN GUAMAN", "BAHAGIAN SYARIAH"];
-                            @endphp
-                            @foreach ($bahagians as $bahagian)
-                                <option value="{{ $bahagian }}" {{ old('bahagian', $user->bahagian) == $bahagian ? 'selected' : '' }}>{{ $bahagian }}</option>
-                            @endforeach
+                        {{-- Tambah 'disabled' dan buang 'name' --}}
+                        <select class="form-select bg-light" disabled>
+                            <option selected>{{ $user->bahagian }}</option>
                         </select>
-                        @error('bahagian')<div class="text-danger small">{{ $message }}</div>@enderror
+                        <div class="form-text text-muted" style="font-size: 0.7rem;">
+                            <i class="fas fa-lock"></i> Dikunci
+                        </div>
                     </div>
                 </div>
-                
+
                 <div class="row mb-4">
                     <div class="col-md-6">
                         <label class="form-label fw-bold text-secondary small">NAMA JAWATAN</label>
