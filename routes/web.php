@@ -83,7 +83,6 @@ Route::middleware('auth')->group(function () { // Default auth (guard: web)
             'dataPindaan'         => [0,0,0],
             'dataSemakan'         => [0,0,0,0,0,0,0,0,0,0,0,0],
             'dataMesyuarat'       => [0,0],
-     
             'dataTataterib'       => [0,0,0,0,0,0,0,0,0,0,0,0], 
             'dataTugasan'         => [0,0,0],
         ];
@@ -270,7 +269,7 @@ Route::middleware('auth')->group(function () { // Default auth (guard: web)
         'lainlaintugasan' => LaporanLainLainController::class,
     ]);
 
-// --- TETAPAN ---
+    // --- TETAPAN ---
     Route::prefix('tetapan')->group(function () {
         
         // 1. URUS AGENSI (Senarai Aktif & CRUD Biasa)
@@ -290,8 +289,14 @@ Route::middleware('auth')->group(function () { // Default auth (guard: web)
         });
 
         // 3. URUS PENGGUNA (Staff Dalaman)
+        // 🔥 INI BAHAGIAN YANG TELAH DIKEMASKINI 🔥
         Route::prefix('pengguna')->name('tetapan.pengguna.')->group(function () {
             Route::get('/', [UserController::class, 'index'])->name('index');
+            
+            // Route Tambahan untuk Edit & Update
+            Route::get('/{id}/edit', [UserController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [UserController::class, 'update'])->name('update');
+            
             Route::delete('/{id}', [UserController::class, 'destroy'])->name('destroy');
         });
     });
