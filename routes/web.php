@@ -70,23 +70,24 @@ Route::middleware('guest')->group(function () {
 // =========================================================================
 
 Route::middleware('auth')->group(function () { // Default auth (guard: web)
-// Modul Pentadbiran Warta (Staff Semakan)
-Route::prefix('admin/warta')->name('admin.warta.')->group(function () {
-    
-    // 1. Senarai Utama
-    Route::get('/', [WartaAdminController::class, 'index'])->name('index');
-    
-    // 2. Lihat / Cetak (Ganti downloadWord)
-    Route::get('/lihat/{id}', [WartaAdminController::class, 'show'])->name('show'); 
-    
-    // 3. Sahkan Permohonan
-    Route::post('/sahkan/{id}', [WartaAdminController::class, 'sahkan'])->name('sahkan');
-});
-    
+
     // --- DASHBOARD REDIRECT LOGIC ---
     Route::get('/dashboard', function () {
         $user = Auth::user();
         $bahagian = strtoupper(trim($user->bahagian ?? ''));
+        $dummyData = [
+            'title'               => 'Dashboard Utama',
+            'dataPandanganUndang' => [0,0,0,0,0,0,0,0,0,0,0,0],
+            'dataKesMahkamah'     => [0,0,0,0,0,0,0,0,0,0,0,0],
+            'dataGubalan'         => [0,0,0],
+            'dataPindaan'         => [0,0,0],
+            'dataSemakan'         => [0,0,0,0,0,0,0,0,0,0,0,0],
+            'dataMesyuarat'       => [0,0],
+     
+            'dataTataterib'       => [0,0,0,0,0,0,0,0,0,0,0,0], 
+            'dataTugasan'         => [0,0,0],
+        ];
+
         switch ($bahagian) {
             case 'BAHAGIAN PENTADBIRAN': return redirect()->route('dashboard.pentadbiran');
             case 'BAHAGIAN KEWANGAN': return redirect()->route('dashboard.kewangan');
@@ -97,7 +98,9 @@ Route::prefix('admin/warta')->name('admin.warta.')->group(function () {
             case 'BAHAGIAN PENDAKWAAN': return redirect()->route('dashboard.pendakwaan');
             case 'BAHAGIAN SEMAKAN': return redirect()->route('dashboard.semakan');
             case 'BAHAGIAN SYARIAH': return redirect()->route('dashboard.syariah');
-            default: return view('dashboard.index', ['title' => 'Dashboard Utama']);
+            
+            // JIKA TIADA BAHAGIAN, GUNA DATA KOSONG LENGKAP TADI
+            default: return view('dashboard.index', $dummyData);
         }
     })->name('dashboard');
 
@@ -354,4 +357,4 @@ Route::middleware(['auth:web,agensi'])->group(function () {
     Route::put('/seksyen12/{id}', [Seksyen12Controller::class, 'update'])->name('seksyen12.update');
 });
 
-require __DIR__.'/auth.php'; 
+require __DIR__.'/auth.php';
