@@ -65,10 +65,23 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () { // Default auth (guard: web)
 
-    // --- DASHBOARD REDIRECT LOGIC ---
+  // --- DASHBOARD REDIRECT LOGIC ---
     Route::get('/dashboard', function () {
         $user = Auth::user();
         $bahagian = strtoupper(trim($user->bahagian ?? ''));
+
+        // DATA KOSONG (DUMMY) UNTUK ELAK ERROR 'UNDEFINED VARIABLE'
+        // Ini akan digunakan jika user TIADA BAHAGIAN atau masuk ke 'default'
+        $dummyData = [
+            'title'               => 'Dashboard Utama',
+            'dataPandanganUndang' => [0,0,0,0,0,0,0,0,0,0,0,0], // Array 12 bulan kosong
+            'dataKesMahkamah'     => [0,0,0,0,0,0,0,0,0,0,0,0],
+            'dataGubalan'         => [0,0,0], // Data kosong untuk pie chart
+            'dataPindaan'         => [0,0,0],
+            'dataSemakan'         => [0,0,0,0,0,0,0,0,0,0,0,0],
+            'dataMesyuarat'       => [0,0]
+        ];
+
         switch ($bahagian) {
             case 'BAHAGIAN PENTADBIRAN': return redirect()->route('dashboard.pentadbiran');
             case 'BAHAGIAN KEWANGAN': return redirect()->route('dashboard.kewangan');
@@ -79,7 +92,9 @@ Route::middleware('auth')->group(function () { // Default auth (guard: web)
             case 'BAHAGIAN PENDAKWAAN': return redirect()->route('dashboard.pendakwaan');
             case 'BAHAGIAN SEMAKAN': return redirect()->route('dashboard.semakan');
             case 'BAHAGIAN SYARIAH': return redirect()->route('dashboard.syariah');
-            default: return view('dashboard.index', ['title' => 'Dashboard Utama']);
+            
+            // JIKA TIADA BAHAGIAN, GUNA DATA KOSONG TADI
+            default: return view('dashboard.index', $dummyData);
         }
     })->name('dashboard');
 
