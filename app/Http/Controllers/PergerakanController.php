@@ -21,9 +21,9 @@ class PergerakanController extends Controller
     {
         $query = Pergerakan::query();
         $userRole = strtolower(Auth::user()->role);
-        $senarai_pegawai = User::whereIn('role', ['user', 'cc', 'boss', 'yb'])->orderBy('name')->get();
+        $senarai_pegawai = User::whereIn('role', ['user', 'cc', 'super_admin', 'yb'])->orderBy('name')->get();
 
-        if (in_array($userRole, ['cc', 'boss', 'yb'])) {
+        if (in_array($userRole, ['cc', 'super_admin', 'yb'])) {
             // Tapis mengikut Pegawai jika dipilih
             if ($request->filled('pegawai_id')) { 
                 $query->where('user_id', $request->pegawai_id); 
@@ -35,9 +35,9 @@ class PergerakanController extends Controller
             }
 
             // Filter Status Pending mengikut Role
-            if ($request->input('status_filter') === 'cc_pending' && ($userRole === 'cc' || $userRole === 'boss')) {
+            if ($request->input('status_filter') === 'cc_pending' && ($userRole === 'cc' || $userRole === 'super_admin')) {
                 $query->where('status_cc', 'Pending');
-            } elseif ($request->input('status_filter') === 'yb_pending' && ($userRole === 'yb' || $userRole === 'boss')) {
+            } elseif ($request->input('status_filter') === 'yb_pending' && ($userRole === 'yb' || $userRole === 'super_admin')) {
                 $query->where('status_yb', 'Pending');
             }
         } else {
@@ -205,7 +205,7 @@ class PergerakanController extends Controller
         $pergerakan = Pergerakan::findOrFail($id);
         $user = Auth::user();
         $userRole = strtolower($user->role);
-        $canForceDelete = in_array($userRole, ['super_admin', 'boss']); 
+        $canForceDelete = in_array($userRole, ['super_admin', 'super_admin']); 
         $isApplicant = ($user->id === $pergerakan->user_id);
         
         try {
@@ -236,7 +236,7 @@ class PergerakanController extends Controller
         $cc_user = $pergerakan->cc; 
         if (!$cc_user) {
             $bahagian = $pergerakan->user->bahagian;
-            $cc_user = User::where('role', 'boss')->where('bahagian', $bahagian)->first() 
+            $cc_user = User::where('role', 'super_admin')->where('bahagian', $bahagian)->first() 
                        ?? User::where('role', 'super_admin')->first()
                        ?? Auth::user();
         }
@@ -268,35 +268,42 @@ class PergerakanController extends Controller
     }
 
     /**
-     * HELPER: Cari path fizikal fail tandatangan
-     * (Hanya satu fungsi ini sahaja dalam fail!)
+     * HELPER: Cari path fizikal fail tandatangan DAN convert ke Base64
+     * (Supaya PDF boleh baca gambar tanpa masalah permission)
      */
     protected function getSignaturePath(User $user)
     {
+        // Kalau user tak ada fail signature, return null terus
         if (!$user->signature_file) return null;
 
         $filename = $user->signature_file;
-        
-        // Senarai kemungkinan lokasi fail
+
+        // 1. Senarai tempat kemungkinan fail tu duduk
         $candidates = [
-            public_path($filename), // Jika DB ada "signatures/file.png"
-            public_path('storage/' . $filename), // Jika melalui storage link
-            storage_path('app/public/' . $filename), // Direct storage
+            storage_path('app/public/' . $filename), // Biasa kat sini
+            public_path('storage/' . $filename),     // Atau sini
+            public_path($filename),                  // Atau direct public
         ];
 
-        // Backup: Jika DB cuma "file.png", kita tambah folder manual
+        // 2. Backup: Kalau dalam DB nama fail simple je, kita cuba cari dalam folder 'signatures/'
         if (!str_contains($filename, 'signatures/')) {
-            $candidates[] = public_path('signatures/' . $filename);
             $candidates[] = storage_path('app/public/signatures/' . $filename);
+            $candidates[] = public_path('signatures/' . $filename);
         }
 
+        // 3. Loop cari fail tu
         foreach ($candidates as $path) {
             if (file_exists($path)) {
-                return $path; // JUMPA!
+                // JUMPA! Sekarang kita convert jadi Base64
+                $type = pathinfo($path, PATHINFO_EXTENSION);
+                $data = file_get_contents($path); // Baca isi fail
+                
+                // Return string panjang yang PDF boleh faham
+                return 'data:image/' . $type . ';base64,' . base64_encode($data);
             }
         }
 
-        return null; // Tak jumpa
+        return null; 
     }
 
    public function cetakKalendarKeseluruhan(Request $request)
