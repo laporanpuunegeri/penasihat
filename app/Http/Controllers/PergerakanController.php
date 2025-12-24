@@ -14,335 +14,328 @@ use Carbon\CarbonPeriod;
 
 class PergerakanController extends Controller
 {
-    // =========================================================================
-    // 1. INDEX & PAPARAN
-    // =========================================================================
-    public function index(Request $request)
-    {
-        $query = Pergerakan::query();
-        $userRole = strtolower(Auth::user()->role);
-        $senarai_pegawai = User::whereIn('role', ['user', 'cc', 'super_admin', 'yb'])->orderBy('name')->get();
+    // =========================================================================
+    // 1. INDEX & PAPARAN
+    // =========================================================================
+    public function index(Request $request)
+    {
+        $query = Pergerakan::query();
+        $userRole = strtolower(Auth::user()->role);
+        $senarai_pegawai = User::whereIn('role', ['user', 'cc', 'super_admin', 'yb'])->orderBy('name')->get();
 
-        if (in_array($userRole, ['cc', 'super_admin', 'yb'])) {
-            // Tapis mengikut Pegawai jika dipilih
-            if ($request->filled('pegawai_id')) { 
-                $query->where('user_id', $request->pegawai_id); 
-            }
+        if (in_array($userRole, ['cc', 'super_admin', 'yb'])) {
+            // Tapis mengikut Pegawai jika dipilih
+            if ($request->filled('pegawai_id')) { 
+                $query->where('user_id', $request->pegawai_id); 
+            }
 
-            // ⚡ TAMBAHAN LOGIK UNTUK CC: Hanya nampak kenderaan sahaja
-            if ($userRole === 'cc') {
-                $query->whereIn('kenderaan', ['Kenderaan Pejabat', 'Kenderaan Sendiri']);
-            }
+            // ⚡ TAMBAHAN LOGIK UNTUK CC: Hanya nampak kenderaan sahaja
+            if ($userRole === 'cc') {
+                $query->whereIn('kenderaan', ['Kenderaan Pejabat', 'Kenderaan Sendiri']);
+            }
 
-            // Filter Status Pending mengikut Role
-            if ($request->input('status_filter') === 'cc_pending' && ($userRole === 'cc' || $userRole === 'super_admin')) {
-                $query->where('status_cc', 'Pending');
-            } elseif ($request->input('status_filter') === 'yb_pending' && ($userRole === 'yb' || $userRole === 'super_admin')) {
-                $query->where('status_yb', 'Pending');
-            }
-        } else {
-            // Pengguna biasa hanya nampak rekod sendiri
-            $query->where('user_id', Auth::id());
-        }
+            // Filter Status Pending mengikut Role
+            if ($request->input('status_filter') === 'cc_pending' && ($userRole === 'cc' || $userRole === 'super_admin')) {
+                $query->where('status_cc', 'Pending');
+            } elseif ($request->input('status_filter') === 'yb_pending' && ($userRole === 'yb' || $userRole === 'super_admin')) {
+                $query->where('status_yb', 'Pending');
+            }
+        } else {
+            // Pengguna biasa hanya nampak rekod sendiri
+            $query->where('user_id', Auth::id());
+        }
 
-        $pergerakan = $query->get()->map(function ($event) {
-            $userName = $event->user->name ?? 'Pengguna Dipadam';
-            $title = $userName . ' - ' . $event->tujuan_penggunaan;
-            
-            $color = '#6c757d'; 
-            if ($event->status_yb === 'Lulus') { $color = '#28a745'; } 
-            elseif ($event->status_yb === 'Tolak' || $event->status_cc === 'Tolak') { $color = '#dc3545'; } 
-            elseif ($event->status_cc === 'Pending') { $color = '#ffc107'; }
+        $pergerakan = $query->get()->map(function ($event) {
+            $userName = $event->user->name ?? 'Pengguna Dipadam';
+            $title = $userName . ' - ' . $event->tujuan_penggunaan;
+            
+            $color = '#6c757d'; 
+            if ($event->status_yb === 'Lulus') { $color = '#28a745'; } 
+            elseif ($event->status_yb === 'Tolak' || $event->status_cc === 'Tolak') { $color = '#dc3545'; } 
+            elseif ($event->status_cc === 'Pending') { $color = '#ffc107'; }
 
-            return [
-                'id' => $event->id,
-                'title' => $title,
-                'start' => $event->tarikh_mula,
-                'end' => Carbon::parse($event->tarikh_akhir)->addDay()->toDateString(), 
-                'color' => $color,
-                'extendedProps' => [
-                    'kenderaan' => $event->kenderaan, 'tujuan_penggunaan' => $event->tujuan_penggunaan,
-                    'destinasi' => $event->destinasi, 'masa_mula' => $event->masa_mula,
-                    'masa_akhir' => $event->masa_akhir, 'nama_pemandu' => $event->nama_pemandu,
-                    'no_kenderaan' => $event->no_kenderaan, 'catatan' => $event->catatan,
-                    'status_cc' => $event->status_cc, 'catatan_cc' => $event->catatan_cc,
-                    'status_yb' => $event->status_yb,
-                    'owner_id' => $event->user_id,
-                    'lampiran' => $event->lampiran, 
-                ]
-            ];
-        });
-        
-        $currentUserId = Auth::id();
+            return [
+                'id' => $event->id,
+                'title' => $title,
+                'start' => $event->tarikh_mula,
+                'end' => Carbon::parse($event->tarikh_akhir)->addDay()->toDateString(), 
+                'color' => $color,
+                'extendedProps' => [
+                    'kenderaan' => $event->kenderaan, 'tujuan_penggunaan' => $event->tujuan_penggunaan,
+                    'destinasi' => $event->destinasi, 'masa_mula' => $event->masa_mula,
+                    'masa_akhir' => $event->masa_akhir, 'nama_pemandu' => $event->nama_pemandu,
+                    'no_kenderaan' => $event->no_kenderaan, 'catatan' => $event->catatan,
+                    'status_cc' => $event->status_cc, 'catatan_cc' => $event->catatan_cc,
+                    'status_yb' => $event->status_yb,
+                    'owner_id' => $event->user_id,
+                    'lampiran' => $event->lampiran, 
+                ]
+            ];
+        });
+        
+        $currentUserId = Auth::id();
 
-        return view('pergerakan.index', compact('pergerakan', 'senarai_pegawai', 'currentUserId'));
-    }
+        return view('pergerakan.index', compact('pergerakan', 'senarai_pegawai', 'currentUserId'));
+    }
 
-    public function create()
-    {
-        return view('pergerakan.create');
-    }
+    public function create()
+    {
+        return view('pergerakan.create');
+    }
 
-    // =========================================================================
-    // 2. SIMPAN DATA (STORE)
-    // =========================================================================
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'jenis' => 'required',
-            'tarikh_mula' => 'required|date',
-            'tarikh_akhir' => 'required|date|after_or_equal:tarikh_mula',
-            'kenderaan' => 'required',
-            'tujuan_penggunaan' => 'required',
-            'destinasi' => 'required',
-            'lampiran' => 'required|file|max:10240', 
-        ]);
+    // =========================================================================
+    // 2. SIMPAN DATA (STORE)
+    // =========================================================================
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'jenis' => 'required',
+            'tarikh_mula' => 'required|date',
+            'tarikh_akhir' => 'required|date|after_or_equal:tarikh_mula',
+            'kenderaan' => 'required',
+            'tujuan_penggunaan' => 'required',
+            'destinasi' => 'required',
+            'lampiran' => 'required|file|max:10240', 
+        ]);
 
-        try {
-            $data = $request->all();
-            $data['user_id'] = Auth::id();
-            $data['status_cc'] = 'Pending';
-            $data['status_yb'] = 'Pending';
+        try {
+            $data = $request->all();
+            $data['user_id'] = Auth::id();
+            $data['status_cc'] = 'Pending';
+            $data['status_yb'] = 'Pending';
 
-            if ($request->hasFile('lampiran')) {
-                $path = $request->file('lampiran')->store('lampiran_pergerakan', 'public');
-                $data['lampiran'] = $path;
-            }
+            if ($request->hasFile('lampiran')) {
+                $path = $request->file('lampiran')->store('lampiran_pergerakan', 'public');
+                $data['lampiran'] = $path;
+            }
 
-            if ($request->has('is_multiday')) {
-                $start = Carbon::parse($request->tarikh_mula);
-                $end = Carbon::parse($request->tarikh_akhir);
-                $period = CarbonPeriod::create($start, $end);
-                $dayCount = 1;
-                foreach ($period as $date) {
-                    $dailyData = $data;
-                    $dailyData['tarikh_mula'] = $date->format('Y-m-d');
-                    $dailyData['tarikh_akhir'] = $date->format('Y-m-d');
-                    $dailyData['tujuan_penggunaan'] = $data['tujuan_penggunaan'] . ' (Hari ke-' . $dayCount++ . ')';
-                    Pergerakan::create($dailyData);
-                }
-                $message = 'Permohonan bersiri berjaya dihantar.';
-            } else {
-                Pergerakan::create($data);
-                $message = 'Permohonan berjaya dihantar.';
-            }
+            if ($request->has('is_multiday')) {
+                $start = Carbon::parse($request->tarikh_mula);
+                $end = Carbon::parse($request->tarikh_akhir);
+                $period = CarbonPeriod::create($start, $end);
+                $dayCount = 1;
+                foreach ($period as $date) {
+                    $dailyData = $data;
+                    $dailyData['tarikh_mula'] = $date->format('Y-m-d');
+                    $dailyData['tarikh_akhir'] = $date->format('Y-m-d');
+                    $dailyData['tujuan_penggunaan'] = $data['tujuan_penggunaan'] . ' (Hari ke-' . $dayCount++ . ')';
+                    Pergerakan::create($dailyData);
+                }
+                $message = 'Permohonan bersiri berjaya dihantar.';
+            } else {
+                Pergerakan::create($data);
+                $message = 'Permohonan berjaya dihantar.';
+            }
 
-            return redirect()->route('pergerakan.index')->with('success', $message);
+            return redirect()->route('pergerakan.index')->with('success', $message);
 
-        } catch (\Exception $e) {
-            return back()->with('error', 'Gagal: ' . $e->getMessage())->withInput();
-        }
-    }
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal: ' . $e->getMessage())->withInput();
+        }
+    }
 
-    // =========================================================================
-    // 3. SEMAKAN & KELULUSAN
-    // =========================================================================
-    public function cc_review(Request $request, Pergerakan $pergerakan)
-    {
-        if (!Gate::allows('review-cc', $pergerakan)) { abort(403); }
+    // =========================================================================
+    // 3. SEMAKAN & KELULUSAN
+    // =========================================================================
+    public function cc_review(Request $request, Pergerakan $pergerakan)
+    {
+        if (!Gate::allows('review-cc', $pergerakan)) { abort(403); }
 
-        $actionType = $request->input('action_type');
-        $catatan_cc = $request->input('catatan_cc');
+        $actionType = $request->input('action_type');
+        $catatan_cc = $request->input('catatan_cc');
 
-        if ($actionType === 'support') {
-            $validated = $request->validate([
-                'no_kenderaan' => 'required|string|max:50', 
-                'nama_pemandu' => 'required|string|max:255',
-            ]);
-            $pergerakan->status_cc = 'Sokong'; 
-            $pergerakan->catatan_cc = $catatan_cc; 
-            $pergerakan->cc_id = Auth::id(); 
-            $pergerakan->no_kenderaan = $validated['no_kenderaan']; 
-            $pergerakan->nama_pemandu = $validated['nama_pemandu'];
-            $pergerakan->save();
-            $message = 'Permohonan disokong (Kenderaan Pejabat).';
+        if ($actionType === 'support') {
+            $validated = $request->validate([
+                'no_kenderaan' => 'required|string|max:50', 
+                'nama_pemandu' => 'required|string|max:255',
+            ]);
+            $pergerakan->status_cc = 'Sokong'; 
+            $pergerakan->catatan_cc = $catatan_cc; 
+            $pergerakan->cc_id = Auth::id(); 
+            $pergerakan->no_kenderaan = $validated['no_kenderaan']; 
+            $pergerakan->nama_pemandu = $validated['nama_pemandu'];
+            $pergerakan->save();
+            $message = 'Permohonan disokong (Kenderaan Pejabat).';
 
-        } elseif ($actionType === 'support_sendiri') {
-            $validated = $request->validate(['catatan_cc' => 'required|string|max:500']);
-            $pergerakan->status_cc = 'Sokong';
-            $pergerakan->cc_id = Auth::id();
-            $pergerakan->catatan_cc = $validated['catatan_cc'];
-            $pergerakan->no_kenderaan = null;
-            $pergerakan->nama_pemandu = null;
-            $pergerakan->save();
-            $message = 'Permohonan disokong (Kenderaan Sendiri).';
+        } elseif ($actionType === 'support_sendiri') {
+            $validated = $request->validate(['catatan_cc' => 'required|string|max:500']);
+            $pergerakan->status_cc = 'Sokong';
+            $pergerakan->cc_id = Auth::id();
+            $pergerakan->catatan_cc = $validated['catatan_cc'];
+            $pergerakan->no_kenderaan = null;
+            $pergerakan->nama_pemandu = null;
+            $pergerakan->save();
+            $message = 'Permohonan disokong (Kenderaan Sendiri).';
 
-        } elseif ($actionType === 'reject') {
-            $validated = $request->validate(['catatan_cc' => 'required|string|max:500']);
-            $pergerakan->status_cc = 'Tolak'; 
-            $pergerakan->status_yb = 'Tolak';
-            $pergerakan->cc_id = Auth::id(); 
-            $pergerakan->catatan_cc = $validated['catatan_cc'];
-            $pergerakan->save();
-            $message = 'Permohonan ditolak.';
-        }
+        } elseif ($actionType === 'reject') {
+            $validated = $request->validate(['catatan_cc' => 'required|string|max:500']);
+            $pergerakan->status_cc = 'Tolak'; 
+            $pergerakan->status_yb = 'Tolak';
+            $pergerakan->cc_id = Auth::id(); 
+            $pergerakan->catatan_cc = $validated['catatan_cc'];
+            $pergerakan->save();
+            $message = 'Permohonan ditolak.';
+        }
 
-        return redirect()->route('pergerakan.index')->with('success', $message);
-    }
-    
-    public function lulusYb($id)
-    {
-        $pergerakan = Pergerakan::findOrFail($id);
-        if (!Gate::allows('review-yb', $pergerakan)) { abort(403); }
-        $pergerakan->status_yb = 'Lulus';
-        $pergerakan->yb_id = Auth::id();
-        $pergerakan->save();
-        return redirect()->route('pergerakan.index')->with('success', 'Permohonan DILULUSKAN.');
-    }
+        return redirect()->route('pergerakan.index')->with('success', $message);
+    }
+    
+    public function lulusYb($id)
+    {
+        $pergerakan = Pergerakan::findOrFail($id);
+        if (!Gate::allows('review-yb', $pergerakan)) { abort(403); }
+        $pergerakan->status_yb = 'Lulus';
+        $pergerakan->yb_id = Auth::id();
+        $pergerakan->save();
+        return redirect()->route('pergerakan.index')->with('success', 'Permohonan DILULUSKAN.');
+    }
 
-    public function tolakYb($id)
-    {
-        $pergerakan = Pergerakan::findOrFail($id);
-        if (!Gate::allows('review-yb', $pergerakan)) { abort(403); }
-        $pergerakan->status_yb = 'Tolak';
-        $pergerakan->yb_id = Auth::id();
-        $pergerakan->save();
-        return redirect()->route('pergerakan.index')->with('success', 'Permohonan DITOLAK.');
-    }
+    public function tolakYb($id)
+    {
+        $pergerakan = Pergerakan::findOrFail($id);
+        if (!Gate::allows('review-yb', $pergerakan)) { abort(403); }
+        $pergerakan->status_yb = 'Tolak';
+        $pergerakan->yb_id = Auth::id();
+        $pergerakan->save();
+        return redirect()->route('pergerakan.index')->with('success', 'Permohonan DITOLAK.');
+    }
 
-    public function destroy($id)
-    {
-        $pergerakan = Pergerakan::findOrFail($id);
-        $user = Auth::user();
-        $userRole = strtolower($user->role);
-        $canForceDelete = in_array($userRole, ['super_admin', 'super_admin']); 
-        $isApplicant = ($user->id === $pergerakan->user_id);
-        
-        try {
-            if (!$isApplicant && !$canForceDelete) { throw new \Exception('Tiada kebenaran padam.', 403); }
-            if ($pergerakan->status_yb === 'Lulus' && !$canForceDelete) { throw new \Exception('Rekod LULUS tidak boleh dipadam.', 403); }
-            if ($canForceDelete) { $pergerakan->forceDelete(); } else { $pergerakan->delete(); }
-            return response()->json(['status' => 'success', 'message' => 'Rekod berjaya dipadam.']);
-        } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
-        }
-    }
+    public function destroy($id)
+    {
+        $pergerakan = Pergerakan::findOrFail($id);
+        $user = Auth::user();
+        $userRole = strtolower($user->role);
+        $canForceDelete = in_array($userRole, ['super_admin', 'super_admin']); 
+        $isApplicant = ($user->id === $pergerakan->user_id);
+        
+        try {
+            if (!$isApplicant && !$canForceDelete) { throw new \Exception('Tiada kebenaran padam.', 403); }
+            if ($pergerakan->status_yb === 'Lulus' && !$canForceDelete) { throw new \Exception('Rekod LULUS tidak boleh dipadam.', 403); }
+            if ($canForceDelete) { $pergerakan->forceDelete(); } else { $pergerakan->delete(); }
+            return response()->json(['status' => 'success', 'message' => 'Rekod berjaya dipadam.']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
 
-    // =========================================================================
-    // 4. CETAK BORANG (PATH FIZIKAL)
-    // =========================================================================
-    public function cetakBorang($id)
-    {
-        $pergerakan = Pergerakan::with(['user', 'cc'])->findOrFail($id);
-        
-        if ($pergerakan->status_yb !== 'Lulus') {
-            abort(403, 'Hanya borang yang DILULUSKAN sahaja boleh dicetak.');
-        }
-        
-        $viewName = str_contains($pergerakan->kenderaan, 'Pejabat') 
-                    ? 'pergerakan.borang_kenderaan_pejabat' 
-                    : 'pergerakan.borang_kenderaan_sendiri';
-        
-        $cc_user = $pergerakan->cc; 
-        if (!$cc_user) {
-            $bahagian = $pergerakan->user->bahagian;
-            $cc_user = User::where('role', 'super_admin')->where('bahagian', $bahagian)->first() 
-                       ?? User::where('role', 'super_admin')->first()
-                       ?? Auth::user();
-        }
-        $penasihat = User::where('role', 'yb')->first();
+    // =========================================================================
+    // 4. CETAK BORANG (PATH FIZIKAL)
+    // =========================================================================
+    public function cetakBorang($id)
+    {
+        $pergerakan = Pergerakan::with(['user', 'cc'])->findOrFail($id);
+        
+        if ($pergerakan->status_yb !== 'Lulus') {
+            abort(403, 'Hanya borang yang DILULUSKAN sahaja boleh dicetak.');
+        }
+        
+        $viewName = str_contains($pergerakan->kenderaan, 'Pejabat') 
+                    ? 'pergerakan.borang_kenderaan_pejabat' 
+                    : 'pergerakan.borang_kenderaan_sendiri';
+        
+        $cc_user = $pergerakan->cc; 
+        if (!$cc_user) {
+            $bahagian = $pergerakan->user->bahagian;
+            $cc_user = User::where('role', 'super_admin')->where('bahagian', $bahagian)->first() 
+                       ?? User::where('role', 'super_admin')->first()
+                       ?? Auth::user();
+        }
+        $penasihat = User::where('role', 'yb')->first();
 
-        // 🔥 PANGGIL HELPER (CUMA SEKALI DI SINI)
-        $sig_yb = $penasihat ? $this->getSignaturePath($penasihat) : null;
-        $sig_applicant = $this->getSignaturePath($pergerakan->user);
-        $sig_cc = $cc_user ? $this->getSignaturePath($cc_user) : null;
+        // 🔥 PANGGIL HELPER (CUMA SEKALI DI SINI)
+        $sig_yb = $penasihat ? $this->getSignaturePath($penasihat) : null;
+        $sig_applicant = $this->getSignaturePath($pergerakan->user);
+        $sig_cc = $cc_user ? $this->getSignaturePath($cc_user) : null;
 
-        $data = [
-            'pergerakan' => $pergerakan,
-            'namaYB' => $penasihat->name ?? 'TIADA',
-            'bahagianYB' => $penasihat->bahagian ?? '',
-            'jawatanYB' => $penasihat->nama_jawatan ?? '',
-            'sig_yb' => $sig_yb,
-            'sig_applicant' => $sig_applicant,
-            'sig_cc' => $sig_cc,
-            'cc_name' => $cc_user->name ?? '',
-            'cc_jawatan' => $cc_user->nama_jawatan ?? '',
-            'pemandu_ditugaskan' => $pergerakan->nama_pemandu,
-            'no_kenderaan_rasmi' => $pergerakan->no_kenderaan,
-        ];
-        
-        $pdf = PDF::loadView($viewName, $data);
-        $pdf->setOptions(['isRemoteEnabled' => true, 'chroot' => [base_path()]]); 
-        
-        return $pdf->stream('Borang_Pergerakan_' . $pergerakan->id . '.pdf');
-    }
+        $data = [
+            'pergerakan' => $pergerakan,
+            'namaYB' => $penasihat->name ?? 'TIADA',
+            'bahagianYB' => $penasihat->bahagian ?? '',
+            'jawatanYB' => $penasihat->nama_jawatan ?? '',
+            'sig_yb' => $sig_yb,
+            'sig_applicant' => $sig_applicant,
+            'sig_cc' => $sig_cc,
+            'cc_name' => $cc_user->name ?? '',
+            'cc_jawatan' => $cc_user->nama_jawatan ?? '',
+            'pemandu_ditugaskan' => $pergerakan->nama_pemandu,
+            'no_kenderaan_rasmi' => $pergerakan->no_kenderaan,
+        ];
+        
+        $pdf = PDF::loadView($viewName, $data);
+        $pdf->setOptions(['isRemoteEnabled' => true, 'chroot' => [base_path()]]); 
+        
+        return $pdf->stream('Borang_Pergerakan_' . $pergerakan->id . '.pdf');
+    }
 
-    /**
-     * HELPER: Cari path fizikal fail tandatangan DAN convert ke Base64
-     * (Supaya PDF boleh baca gambar tanpa masalah permission)
-     */
-    protected function getSignaturePath(User $user)
-    {
-        // Kalau user tak ada fail signature, return null terus
-        if (!$user->signature_file) return null;
+    /**
+     * HELPER: Cari path fizikal fail tandatangan
+     * (Hanya satu fungsi ini sahaja dalam fail!)
+     */
+    protected function getSignaturePath(User $user)
+    {
+        if (!$user->signature_file) return null;
 
-        $filename = $user->signature_file;
+        $filename = $user->signature_file;
+        
+        // Senarai kemungkinan lokasi fail
+        $candidates = [
+            public_path($filename), // Jika DB ada "signatures/file.png"
+            public_path('storage/' . $filename), // Jika melalui storage link
+            storage_path('app/public/' . $filename), // Direct storage
+        ];
 
-        // 1. Senarai tempat kemungkinan fail tu duduk
-        $candidates = [
-            storage_path('app/public/' . $filename), // Biasa kat sini
-            public_path('storage/' . $filename),     // Atau sini
-            public_path($filename),                  // Atau direct public
-        ];
+        // Backup: Jika DB cuma "file.png", kita tambah folder manual
+        if (!str_contains($filename, 'signatures/')) {
+            $candidates[] = public_path('signatures/' . $filename);
+            $candidates[] = storage_path('app/public/signatures/' . $filename);
+        }
 
-        // 2. Backup: Kalau dalam DB nama fail simple je, kita cuba cari dalam folder 'signatures/'
-        if (!str_contains($filename, 'signatures/')) {
-            $candidates[] = storage_path('app/public/signatures/' . $filename);
-            $candidates[] = public_path('signatures/' . $filename);
-        }
+        foreach ($candidates as $path) {
+            if (file_exists($path)) {
+                return $path; // JUMPA!
+            }
+        }
 
-        // 3. Loop cari fail tu
-        foreach ($candidates as $path) {
-            if (file_exists($path)) {
-                // JUMPA! Sekarang kita convert jadi Base64
-                $type = pathinfo($path, PATHINFO_EXTENSION);
-                $data = file_get_contents($path); // Baca isi fail
-                
-                // Return string panjang yang PDF boleh faham
-                return 'data:image/' . $type . ';base64,' . base64_encode($data);
-            }
-        }
+        return null; // Tak jumpa
+    }
 
-        return null; 
-    }
+   public function cetakKalendarKeseluruhan(Request $request)
+    {
+        $month = $request->input('month', Carbon::now()->month);
+        $year = $request->input('year', Carbon::now()->year);
+        
+        $penasihat = User::where('role', 'yb')->first();
+        $startOfMonth = Carbon::createFromDate($year, $month, 1)->startOfMonth();
+        $endOfMonth = Carbon::createFromDate($year, $month, 1)->endOfMonth();
 
-   public function cetakKalendarKeseluruhan(Request $request)
-    {
-        $month = $request->input('month', Carbon::now()->month);
-        $year = $request->input('year', Carbon::now()->year);
-        
-        $penasihat = User::where('role', 'yb')->first();
-        $startOfMonth = Carbon::createFromDate($year, $month, 1)->startOfMonth();
-        $endOfMonth = Carbon::createFromDate($year, $month, 1)->endOfMonth();
+        $pergerakan_data = Pergerakan::with('user')
+            ->where(function($query) use ($startOfMonth, $endOfMonth) {
+                $query->whereBetween('tarikh_mula', [$startOfMonth, $endOfMonth])
+                      ->orWhereBetween('tarikh_akhir', [$startOfMonth, $endOfMonth])
+                      ->orWhere(function($query) use ($startOfMonth, $endOfMonth) {
+                          $query->where('tarikh_mula', '<', $startOfMonth)->where('tarikh_akhir', '>', $endOfMonth);
+                      });
+            })
+            ->where('status_yb', 'Lulus') 
+            ->where('kenderaan', 'Kenderaan Sendiri') // Tapis kenderaan sendiri sahaja
+            ->orderBy('tarikh_mula')
+            ->get()
+            ->groupBy(function($date) { return Carbon::parse($date->tarikh_mula)->format('Y-m-d'); });
 
-        $pergerakan_data = Pergerakan::with('user')
-            ->where(function($query) use ($startOfMonth, $endOfMonth) {
-                $query->whereBetween('tarikh_mula', [$startOfMonth, $endOfMonth])
-                      ->orWhereBetween('tarikh_akhir', [$startOfMonth, $endOfMonth])
-                      ->orWhere(function($query) use ($startOfMonth, $endOfMonth) {
-                          $query->where('tarikh_mula', '<', $startOfMonth)->where('tarikh_akhir', '>', $endOfMonth);
-                      });
-            })
-            ->where('status_yb', 'Lulus') 
-            ->where('kenderaan', 'Kenderaan Sendiri') // Tapis kenderaan sendiri sahaja
-            ->orderBy('tarikh_mula')
-            ->get()
-            ->groupBy(function($date) { return Carbon::parse($date->tarikh_mula)->format('Y-m-d'); });
-
-        $data = [
-            'bulan_text' => $startOfMonth->translatedFormat('F Y'),
-            'pergerakan_by_day' => $pergerakan_data,
-            'start_of_month' => $startOfMonth,
-            'end_of_month' => $endOfMonth,
-            'tarikh_cetak' => Carbon::now()->format('d/m/Y H:i:s'),
-            'namaYB' => $penasihat->name ?? 'YANG BERHORMAT',
-            'jawatanYB' => $penasihat->nama_jawatan ?? 'Jawatan',
-            'sig_yb' => $penasihat ? $this->getSignaturePath($penasihat) : null,
-        ];
-        
-        $pdf = PDF::loadView('pergerakan.kalendar_keseluruhan_pdf', $data)->setPaper('a4', 'landscape');
-        $pdf->setOptions(['isRemoteEnabled' => true, 'chroot' => [base_path()]]); 
-        
-        return $pdf->stream('Kalendar_Pergerakan_' . $startOfMonth->format('Ym') . '.pdf');
-    }
-}
+        $data = [
+            'bulan_text' => $startOfMonth->translatedFormat('F Y'),
+            'pergerakan_by_day' => $pergerakan_data,
+            'start_of_month' => $startOfMonth,
+            'end_of_month' => $endOfMonth,
+            'tarikh_cetak' => Carbon::now()->format('d/m/Y H:i:s'),
+            'namaYB' => $penasihat->name ?? 'YANG BERHORMAT',
+            'jawatanYB' => $penasihat->nama_jawatan ?? 'Jawatan',
+            'sig_yb' => $penasihat ? $this->getSignaturePath($penasihat) : null,
+        ];
+        
+        $pdf = PDF::loadView('pergerakan.kalendar_keseluruhan_pdf', $data)->setPaper('a4', 'landscape');
+        $pdf->setOptions(['isRemoteEnabled' => true, 'chroot' => [base_path()]]); 
+        
+        return $pdf->stream('Kalendar_Pergerakan_' . $startOfMonth->format('Ym') . '.pdf');
+    }
+} 
