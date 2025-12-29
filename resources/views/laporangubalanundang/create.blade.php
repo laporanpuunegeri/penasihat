@@ -106,7 +106,8 @@
                             <option value="Dalam tindakan semakan selepas perbincangan dengan (PUU/Agensi) pada ...">3. Semakan selepas perbincangan</option>
                             <option value="Draf RUU/UUK telah dikemukakan kepada Penasihat Undang-Undang pada ...">4. Draf dikemukakan ke PUU</option>
                             <option value="Dalam tindakan semakan.">5. Dalam tindakan semakan</option>
-                            <option value="Selesai.">6. Selesai</option>
+                            <option value="Selesai.">6. Selesai Semakan</option>
+                            <option value="Selesai.">7. Selesai</option>
                         </select>
                     </div>
 

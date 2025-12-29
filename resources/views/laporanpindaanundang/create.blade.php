@@ -105,6 +105,7 @@
                             <option value="Draf akhir telah dihantar untuk semakan PUU.">Draf dihantar ke PUU</option>
                             <option value="Dalam tindakan semakan akhir.">Semakan Akhir</option>
                             <option value="Menunggu maklum balas agensi.">Menunggu Agensi</option>
+                            <option value="Selesai disemak oleh pegawai penyemak.">Selesai Semakan</option>
                             <option value="Selesai disemak dan diluluskan.">Selesai & Lulus</option>
                         </select>
                     </div>

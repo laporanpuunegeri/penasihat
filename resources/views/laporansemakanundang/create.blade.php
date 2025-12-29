@@ -102,7 +102,7 @@
                         <label for="status" class="form-label">Pilih Status</label>
                         <select class="form-select bg-light" id="status" name="status" required>
                             <option value="">-- Sila Pilih --</option>
-                            @foreach(['Dalam Penyediaan', 'Semakan', 'Diluluskan', 'Dibentangkan', 'Berkuat Kuasa', 'Selesai'] as $statusOption)
+                            @foreach(['Dalam Penyediaan', 'Semakan','Selesai Semakan', 'Diluluskan', 'Dibentangkan', 'Berkuat Kuasa', 'Selesai'] as $statusOption)
                                 <option value="{{ $statusOption }}" {{ old('status') == $statusOption ? 'selected' : '' }}>
                                     {{ $statusOption }}
                                 </option>
