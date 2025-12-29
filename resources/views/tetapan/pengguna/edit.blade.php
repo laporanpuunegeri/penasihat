@@ -117,14 +117,15 @@
                 {{-- Tandatangan --}}
                 <h5 class="mb-3 text-primary"><i class="fas fa-signature me-2"></i> Tandatangan Digital</h5>
                 <div class="row mb-4">
-                    <div class="col-md-2 text-center">
-                        @if($userToEdit->signature_file)
-                            <img src="{{ asset('storage/' . $userToEdit->signature_file) }}" class="img-thumbnail mb-2" style="max-height: 100px;">
-                            <div class="small text-muted">Semasa</div>
-                        @else
-                            <div class="text-muted small py-4 border bg-light rounded">Tiada Fail</div>
-                        @endif
-                    </div>
+<div class="col-md-2 text-center">
+    @if($userToEdit->signature_file)
+        {{-- KOD BARU: Terus panggil variable, tak payah asset() atau storage/ --}}
+        <img src="{{ $userToEdit->signature_file }}" class="img-thumbnail mb-2" style="max-height: 100px;">
+        <div class="small text-muted">Semasa</div>
+    @else
+        <div class="text-muted small py-4 border bg-light rounded">Tiada Fail</div>
+    @endif
+</div>
                     <div class="col-md-10">
                         <label class="form-label fw-bold text-dark small">TUKAR TANDATANGAN (Pilihan)</label>
                         <input type="file" class="form-control" name="signature_file" accept=".png">

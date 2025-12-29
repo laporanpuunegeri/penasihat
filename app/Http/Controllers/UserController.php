@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth; 
 use Illuminate\Validation\Rules\Password;
 
@@ -30,7 +29,7 @@ class UserController extends Controller
     }
 
     /**
-     * Simpan pengguna baru ke database.
+     * Simpan pengguna baru ke database (DENGAN BASE64).
      */
     public function store(Request $request)
     {
@@ -43,17 +42,26 @@ class UserController extends Controller
             'nama_jawatan' => ['required', 'string', 'max:255'],
             'gred_jawatan' => ['required', 'string', 'max:50'],
             
-            // Tandatangan WAJIB masa daftar baru
-            'signature_file' => ['required', 'file', 'mimes:png', 'max:2048'],
+            // Validasi fail gambar biasa
+            'signature_file' => ['required', 'file', 'mimes:png,jpg,jpeg', 'max:2048'],
 
-            'role' => ['required', 'string'], // Boleh tambah validation had role jika perlu
+            'role' => ['required', 'string'], 
             'password' => ['required', 'confirmed', 'min:8', 'max:12', Password::default()],
         ]);
 
-        // Proses Upload Gambar
-        $signaturePath = null;
+        // 🔥 LOGIK BARU: Convert Gambar ke Base64
+        $signatureData = null;
         if ($request->hasFile('signature_file')) {
-            $signaturePath = $request->file('signature_file')->store('signatures', 'public');
+            $file = $request->file('signature_file');
+            
+            // 1. Dapatkan jenis fail (cth: image/png)
+            $type = $file->getClientMimeType();
+            
+            // 2. Baca isi fail dan tukar jadi kod base64
+            $data = base64_encode(file_get_contents($file));
+            
+            // 3. Gabungkan jadi string lengkap yang boleh dibaca browser
+            $signatureData = 'data:' . $type . ';base64,' . $data;
         }
 
         User::create([
@@ -66,14 +74,15 @@ class UserController extends Controller
             'nama_jawatan' => $request->nama_jawatan,
             'gred_jawatan' => $request->gred_jawatan,
             'role' => $request->role,
-            'signature_file' => $signaturePath, 
+            // Simpan data Base64 terus ke DB
+            'signature_file' => $signatureData, 
         ]);
 
         return redirect()->route('tetapan.pengguna.index')->with('success', 'Akaun pengguna baru berjaya didaftarkan!');
     }
 
     /**
-     * Papar borang edit (FUNGSI INI YANG HILANG TADI).
+     * Papar borang edit.
      */
     public function edit($id)
     {
@@ -92,14 +101,14 @@ class UserController extends Controller
     }
 
     /**
-     * Proses simpan kemaskini (FUNGSI INI JUGA PENTING).
+     * Proses simpan kemaskini (DENGAN BASE64).
      */
     public function update(Request $request, $id)
     {
         $userToEdit = User::findOrFail($id);
         $currentUser = Auth::user();
 
-        // --- SEKATAN KESELAMATAN (Double Check) ---
+        // --- SEKATAN KESELAMATAN ---
         if ($currentUser->role == 'super_admin') {
             if (strtoupper(trim($currentUser->negeri)) !== strtoupper(trim($userToEdit->negeri))) {
                 abort(403, 'Akses Ditolak: Negeri tidak sepadan.');
@@ -108,25 +117,28 @@ class UserController extends Controller
 
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $id], // Email unik kecuali diri sendiri
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $id],
             'no_telefon' => ['required', 'string', 'max:20'],
             'nama_jawatan' => ['required', 'string', 'max:255'],
             'gred_jawatan' => ['required', 'string', 'max:50'],
             
-            // Tandatangan OPTIONAL masa update
-            'signature_file' => ['nullable', 'file', 'mimes:png', 'max:2048'],
+            // Validasi fail gambar biasa
+            'signature_file' => ['nullable', 'file', 'mimes:png,jpg,jpeg', 'max:2048'],
             
-            // Password OPTIONAL masa update
             'password' => ['nullable', 'confirmed', 'min:8', 'max:12'],
         ]);
 
-        // Update Tandatangan jika ada fail baru
+        // 🔥 LOGIK BARU: Update Base64 jika ada fail baru upload
         if ($request->hasFile('signature_file')) {
-            // Padam fail lama
-            if ($userToEdit->signature_file && Storage::disk('public')->exists($userToEdit->signature_file)) {
-                Storage::disk('public')->delete($userToEdit->signature_file);
-            }
-            $userToEdit->signature_file = $request->file('signature_file')->store('signatures', 'public');
+            $file = $request->file('signature_file');
+            
+            // Convert ke Base64
+            $type = $file->getClientMimeType();
+            $data = base64_encode(file_get_contents($file));
+            
+            // Update terus ke object user (Ganti data lama)
+            // Tak perlu delete fail lama sebab tiada fail fizikal
+            $userToEdit->signature_file = 'data:' . $type . ';base64,' . $data;
         }
 
         // Update Password jika diisi
@@ -141,9 +153,10 @@ class UserController extends Controller
             'no_telefon' => $request->no_telefon,
             'nama_jawatan' => $request->nama_jawatan,
             'gred_jawatan' => $request->gred_jawatan,
-            'role' => $request->role, // Admin boleh tukar role
-            'negeri' => $request->negeri ?? $userToEdit->negeri, // Jika form hantar negeri, update. Jika tak (super admin), kekal lama.
+            'role' => $request->role,
+            'negeri' => $request->negeri ?? $userToEdit->negeri,
             'bahagian' => $request->bahagian ?? $userToEdit->bahagian,
+            // Nota: signature_file & password dah handle asing kat atas
         ]);
 
         return redirect()->route('tetapan.pengguna.index')->with('success', 'Data pengguna berjaya dikemaskini.');
@@ -158,17 +171,14 @@ class UserController extends Controller
         
         // Halang padam Super Admin (untuk keselamatan asas)
         if (strtolower($user->role) === 'super_admin' && Auth::user()->id != $user->id) {
-             // Optional: Boleh benarkan padam jika perlu, tapi hati-hati
              // return response()->json(['status' => 'error', 'message' => 'Tidak boleh memadam Super Admin.'], 403);
         }
         
-        if ($user->signature_file && Storage::disk('public')->exists($user->signature_file)) {
-             Storage::disk('public')->delete($user->signature_file);
-        }
+        // 🔥 LOGIK BARU: Tak perlu padam fail dari storage
+        // Sebab gambar disimpan dalam DB, bila user delete, gambar automatik hilang.
 
         $user->delete();
         
-        // Jika request datang dari fetch/ajax (butang merah tadi)
         if (request()->wantsJson()) {
             return response()->json(['status' => 'success', 'message' => 'Pengguna berjaya dipadam.']);
         }

@@ -24,7 +24,7 @@
                 
                 <div class="card-body p-4">
                     
-                    {{-- Papar Error (Termasuk error jika Role sudah wujud) --}}
+                    {{-- Papar Error --}}
                     @if ($errors->any())
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             <ul class="mb-0 ps-3">
@@ -36,8 +36,12 @@
                         </div>
                     @endif
 
-                    {{-- 🔥 PENTING: Tambah enctype="multipart/form-data" untuk upload gambar --}}
-                    <form method="POST" action="{{ route('register') }}" enctype="multipart/form-data">
+                    {{-- 
+                        🔥 PERUBAHAN PENTING:
+                        1. enctype="multipart/form-data" (WAJIB ADA - Abang dah ada, bagus!)
+                        2. action: Tukar ke 'tetapan.pengguna.store' supaya dia guna UserController yang kita baru edit tadi.
+                    --}}
+                    <form method="POST" action="{{ route('tetapan.pengguna.store') }}" enctype="multipart/form-data">
                         @csrf
 
                         {{-- Baris 1: Nama & Emel --}}
@@ -111,10 +115,15 @@
                             </div>
                         </div>
 
-                        {{-- 🔥 Baris 5: Upload Tandatangan --}}
+                        {{-- 🔥 Baris 5: Upload Tandatangan (Kekal input type="file") --}}
                         <div class="row mb-4">
                             <div class="col-12">
                                 <label class="form-label fw-bold text-secondary small">MUAT NAIK TANDATANGAN (.PNG)</label>
+                                {{-- 
+                                    NOTA: Kita KEKALKAN input type="file". 
+                                    Sebab browser akan hantar fail ni ke Controller.
+                                    Controller (UserController.php) yang akan "tangkap" fail ni dan tukar jadi Base64.
+                                --}}
                                 <input type="file" class="form-control" name="signature_file" accept=".png" required>
                                 <div class="form-text">Sila muat naik fail imej tandatangan (latar belakang telus) format PNG sahaja.</div>
                             </div>

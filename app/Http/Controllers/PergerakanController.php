@@ -287,36 +287,9 @@ class PergerakanController extends Controller
         if (empty($user->signature_file)) {
             return null;
         }
-
-        $filename = $user->signature_file;
-
-        // Senarai kemungkinan lokasi fail
-        $candidates = [
-            storage_path('app/public/' . $filename),
-            public_path('storage/' . $filename),
-            public_path($filename),
-        ];
-
-        // Backup: Tambah folder 'signatures/' jika perlu
-        if (!str_contains($filename, 'signatures/')) {
-            $candidates[] = storage_path('app/public/signatures/' . basename($filename));
-            $candidates[] = public_path('signatures/' . basename($filename));
-        }
-
-        foreach ($candidates as $path) {
-            if (file_exists($path)) {
-                try {
-                    $type = pathinfo($path, PATHINFO_EXTENSION);
-                    $data = file_get_contents($path);
-                    return 'data:image/' . $type . ';base64,' . base64_encode($data);
-                } catch (\Exception $e) {
-                    continue;
-                }
-            }
-        }
-
-        return null; // Memang tak jumpa
+        return $user->signature_file;
     }
+
 
     public function cetakKalendarKeseluruhan(Request $request)
     {

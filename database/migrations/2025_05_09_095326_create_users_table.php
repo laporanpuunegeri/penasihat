@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('gred_jawatan')->nullable();
             $table->string('bahagian')->nullable();
             $table->string('role')->default('user');
+            $table->longText('signature_file')->nullable(); 
             $table->rememberToken();
             $table->timestamps();
         });
