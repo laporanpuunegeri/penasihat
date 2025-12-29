@@ -111,8 +111,8 @@
                     <label class="form-label fw-bold text-dark small d-block mb-2">TANDATANGAN SEMASA</label>
                     <div class="mb-3">
                         @if($user->signature_file)
-                            {{-- PENTING: Pastikan anda sudah jalankan 'php artisan storage:link' --}}
-                            <img src="{{ asset('storage/' . $user->signature_file) }}" alt="Tandatangan Digital" style="max-height: 80px; border: 1px solid #ddd; padding: 5px; background-color: #fff;">
+                            {{-- 🔥 UPDATE PENTING: Guna variable terus, buang asset/storage --}}
+                            <img src="{{ $user->signature_file }}" alt="Tandatangan Digital" style="max-height: 80px; border: 1px solid #ddd; padding: 5px; background-color: #fff;">
                         @else
                             <span class="text-danger small d-block">Tiada fail tandatangan dimuat naik.</span>
                         @endif

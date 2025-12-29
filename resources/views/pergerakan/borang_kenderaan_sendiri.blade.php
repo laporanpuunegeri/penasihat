@@ -66,32 +66,41 @@
 
     <hr class="divider">
 
-    {{-- 4. PENGESAHAN CC (DI SINI MASALAHNYA TADI) --}}
+    {{-- 4. PENGESAHAN CC --}}
+
     <div class="section">
         <strong>Disahkan oleh :</strong>
-        <p style="margin-top: 5px; margin-bottom: 15px;">
-            Adalah saya menegaskan bahawa penggunaan kenderaan sendiri
-            @if($pergerakan->status_cc == 'Sokong') <strong>DILULUSKAN</strong> / <span class="strikethrough">TIDAK DILULUSKAN</span>
-            @else <span class="strikethrough">DILULUSKAN</span> / <strong>TIDAK DILULUSKAN</strong> @endif
-            digunakan kerana peruntukan TNT mencukupi.
-            <span class="input-data">
-                @if($pergerakan->status_cc == 'Sokong') {{ $pergerakan->catatan_cc ?? 'BOLEH MENGGUNAKAN KENDERAAN SENDIRI' }}
-                @elseif($pergerakan->status_cc == 'Tolak') {{ $pergerakan->catatan_cc ?? 'KEKURANGAN KEWANGAN UNTUK TNT' }}
-                @else ........................................................................ @endif
-            </span>
+        <p style="margin-top: 5px; margin-bottom: 15px; text-align: justify;">
+            Adalah saya menegaskan bahawa penggunaan kenderaan pejabat tidak dapat disediakan pada tarikh seperti di atas kerana kenderaan digunakan untuk urusan rasmi yang lain.
         </p>
-        
-        {{-- Gambar Tandatangan CC --}}
-        <div style="height: 80px; margin-top: 10px;">
-            @if(isset($sig_cc)) <img src="{{ $sig_cc }}" style="height: 70px; width: auto; display: block;" alt="Sain CC"> @else <div style="height: 60px;"></div> @endif
-        </div>
-        
-        {{-- Nama CC --}}
-        <p style="line-height: 1.2;">
-            <strong>{{ strtoupper($cc_name ?? 'NAMA PENYOKONG TIADA') }}</strong><br>
-            <strong>{{ strtoupper($cc_jawatan ?? 'JAWATAN PENYOKONG TIADA') }}</strong><br>
-            Unit Pentadbiran Am
-        </p>
+        <table style="width: 100%; border: none;">
+            <tr>
+                {{-- KIRI: Tandatangan CC --}}
+                <td class="no-border" style="width: 60%; vertical-align: bottom;">
+                    <div style="height: 70px;">
+                        @if(isset($sig_cc)) 
+                            {{-- Gambar Sain --}}
+                            <img src="{{ $sig_cc }}" style="height: 60px; width: auto;" alt="Sain CC"> 
+                        @endif
+                    </div>
+                    
+                    <div style="line-height: 1.2;">
+                        <strong>{{ strtoupper($cc_name ?? 'NAMA PENYOKONG TIADA') }}</strong><br>
+                        {{ strtoupper($cc_jawatan ?? 'JAWATAN PENYOKONG TIADA') }}<br>
+                        Unit Pentadbiran Am
+                    </div>
+                </td>
+
+                <td class="no-border" style="width: 40%; vertical-align: bottom; padding-bottom: 25px;">
+                    <div style="font-weight: bold; margin-bottom: 5px;">CATATAN :</div>
+                    
+                    {{-- Saya dah buang 'border-bottom' dan titik-titik --}}
+                    <div style="min-height: 20px;">
+                        {{ $pergerakan->catatan_cc ?? '' }}
+                    </div>
+                </td>
+            </tr>
+        </table>
     </div>
 
     <hr class="divider">

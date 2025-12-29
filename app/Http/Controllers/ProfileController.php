@@ -6,7 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage; 
+// use Illuminate\Support\Facades\Storage; // Tak perlu Storage dah
 use Illuminate\Validation\Rules\Password;
 
 class ProfileController extends Controller
@@ -33,36 +33,37 @@ class ProfileController extends Controller
             'nama_jawatan' => ['required', 'string', 'max:255'],
             'gred_jawatan' => ['required', 'string', 'max:50'],
             
-            // NOTA: Saya dah BUANG validation 'negeri' & 'bahagian' kat sini
-            // supaya Controller tak harap data tu dihantar.
-
-            'signature_file' => ['nullable', 'file', 'mimes:png', 'max:2048'], 
+            // Validasi fail
+            'signature_file' => ['nullable', 'file', 'mimes:png,jpg,jpeg', 'max:2048'], 
+            
             'current_password' => ['nullable', 'required_with:new_password', 'current_password:web'],
             'new_password' => ['nullable', 'min:8', 'max:12', 'confirmed', 'exclude_if:current_password,null', Password::default()],
         ]);
         
-        // UPDATE DATA (Hanya yang dibenarkan)
+        // UPDATE DATA (Kekalkan data asas)
         $user->fill([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'no_telefon' => $validated['no_telefon'],
             'nama_jawatan' => $validated['nama_jawatan'],
             'gred_jawatan' => $validated['gred_jawatan'],
-            
-            // JANGAN letak 'negeri' dan 'bahagian' kat sini.
-            // Biar database kekal dengan nilai asal (yang Super Admin set).
         ]);
         
-        // Proses Tukar Tandatangan
+        // 🔥 LOGIK BARU: Convert Gambar ke Base64 (Untuk Profil Sendiri)
         if ($request->hasFile('signature_file')) {
-            if ($user->signature_file && Storage::disk('public')->exists($user->signature_file)) {
-                Storage::disk('public')->delete($user->signature_file);
-            }
-
-            $path = $request->file('signature_file')->store('signatures', 'public');
-            $user->signature_file = $path;
+            $file = $request->file('signature_file');
+            
+            // 1. Dapatkan jenis fail
+            $type = $file->getClientMimeType();
+            
+            // 2. Baca isi fail dan tukar jadi kod base64
+            $data = base64_encode(file_get_contents($file));
+            
+            // 3. Simpan string panjang ni dalam database
+            $user->signature_file = 'data:' . $type . ';base64,' . $data;
         }
 
+        // Update Password jika ada
         if ($request->filled('new_password')) {
             $user->password = Hash::make($validated['new_password']);
         }
