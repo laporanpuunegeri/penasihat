@@ -35,13 +35,7 @@
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                         </div>
                     @endif
-
-                    {{-- 
-                        🔥 PERUBAHAN PENTING:
-                        1. enctype="multipart/form-data" (WAJIB ADA - Abang dah ada, bagus!)
-                        2. action: Tukar ke 'tetapan.pengguna.store' supaya dia guna UserController yang kita baru edit tadi.
-                    --}}
-                    <form method="POST" action="{{ route('tetapan.pengguna.store') }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ route('register') }}" enctype="multipart/form-data">
                         @csrf
 
                         {{-- Baris 1: Nama & Emel --}}
