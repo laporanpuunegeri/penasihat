@@ -362,4 +362,13 @@ Route::middleware(['auth:web,agensi'])->group(function () {
     Route::put('/seksyen12/{id}', [Seksyen12Controller::class, 'update'])->name('seksyen12.update');
 });
 
+// =========================================================================
+// 4. ROUTE KHAS ADMIN/STAFF (SUPER ADMIN, YB, CC) - Modul Semakan
+// =========================================================================
+// Kita guna 'auth:web' sebab Super Admin adalah user dalaman
+
+Route::middleware(['auth:web'])->group(function () {
+    Route::get('/admin/warta', [WartaAdminController::class, 'index'])->name('admin.warta.index');
+});
+
 require __DIR__.'/auth.php';

@@ -353,12 +353,12 @@
                         </ul>
                     @endif
 
-@if($showModulSemakan)
+@if($showModulSemakan ?? true) 
     <div class="menu-label" style="color: #22d3ee;">MODUL SEMAKAN</div>
     <ul class="nav flex-column mb-3">
         <li class="nav-item">
-            <a class="nav-link {{ Request::is('admin/warta*') ? 'active' : '' }}" 
-               href="{{ url('admin/warta') }}" 
+            <a class="nav-link {{ request()->routeIs('admin.warta') ? 'active' : '' }}" 
+               href="{{ route('admin.warta') }}" 
                style="cursor: pointer !important;">
                 <i class="fas fa-clipboard-check"></i> 
                 <span>Semakan Warta</span>
