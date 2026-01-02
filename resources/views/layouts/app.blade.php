@@ -358,7 +358,7 @@
     <ul class="nav flex-column mb-3">
         <li class="nav-item">
             <a class="nav-link {{ request()->routeIs('admin.warta') ? 'active' : '' }}" 
-               href="{{ route('admin.warta') }}" 
+               href="{{ route('admin.warta.index') }}" 
                style="cursor: pointer !important;">
                 <i class="fas fa-clipboard-check"></i> 
                 <span>Semakan Warta</span>

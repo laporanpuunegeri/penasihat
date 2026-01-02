@@ -369,7 +369,7 @@ Route::middleware(['auth:web,agensi'])->group(function () {
 
 Route::middleware(['auth:web'])->group(function () {
     
-    Route::get('/admin/warta', [WartaAdminController::class, 'index'])->name('admin.warta');
+    Route::get('/admin/warta', [WartaAdminController::class, 'index'])->name('admin.warta.index');
     Route::get('/admin/warta/lihat/{id}', [WartaAdminController::class, 'show'])->name('admin.warta.show');
     Route::post('/admin/warta/sahkan/{id}', [WartaAdminController::class, 'sahkan'])->name('admin.warta.sahkan');
 
