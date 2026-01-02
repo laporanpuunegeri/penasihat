@@ -368,7 +368,11 @@ Route::middleware(['auth:web,agensi'])->group(function () {
 // Kita guna 'auth:web' sebab Super Admin adalah user dalaman
 
 Route::middleware(['auth:web'])->group(function () {
+    
     Route::get('/admin/warta', [WartaAdminController::class, 'index'])->name('admin.warta.index');
+    Route::get('/admin/warta/lihat/{id}', [WartaAdminController::class, 'show'])->name('admin.warta.show');
+    Route::post('/admin/warta/sahkan/{id}', [WartaAdminController::class, 'sahkan'])->name('admin.warta.sahkan');
+
 });
 
 require __DIR__.'/auth.php';
