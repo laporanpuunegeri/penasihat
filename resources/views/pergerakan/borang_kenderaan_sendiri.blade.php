@@ -132,7 +132,7 @@
         </table>
     </div>
 
-    {{-- 🔥 PAGE 2: LAMPIRAN (FIXED MARGIN) 🔥 --}}
+    {{-- 🔥 LAMPIRAN (VERSI HYBRID: BASE64 & FIZIKAL) 🔥 --}}
     @if(!empty($pergerakan->lampiran))
         
         {{-- Paksa buka Page 2 --}}
@@ -142,21 +142,25 @@
         <div style="text-align: center; margin-top: 10px;">
             <h3 style="text-decoration: underline; margin-bottom: 20px;">LAMPIRAN DOKUMEN SOKONGAN</h3>
             
-            @php
-                $pathSebenar = storage_path('app/public/' . $pergerakan->lampiran);
-            @endphp
-
-            @if(file_exists($pathSebenar))
-                @php
-                    $type = pathinfo($pathSebenar, PATHINFO_EXTENSION);
-                    $data = file_get_contents($pathSebenar);
-                    $base64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
-                @endphp
-                
-                {{-- Set max-height supaya tak melimpah ke page 3 --}}
-                <img src="{{ $base64 }}" style="max-width: 95%; max-height: 850px; border: 1px solid #000; display: inline-block;">
+            @if(str_contains($pergerakan->lampiran, 'data:image'))
+                {{-- KES 1: DATA BARU (Base64 terus dari Database) --}}
+                <img src="{{ $pergerakan->lampiran }}" style="max-width: 95%; max-height: 850px; border: 1px solid #000; display: inline-block;">
+            
             @else
-                <p style="color:red;">RALAT: Fail gambar tidak dijumpai.</p>
+                {{-- KES 2: DATA LAMA (Cari fail fizikal - kalau ada) --}}
+                @php
+                    $pathSebenar = storage_path('app/public/' . $pergerakan->lampiran);
+                @endphp
+
+                @if(file_exists($pathSebenar))
+                    @php
+                        $type = pathinfo($pathSebenar, PATHINFO_EXTENSION);
+                        $data = file_get_contents($pathSebenar);
+                        $base64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
+                    @endphp
+                    
+                    <img src="{{ $base64 }}" style="max-width: 95%; max-height: 850px; border: 1px solid #000; display: inline-block;">
+                @endif
             @endif
         </div>
     @endif

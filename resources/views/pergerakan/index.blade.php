@@ -236,7 +236,6 @@
     }
 </style>
 @endsection
-
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales-all.global.min.js"></script>
@@ -289,12 +288,22 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('modalCatatan').innerText = props.catatan ?? '-';
             document.getElementById('modalCatatanCC').innerText = props.catatan_cc ?? '-'; 
 
-            // LOGIK LAMPIRAN
+            // LOGIK LAMPIRAN (Base64 vs Link Biasa)
             var lampiranHtml = '<span class="text-muted fst-italic">Tiada Lampiran</span>';
+            
             if (props.lampiran) {
-                lampiranHtml = `<a href="/storage/${props.lampiran}" target="_blank" class="btn btn-sm btn-info text-white shadow-sm">
-                                    <i class="fas fa-file-alt me-1"></i> Lihat Dokumen Sokongan
-                                </a>`;
+                if (props.lampiran.startsWith('data:image')) {
+                    lampiranHtml = `
+                        <a href="#" onclick="var w=window.open(''); w.document.write('<img src=\\'${props.lampiran}\\' style=\\'width:100%\\'>'); return false;" 
+                           class="btn btn-sm btn-info text-white shadow-sm">
+                            <i class="fas fa-file-image me-1"></i> Lihat Gambar
+                        </a>`;
+                } else {
+                    lampiranHtml = `
+                        <a href="/storage/${props.lampiran}" target="_blank" class="btn btn-sm btn-info text-white shadow-sm">
+                            <i class="fas fa-file-alt me-1"></i> Lihat Dokumen
+                        </a>`;
+                }
             }
             document.getElementById('modalLampiran').innerHTML = lampiranHtml;
 
@@ -319,12 +328,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
             [btnSokong, btnTolak, btnLulus, btnTolakYB, btnCetak, deleteBtn].forEach(el => el.style.display = 'none');
 
-            // --- LOGIK CC (DIKEMASKINI: MODAL UTK KEDUA-DUA) ---
+            // --- LOGIK CC ---
             if ((currentRole === 'cc' || currentRole === 'boss') && props.status_cc === 'Pending') {
                 btnSokong.style.display = 'inline-block';
                 btnTolak.style.display = 'inline-block';
                 
-                // ACTION: SOKONG
                 btnSokong.onclick = () => {
                     pergerakanModalInstance.hide();
                     document.getElementById('cc_pergerakan_id').value = eventId;
@@ -336,41 +344,35 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('final_cc_action_btn').innerHTML = '<i class="fas fa-check-circle me-1"></i> Sahkan Sokongan';
                     document.getElementById('cc_review_form').action = baseUrl + "/" + eventId + "/cc-review";
 
-                    // CHECK JENIS KENDERAAN
                     if (props.kenderaan === 'Kenderaan Sendiri') {
-                        // Sembunyikan dropdown kenderaan, set type 'support_sendiri'
                         document.getElementById('penetapan_fields').style.display = 'none';
                         document.getElementById('cc_action_type').value = 'support_sendiri';
                         document.getElementById('no_kenderaan_cc').removeAttribute('required');
                         document.getElementById('nama_pemandu_cc').removeAttribute('required');
                         
-                        // Wajibkan Catatan
                         document.getElementById('catatan_cc_review').setAttribute('required', 'required');
                         document.getElementById('catatan_required_star').style.display = 'inline';
-                        document.getElementById('catatan_cc_review').placeholder = "Sila masukkan catatan sokongan (Cth: Disokong, sila tuntut TNT).";
+                        document.getElementById('catatan_cc_review').placeholder = "Sila masukkan catatan sokongan.";
                     } else {
-                        // Tunjuk dropdown kenderaan, set type 'support'
                         document.getElementById('penetapan_fields').style.display = 'block';
                         document.getElementById('cc_action_type').value = 'support';
                         document.getElementById('no_kenderaan_cc').setAttribute('required', 'required');
                         document.getElementById('nama_pemandu_cc').setAttribute('required', 'required');
                         
-                        // Catatan optional
                         document.getElementById('catatan_cc_review').removeAttribute('required');
                         document.getElementById('catatan_required_star').style.display = 'none';
-                        document.getElementById('catatan_cc_review').placeholder = "Ulasan tambahan jika ada.";
+                        document.getElementById('catatan_cc_review').placeholder = "Ulasan tambahan.";
                     }
                     ccReviewModalInstance.show();
                 };
 
-                // ACTION: TOLAK
                 btnTolak.onclick = () => {
                     pergerakanModalInstance.hide();
                     document.getElementById('cc_pergerakan_id').value = eventId;
                     document.getElementById('cc_modal_title').innerText = eventObj.title;
                     document.getElementById('cc_action_type').value = 'reject';
                     document.getElementById('reject_warning').style.display = 'block';
-                    document.getElementById('penetapan_fields').style.display = 'none'; // Sorok
+                    document.getElementById('penetapan_fields').style.display = 'none'; 
                     
                     document.getElementById('no_kenderaan_cc').removeAttribute('required');
                     document.getElementById('nama_pemandu_cc').removeAttribute('required');
@@ -386,10 +388,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 };
             }
 
-            // Logik YB
-            if (currentRole === 'yb' && props.status_cc === 'Sokong' && props.status_yb === 'Pending') {
-                btnLulus.href = baseUrl + "/" + eventId + "/lulus-yb"; btnLulus.style.display = 'inline-block';
-                btnTolakYB.href = baseUrl + "/" + eventId + "/tolak-yb"; btnTolakYB.style.display = 'inline-block';
+            // 🔥 LOGIK YB & PA (DIKEMASKINI) 🔥
+            // Kalau user tu YB ATAU PA, dan CC dah sokong, tapi belum lulus...
+            if ((currentRole === 'yb' || currentRole === 'pa') && props.status_cc === 'Sokong' && props.status_yb === 'Pending') {
+                btnLulus.href = baseUrl + "/" + eventId + "/lulus-yb"; 
+                btnLulus.style.display = 'inline-block';
+                
+                btnTolakYB.href = baseUrl + "/" + eventId + "/tolak-yb"; 
+                btnTolakYB.style.display = 'inline-block';
             }
 
             // Logik Cetak & Delete

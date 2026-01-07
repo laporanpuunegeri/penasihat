@@ -153,21 +153,30 @@
         </tr>
     </table>
 
-    {{-- LAMPIRAN --}}
+    {{-- 🔥 LAMPIRAN (VERSI HYBRID: BASE64 & FIZIKAL) 🔥 --}}
     @if(!empty($pergerakan->lampiran))
         <div style="page-break-before: always;"></div>
         <div style="text-align: center; margin-top: 10px;">
             <h4 style="text-decoration: underline;">LAMPIRAN</h4>
-            @php
-                $pathSebenar = storage_path('app/public/' . $pergerakan->lampiran);
-            @endphp
-            @if(file_exists($pathSebenar))
+            
+            @if(str_contains($pergerakan->lampiran, 'data:image'))
+                {{-- KES 1: DATA BARU (Base64 terus dari Database) --}}
+                <img src="{{ $pergerakan->lampiran }}" style="max-width: 95%; max-height: 900px; border: 1px solid #000;">
+            
+            @else
+                {{-- KES 2: DATA LAMA (Cari fail fizikal - kalau ada) --}}
                 @php
-                    $type = pathinfo($pathSebenar, PATHINFO_EXTENSION);
-                    $data = file_get_contents($pathSebenar);
-                    $base64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
+                    $pathSebenar = storage_path('app/public/' . $pergerakan->lampiran);
                 @endphp
-                <img src="{{ $base64 }}" style="max-width: 95%; max-height: 900px; border: 1px solid #000;">
+                
+                @if(file_exists($pathSebenar))
+                    @php
+                        $type = pathinfo($pathSebenar, PATHINFO_EXTENSION);
+                        $data = file_get_contents($pathSebenar);
+                        $base64 = 'data:image/' . $type . ';base64,' . base64_encode($data);
+                    @endphp
+                    <img src="{{ $base64 }}" style="max-width: 95%; max-height: 900px; border: 1px solid #000;">
+                @endif
             @endif
         </div>
     @endif

@@ -7,41 +7,47 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage; 
-use PDF; // Pastikan package barryvdh/laravel-dompdf dah install
+use PDF; 
 use Carbon\Carbon;
 use Carbon\CarbonPeriod; 
 
 class PergerakanController extends Controller
 {
     // =========================================================================
-    // 1. INDEX & PAPARAN
+    // 1. INDEX & PAPARAN (PA DITAMBAH DI SINI)
     // =========================================================================
     public function index(Request $request)
     {
         $query = Pergerakan::query();
         $userRole = strtolower(Auth::user()->role);
-        $senarai_pegawai = User::whereIn('role', ['user', 'cc', 'super_admin', 'yb'])->orderBy('name')->get();
 
-        if (in_array($userRole, ['cc', 'super_admin', 'yb'])) {
-            // Tapis mengikut Pegawai jika dipilih
+        // 🔥 1. Tambah 'pa' dalam senarai pegawai untuk filter dropdown
+        $senarai_pegawai = User::whereIn('role', ['user', 'cc', 'super_admin', 'yb', 'pa'])->orderBy('name')->get();
+
+        // 🔥 2. Benarkan PA akses data (sama level macam CC/YB/Super Admin)
+        if (in_array($userRole, ['cc', 'super_admin', 'yb', 'pa'])) {
+            
+            // Filter ikut nama pegawai
             if ($request->filled('pegawai_id')) { 
                 $query->where('user_id', $request->pegawai_id); 
             }
 
-            // ⚡ TAMBAHAN LOGIK UNTUK CC: Hanya nampak kenderaan sahaja
+            // Filter Khas CC (Hanya nampak kenderaan tertentu jika perlu)
             if ($userRole === 'cc') {
                 $query->whereIn('kenderaan', ['Kenderaan Pejabat', 'Kenderaan Sendiri']);
             }
 
-            // Filter Status Pending mengikut Role
+            // Filter Status Button
             if ($request->input('status_filter') === 'cc_pending' && ($userRole === 'cc' || $userRole === 'super_admin')) {
                 $query->where('status_cc', 'Pending');
-            } elseif ($request->input('status_filter') === 'yb_pending' && ($userRole === 'yb' || $userRole === 'super_admin')) {
+            } 
+            // 🔥 3. Benarkan PA nampak list 'Belum Disahkan YB'
+            elseif ($request->input('status_filter') === 'yb_pending' && ($userRole === 'yb' || $userRole === 'super_admin' || $userRole === 'pa')) {
                 $query->where('status_yb', 'Pending');
             }
+
         } else {
-            // Pengguna biasa hanya nampak rekod sendiri
+            // Kalau user biasa, nampak diri sendiri je
             $query->where('user_id', Auth::id());
         }
 
@@ -84,7 +90,7 @@ class PergerakanController extends Controller
     }
 
     // =========================================================================
-    // 2. SIMPAN DATA (STORE)
+    // 2. SIMPAN DATA (STORE) - KEKAL BASE64
     // =========================================================================
     public function store(Request $request)
     {
@@ -95,7 +101,8 @@ class PergerakanController extends Controller
             'kenderaan' => 'required',
             'tujuan_penggunaan' => 'required',
             'destinasi' => 'required',
-            'lampiran' => 'required|file|max:10240', 
+            // Validation longgar sikit supaya tak isu JPG/jpg/JPEG
+            'lampiran' => 'nullable|file|max:10240', 
         ]);
 
         try {
@@ -104,9 +111,17 @@ class PergerakanController extends Controller
             $data['status_cc'] = 'Pending';
             $data['status_yb'] = 'Pending';
 
+            // Convert Lampiran ke Base64 (Untuk atasi masalah Server Reset)
             if ($request->hasFile('lampiran')) {
-                $path = $request->file('lampiran')->store('lampiran_pergerakan', 'public');
-                $data['lampiran'] = $path;
+                $file = $request->file('lampiran');
+                
+                // Baca fail dan tukar jadi base64 string
+                $fileContent = file_get_contents($file->getRealPath());
+                $base64 = base64_encode($fileContent);
+                $mimeType = $file->getMimeType();
+                
+                // Simpan format: "data:image/png;base64,....."
+                $data['lampiran'] = 'data:' . $mimeType . ';base64,' . $base64;
             }
 
             if ($request->has('is_multiday')) {
@@ -180,24 +195,38 @@ class PergerakanController extends Controller
         return redirect()->route('pergerakan.index')->with('success', $message);
     }
     
+    // 🔥 4. LULUS YB (PA JUGA BOLEH LULUSKAN)
     public function lulusYb($id)
     {
         $pergerakan = Pergerakan::findOrFail($id);
-        if (!Gate::allows('review-yb', $pergerakan)) { abort(403); }
+        
+        // Kita cek manual: Kalau YB atau PA atau Super Admin -> BOLEH
+        if (!in_array(Auth::user()->role, ['yb', 'pa', 'super_admin'])) { 
+            abort(403, 'Anda tiada kuasa YB/PA.'); 
+        }
+
         $pergerakan->status_yb = 'Lulus';
         $pergerakan->yb_id = Auth::id();
         $pergerakan->save();
-        return redirect()->route('pergerakan.index')->with('success', 'Permohonan DILULUSKAN.');
+        
+        return redirect()->route('pergerakan.index')->with('success', 'Permohonan DILULUSKAN (Tindakan YB/PA).');
     }
 
+    // 🔥 5. TOLAK YB (PA JUGA BOLEH TOLAK)
     public function tolakYb($id)
     {
         $pergerakan = Pergerakan::findOrFail($id);
-        if (!Gate::allows('review-yb', $pergerakan)) { abort(403); }
+        
+        // Kita cek manual: Kalau YB atau PA atau Super Admin -> BOLEH
+        if (!in_array(Auth::user()->role, ['yb', 'pa', 'super_admin'])) { 
+             abort(403, 'Anda tiada kuasa YB/PA.'); 
+        }
+
         $pergerakan->status_yb = 'Tolak';
         $pergerakan->yb_id = Auth::id();
         $pergerakan->save();
-        return redirect()->route('pergerakan.index')->with('success', 'Permohonan DITOLAK.');
+        
+        return redirect()->route('pergerakan.index')->with('success', 'Permohonan DITOLAK (Tindakan YB/PA).');
     }
 
     public function destroy($id)
@@ -219,7 +248,7 @@ class PergerakanController extends Controller
     }
 
     // =========================================================================
-    // 4. CETAK BORANG (DENGAN FIX GAMBAR PDF)
+    // 4. CETAK BORANG (READ BASE64 PDF)
     // =========================================================================
     public function cetakBorang($id)
     {
@@ -233,30 +262,23 @@ class PergerakanController extends Controller
                     ? 'pergerakan.borang_kenderaan_pejabat' 
                     : 'pergerakan.borang_kenderaan_sendiri';
         
-        // Cari CC yang meluluskan atau CC mengikut struktur
+        // Cari CC
         $cc_user = $pergerakan->cc; 
         if (!$cc_user) {
-            // Jika rekod lama tiada CC ID, cari CC negeri sama
-            $bahagian = $pergerakan->user->bahagian;
             $negeri = $pergerakan->user->negeri;
-            
-            // Cari user role 'cc' di negeri yang sama
-            $cc_user = User::where('role', 'cc')
-                           ->where('negeri', $negeri)
-                           ->first();
-            
-            // Fallback: Cari superadmin jika tiada CC
+            $cc_user = User::where('role', 'cc')->where('negeri', $negeri)->first();
             if (!$cc_user) {
                 $cc_user = User::where('role', 'super_admin')->first() ?? Auth::user();
             }
         }
         
+        // Cari YB (Untuk dapatkan sain YB sebenar walaupun PA yang approve)
         $penasihat = User::where('role', 'yb')->first();
 
-        // 🔥 PANGGIL HELPER UNTUK DAPATKAN GAMBAR (BASE64)
-        $sig_yb = $penasihat ? $this->getSignaturePath($penasihat) : null;
-        $sig_applicant = $this->getSignaturePath($pergerakan->user);
-        $sig_cc = $cc_user ? $this->getSignaturePath($cc_user) : null;
+        // Ambil Tandatangan
+        $sig_yb = $penasihat ? $penasihat->signature_file : null;
+        $sig_applicant = $pergerakan->user->signature_file ?? null;
+        $sig_cc = $cc_user ? $cc_user->signature_file : null;
 
         $data = [
             'pergerakan' => $pergerakan,
@@ -277,19 +299,6 @@ class PergerakanController extends Controller
         
         return $pdf->stream('Borang_Pergerakan_' . $pergerakan->id . '.pdf');
     }
-
-    /**
-     * HELPER: Cari path fizikal fail tandatangan DAN convert ke Base64
-     * (Supaya PDF boleh baca gambar tanpa masalah permission)
-     */
-    protected function getSignaturePath(User $user)
-    {
-        if (empty($user->signature_file)) {
-            return null;
-        }
-        return $user->signature_file;
-    }
-
 
     public function cetakKalendarKeseluruhan(Request $request)
     {
@@ -322,7 +331,7 @@ class PergerakanController extends Controller
             'tarikh_cetak' => Carbon::now()->format('d/m/Y H:i:s'),
             'namaYB' => $penasihat->name ?? 'YANG BERHORMAT',
             'jawatanYB' => $penasihat->nama_jawatan ?? 'Jawatan',
-            'sig_yb' => $penasihat ? $this->getSignaturePath($penasihat) : null,
+            'sig_yb' => $penasihat ? $penasihat->signature_file : null,
         ];
         
         $pdf = PDF::loadView('pergerakan.kalendar_keseluruhan_pdf', $data)->setPaper('a4', 'landscape');
