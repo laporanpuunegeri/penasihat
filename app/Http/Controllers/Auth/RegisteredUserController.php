@@ -27,7 +27,7 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request)
     {
-        // 1. Validasi awal (Termasuk Signature File)
+        // 1. Validasi awal
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users'],
@@ -37,13 +37,11 @@ class RegisteredUserController extends Controller
             'nama_jawatan' => ['nullable', 'string', 'max:255'],
             'gred_jawatan' => ['nullable', 'string', 'max:50'],
             'bahagian' => ['nullable', 'string', 'max:255'],
-            'role' => ['required', 'in:user,pa,yb'],
-            // Tambah validasi untuk gambar (Wajib fail, jenis gambar, max 5MB)
+            'role' => ['required', 'in:user,eo,cc,pa,yb,super_admin'], 
             'signature_file' => ['nullable', 'file', 'mimes:png,jpg,jpeg', 'max:5120'], 
         ]);
 
-        // Semakan eksklusif peranan bagi negeri
-        if (in_array($request->role, ['pa', 'yb'])) {
+        if (in_array($request->role, ['pa', 'yb', 'cc', 'eo'])) {
             $existing = User::where('role', $request->role)
                             ->where('negeri', $request->negeri)
                             ->first();
@@ -55,14 +53,23 @@ class RegisteredUserController extends Controller
             }
         }
 
-        // 2. Proses Upload Gambar (Logic Baru)
-        $signaturePath = null;
+        // =========================================================
+        // 🔥 2. PROSES UPLOAD TANDATANGAN (TUKAR KE BASE64) 🔥
+        // =========================================================
+        $signatureBase64 = null; 
+
         if ($request->hasFile('signature_file')) {
-            // Simpan ke 'storage/app/public/signatures'
-            $signaturePath = $request->file('signature_file')->store('signatures', 'public');
+            $file = $request->file('signature_file');
+            
+            $fileContent = file_get_contents($file->getRealPath());
+            
+            $base64 = base64_encode($fileContent);
+            $mimeType = $file->getMimeType();
+
+            $signatureBase64 = 'data:' . $mimeType . ';base64,' . $base64;
         }
 
-        // 3. Simpan pengguna (Termasuk Path Gambar)
+        // 3. Simpan pengguna ke Database
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -73,12 +80,10 @@ class RegisteredUserController extends Controller
             'gred_jawatan' => $request->gred_jawatan,
             'bahagian' => $request->bahagian,
             'role' => $request->role,
-            'signature_file' => $signaturePath, // <--- Masukkan path sini
+            'signature_file' => $signatureBase64, 
         ]);
 
         event(new Registered($user));
-        Auth::login($user);
-
-        return redirect(RouteServiceProvider::HOME);
+        return redirect()->route('tetapan.pengguna.index')->with('success', 'Pengguna berjaya didaftarkan bersama tandatangan!');
     }
 }
