@@ -206,7 +206,7 @@
                                 <label for="nama_pemandu_cc" class="form-label fw-bold">Nama Pemandu Ditugaskan <span class="text-danger">*</span></label>
                                 <select name="nama_pemandu" id="nama_pemandu_cc" class="form-select">
                                     <option value="" disabled selected>-- Pilih Pemandu --</option>
-                                    <option value="MOHD MASWAN BIN RASIMAN">MOHD MASWAN BIN RASIMAN</option>
+                                    <option value="MOHD MASWAN BIN RASIMAN">ABDUL RASHID BIN MAAN</option>
                                     <option value="MUHAMMAD HAZIM BIN KAMSAH">MUHAMMAD HAZIM BIN KAMSAH</option>
                                 </select>
                             </div>
