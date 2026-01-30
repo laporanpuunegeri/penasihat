@@ -6,15 +6,12 @@ use Illuminate\Http\Request;
 use App\Models\GuamanCase;
 use Illuminate\Support\Facades\Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\DB; // Tambah DB Facade
 
 class GuamanController extends Controller
 {
-    /**
-     * Helper untuk mendapatkan senarai kategori kes (Mapping KOD).
-     */
     private function getGuamanCategories()
     {
-        // Berdasarkan dokumen STATUS BULAN NOVEMBER 2025
         return [
             '01' => ['title' => 'PERKARA PERLEMBAGAAN / WARGANEGARA, AGAMA', 'route_kategori' => 'Kewarganegaraan'],
             '02' => ['title' => 'PERKHIDMATAN AWAM / TATATERTIB, GAJI', 'route_kategori' => 'Tatatertib'],
@@ -28,9 +25,6 @@ class GuamanController extends Controller
         ];
     }
 
-    /**
-     * Helper untuk mendapatkan senarai pegawai yang mengendalikan kes.
-     */
     private function getKendalianByList()
     {
         return [
@@ -40,31 +34,46 @@ class GuamanController extends Controller
         ];
     }
 
-    /**
-     * Paparan utama Modul Guaman (Senarai Kes) dengan fungsi filter.
-     */
     public function index(Request $request)
     {
-        $categories = $this->getGuamanCategories();
-        $kodFilter = $request->input('kod');
+        $query = GuamanCase::query(); 
 
-        $query = GuamanCase::query();
-        if ($kodFilter) {
-             $query->where('kod_perkara', $kodFilter);
+        // 1. Tentukan Bulan & Tahun (Kalau tak pilih, ambil SEMASA)
+        $bulanDipilih = $request->input('bulan', date('m')); // Default: Bulan ini
+        $tahunDipilih = $request->input('tahun', date('Y')); // Default: Tahun ini
+
+        // 2. Terapkan Filter
+        // Filter Kod Perkara
+        if ($request->filled('kod')) {
+            $query->where('kod_perkara', $request->kod);
         }
-                
-        $cases = $query->orderBy('tarikh_buka', 'desc')->get();
 
-        return view('guaman.index', compact(
-            'categories', 
-            'cases', 
-            'kodFilter'
-            // Pembolehubah statistik telah dibuang
-        ));
+        // Filter WAJIB: Bulan & Tahun
+        $query->whereMonth('tarikh_buka', $bulanDipilih);
+        $query->whereYear('tarikh_buka', $tahunDipilih);
+
+        // 3. Dapatkan Data
+        $cases = $query->latest('tarikh_buka')->paginate(10); 
+        
+        // 4. Data Sokongan View
+        $categories = $this->getGuamanCategories();
+        
+        // Tarik Senarai Tahun Unik (Support PostgreSQL & MySQL)
+        $senaraiTahun = GuamanCase::selectRaw('EXTRACT(YEAR FROM tarikh_buka) as year')
+            ->distinct()
+            ->orderBy('year', 'desc')
+            ->pluck('year');
+
+        // Kalau senarai tahun kosong (sebab database baru), letak tahun semasa
+        if ($senaraiTahun->isEmpty()) {
+            $senaraiTahun = [date('Y')];
+        }
+
+        $kodFilter = $request->kod;
+
+        return view('guaman.index', compact('cases', 'categories', 'senaraiTahun', 'kodFilter', 'bulanDipilih', 'tahunDipilih'));
     }
-    /**
-     * Paparkan Borang Daftar Kes Baru, hantar senarai pegawai kendalian.
-     */
+
     public function create()
     {
         $categories = $this->getGuamanCategories();
@@ -73,16 +82,11 @@ class GuamanController extends Controller
         return view('guaman.create', compact('categories', 'kendalianList'));
     }
 
-    /**
-     * Simpan rekod kes baru ke dalam database.
-     */
     public function store(Request $request)
     {
         $request->validate([
             'kod_perkara' => 'required|string|max:50',
-            'rujukan_fail' => 'nullable|string|max:255',
             'kendalian_oleh' => 'required|string|max:255',
-            'mahkamah' => 'nullable|string|max:255',
             'kategori_kes' => 'required|string|max:255',
             'pihak_berlawanan' => 'required|string',
             'tarikh_buka' => 'nullable|date',
@@ -104,55 +108,50 @@ class GuamanController extends Controller
         return redirect()->route('guaman.index')->with('success', 'Kes guaman baru berjaya didaftarkan.');
     }
     
-    /**
-     * Paparkan Borang Sunting/Detail Kes sedia ada.
-     */
     public function edit(GuamanCase $guaman_case)
     {
         $categories = $this->getGuamanCategories();
         $kendalianList = $this->getKendalianByList();
-        
-        // Hantar data kes yang dimuat turun ($guaman_case) ke view
         return view('guaman.create', compact('categories', 'kendalianList', 'guaman_case'));
     }
 
-    /**
-     * Kemaskini rekod kes sedia ada.
-     */
     public function update(Request $request, GuamanCase $guaman_case)
     {
-        // Logik Validasi yang sama seperti method store()
         $request->validate([
             'kod_perkara' => 'required|string|max:50',
-            'rujukan_fail' => 'nullable|string|max:255',
             'kendalian_oleh' => 'required|string|max:255',
-            'mahkamah' => 'nullable|string|max:255',
             'kategori_kes' => 'required|string|max:255',
             'pihak_berlawanan' => 'required|string',
             'tarikh_buka' => 'nullable|date',
         ]);
 
-        // Kemaskini data
         $guaman_case->update($request->all());
 
         return redirect()->route('guaman.index')->with('success', 'Kes guaman berjaya dikemaskini.');
     }
 
-    /**
-     * Mendapatkan data dan menjana output PDF untuk preview.
-     */
     public function cetakLaporanPdf(Request $request)
     {
-        $cases = GuamanCase::orderBy('tarikh_buka', 'desc')->get();
+        // Cetak ikut bulan/tahun yang sedang dipaparkan di skrin (jika user filter)
+        $bulan = $request->input('bulan', date('m'));
+        $tahun = $request->input('tahun', date('Y'));
+
+        $cases = GuamanCase::whereMonth('tarikh_buka', $bulan)
+                            ->whereYear('tarikh_buka', $tahun)
+                            ->orderBy('tarikh_buka', 'desc')
+                            ->get();
+        
         $groupedCases = $cases->groupBy('kod_perkara');
         $categories = $this->getGuamanCategories();
+        
+        // Nama bulan bahasa Melayu
+        $bulanName = \Carbon\Carbon::create()->month($bulan)->translatedFormat('F');
+        $title = "Laporan Kes Guaman - $bulanName $tahun"; 
         $currentDate = now()->format('d F Y');
-        $title = 'Laporan Kes Guaman'; 
 
         $pdf = Pdf::loadView('guaman.pdf.laporan', compact('groupedCases', 'categories', 'title', 'currentDate'))
                     ->setPaper('a4', 'landscape'); 
-
-        // Menggunakan stream() untuk PREVIEW
-        return $pdf->stream('Laporan_Guaman_' . date('Ymd') . '.pdf');
+        
+        return $pdf->stream('Laporan_Guaman_' . $tahun . $bulan . '.pdf');
     }
 }
