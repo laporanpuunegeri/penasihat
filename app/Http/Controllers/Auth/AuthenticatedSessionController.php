@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
-use App\Providers\RouteServiceProvider; // Pastikan import ini ada
+use App\Providers\RouteServiceProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException; // Import untuk error
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
@@ -36,24 +36,10 @@ class AuthenticatedSessionController extends Controller
         if (Auth::guard('web')->attempt($credentials, $remember)) {
             
             $request->session()->regenerate();
-            $user = Auth::guard('web')->user();
-
-            // 🔥 LOGIC SEKATAN NEGERI (MELAKA / KEDAH) 🔥
-            // Kalau bukan Super Admin DAN bukan dari negeri terpilih -> Tendang
-            if (
-                $user->role !== 'super_admin' &&
-                !in_array(strtoupper($user->negeri), ['MELAKA', 'KEDAH'])
-            ) {
-                Auth::guard('web')->logout(); // Logout balik
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
-
-                return redirect()->route('login')->withErrors([
-                    'email' => 'Log masuk hanya dibenarkan untuk pengguna dari negeri MELAKA atau KEDAH sahaja.',
-                ]);
-            }
-
-            // Kalau lepas sekatan, masuk Dashboard Staff
+            
+            // 🔥 SEKATAN NEGERI DAH DIBUANG 🔥
+            // Sekarang semua user (Web) boleh masuk terus ke Dashboard
+            
             return redirect()->intended(RouteServiceProvider::HOME);
         }
 
@@ -64,9 +50,9 @@ class AuthenticatedSessionController extends Controller
             
             $user = Auth::guard('agensi')->user();
             
-            // 🔥 LOGIC CHECK STATUS AKAUN (PENDING/AKTIF) 🔥
+            // Logic Check Status Akaun (Pending/Aktif) KEKAL untuk Agensi
             if ($user->status !== 'aktif') {
-                Auth::guard('agensi')->logout(); // Tendang
+                Auth::guard('agensi')->logout(); // Tendang keluar
                 
                 throw ValidationException::withMessages([
                     'email' => 'Akaun agensi anda masih dalam semakan (Pending) atau digantung.',
@@ -80,7 +66,7 @@ class AuthenticatedSessionController extends Controller
         }
 
         // =========================================================
-        // STEP 3: KALAU DUA-DUA TAK JUMPA
+        // STEP 3: KALAU DUA-DUA TAK JUMPA (WRONG PASSWORD/EMAIL)
         // =========================================================
         throw ValidationException::withMessages([
             'email' => trans('auth.failed'),

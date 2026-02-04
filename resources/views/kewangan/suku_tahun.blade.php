@@ -59,13 +59,12 @@
                 </div>
             </form>
             
-            <a href="{{ route('kewangan.create') }}" class="btn btn-success shadow-sm">
-                <i class="fas fa-plus fa-sm text-white-50 mr-1"></i> Rekod
-            </a>
-            {{-- =========================================================== --}}
-            {{-- BUTANG BARU: CETAK PDF (MERAH) --}}
-            {{-- Saya tambah parameter ['tahun' => $tahun_dipilih] supaya PDF ikut tahun yang dipilih --}}
-            {{-- =========================================================== --}}
+@if(Auth::user()->role !== 'user' || Auth::user()->role == 'ptk1')
+    <a href="{{ route('kewangan.create') }}" class="btn btn-success shadow-sm">
+        <i class="fas fa-plus fa-sm text-white-50 mr-1"></i> Rekod
+    </a>
+@endif
+
 <a href="{{ route('kewangan.cetak_pdf_suku', ['tahun' => $tahun_dipilih]) }}" target="_blank" class="btn btn-danger shadow-sm btn-sm px-3 py-2 fw-bold">
     <i class="fas fa-file-pdf me-2"></i> PDF Suku Tahun
 </a>

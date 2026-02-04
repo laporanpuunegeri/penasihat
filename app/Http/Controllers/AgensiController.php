@@ -45,4 +45,20 @@ class AgensiController extends Controller
 
         return redirect()->back()->with('success', 'Agensi berjaya dipadam.');
     }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'nama_agensi' => 'required|string|max:255',
+        ]);
+        $agensi = \App\Models\Agensi::findOrFail($id);
+        if ($agensi->negeri !== Auth::user()->negeri) {
+            abort(403, 'Anda tiada kebenaran untuk mengemaskini agensi ini.');
+        }
+
+        $agensi->update([
+            'nama_agensi' => $request->nama_agensi
+        ]);
+        return redirect()->route('agensi.index')->with('success', 'Nama agensi berjaya dikemaskini.');
+    }
 }

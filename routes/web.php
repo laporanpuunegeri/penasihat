@@ -115,6 +115,7 @@ Route::middleware('auth')->group(function () { // Default auth (guard: web)
         Route::view('/pendakwaan', 'dashboard.pendakwaan')->name('dashboard.pendakwaan');
         Route::get('/semakan', [PenasihatDashboardController::class, 'index'])->name('dashboard.semakan');
         Route::get('/syariah', [PenasihatDashboardController::class, 'index'])->name('dashboard.syariah');
+        
     });
 
     // =========================================================================
@@ -277,6 +278,7 @@ Route::middleware('auth')->group(function () { // Default auth (guard: web)
         Route::prefix('agensi')->name('agensi.')->group(function() {
             Route::get('/', [AgensiController::class, 'index'])->name('index');
             Route::post('/store', [AgensiController::class, 'store'])->name('store');
+            Route::put('/{id}', [AgensiController::class, 'update'])->name('update');
             Route::delete('/{id}', [AgensiController::class, 'destroy'])->name('destroy');
         });
 
