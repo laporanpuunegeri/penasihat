@@ -290,25 +290,24 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Handle baris 'Tiada data waran dijumpai' jika semua difilter
         const emptyRow = tableBody.querySelector('td[colspan="7"]')?.closest('tr');
         if (emptyRow) {
-             // Jika tiada baris data DAN bukan filter 'all', sembunyikan baris 'tiada data'
+
              if (visibleRowsCount === 0 && filterType !== 'all') {
                 emptyRow.style.display = 'none';
              } 
-             // Jika tiada baris data DAN filter 'all', atau jika tiada data waran awal
+
              else if (visibleRowsCount === 0 && tableBody.querySelectorAll('tr').length === 1 && filterType === 'all') {
                 emptyRow.style.display = '';
              }
         }
         
-        updateFooter(); // Sentiasa kemaskini footer selepas filtering
+        updateFooter();
     }
 
     filterButtons.forEach(button => {
         button.addEventListener('click', function() {
-            // Kemaskini style butang aktif
+
             filterButtons.forEach(btn => {
                 btn.classList.remove('btn-primary');
                 btn.classList.add('btn-outline-primary');
@@ -321,9 +320,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Panggil filter 'all' pada load page
-    // Mesti panggil updateRow untuk inisialisasi warna, kemudian panggil applyFilter
-    // applyFilter akan memanggil updateFooter
     applyFilter('all'); 
 });
 

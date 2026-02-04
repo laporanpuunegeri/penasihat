@@ -82,11 +82,11 @@
         <thead class="text-center">
             <tr>
                 <th style="width: 6%" rowspan="2">KOD OBJEK</th>
-                <th style="width: 21%" rowspan="2">BUTIRAN / JENIS PERBELANJAAN</th>
-                <th style="width: 9%" rowspan="2">PERUNTUKAN (RM)</th>
-                <th style="width: 9%" rowspan="2">TOTAL BELANJA (RM)</th>
-                <th style="width: 9%" rowspan="2">BAKI (RM)</th>
-                <th colspan="12" style="width: 51%;">PERBELANJAAN BULANAN (RM)</th>
+                <th style="width: 18%" rowspan="2">BUTIRAN / JENIS PERBELANJAAN</th>
+                <th style="width: 8%" rowspan="2">PERUNTUKAN (RM)</th>
+                <th style="width: 8%" rowspan="2">TOTAL BELANJA (RM)</th>
+                <th style="width: 8%" rowspan="2">BAKI (RM)</th>
+                <th colspan="12" style="width: 60%;">PERBELANJAAN BULANAN (RM)</th>
             </tr>
             <tr>
                 <th class="monthly-cell">JAN</th>

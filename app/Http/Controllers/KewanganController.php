@@ -189,15 +189,38 @@ public function index(Request $request)
         return redirect()->route('kewangan.index')->with('success', 'Rekod berjaya dipadam.');
     }
 
-    // --- 7. PDF BULANAN ---
+// --- 7. PDF BULANAN (FIXED: POSTGRESQL COMPATIBLE) ---
     public function cetakPdfBulanan(Request $request)
     {
+        $user = \Illuminate\Support\Facades\Auth::user();
         $tahun = $request->input('tahun', date('Y'));
-        $rekod_db = Kewangan::where('tahun', $tahun)->orderBy('kod_objek')->get();
 
+        // 1. FILTER DATA
+        $query = Kewangan::query();
+
+        // Filter Negeri
+        if ($user->negeri) {
+            $query->where('negeri', 'ILIKE', '%' . $user->negeri . '%');
+        }
+
+        // Filter Tahun (FIXED ERROR 22P02)
+        $query->where(function($q) use ($tahun) {
+            $q->whereRaw("CAST(tahun AS TEXT) LIKE ?", ["%{$tahun}%"])
+              ->orWhereNull('tahun'); 
+        });
+
+        $rekod_db = $query->orderBy('kod_objek', 'asc')->get();
+
+        // 2. INITIALIZE VARIABLE
         $laporan_kewangan = [];
         $grand_total_peruntukan = 0;
         $grand_total_belanja = 0;
+
+        // Variable untuk simpan total setiap bulan
+        $total_bulanan = [
+            'jan' => 0, 'feb' => 0, 'mac' => 0, 'apr' => 0, 'mei' => 0, 'jun' => 0,
+            'jul' => 0, 'ogos' => 0, 'sep' => 0, 'okt' => 0, 'nov' => 0, 'dis' => 0
+        ];
 
         $tajuk_kod = [
             '10000' => 'EMOLUMEN',
@@ -207,8 +230,11 @@ public function index(Request $request)
             '50000' => 'PERBELANJAAN LAIN-LAIN'
         ];
 
+        // 3. LOOPING & PENGIRAAN
         foreach ($rekod_db as $item) {
             $kod_utama = $item->kod_utama;
+            
+            // Setup Struktur Group
             if (!isset($laporan_kewangan[$kod_utama])) {
                 $laporan_kewangan[$kod_utama] = [
                     'tajuk' => $tajuk_kod[$kod_utama] ?? 'LAIN',
@@ -217,12 +243,31 @@ public function index(Request $request)
                     'items' => []
                 ];
             }
+
+            // Masukkan Item
             $laporan_kewangan[$kod_utama]['items'][] = $item;
+            
+            // Campur Total Group
             $laporan_kewangan[$kod_utama]['total_peruntukan'] += $item->peruntukan;
             $laporan_kewangan[$kod_utama]['total_belanja'] += $item->belanja;
 
+            // Campur Grand Total
             $grand_total_peruntukan += $item->peruntukan;
             $grand_total_belanja += $item->belanja;
+
+            // Campur Total Setip Bulan
+            $total_bulanan['jan']  += $item->belanja_jan;
+            $total_bulanan['feb']  += $item->belanja_feb;
+            $total_bulanan['mac']  += $item->belanja_mac;
+            $total_bulanan['apr']  += $item->belanja_apr;
+            $total_bulanan['mei']  += $item->belanja_mei;
+            $total_bulanan['jun']  += $item->belanja_jun;
+            $total_bulanan['jul']  += $item->belanja_jul;
+            $total_bulanan['ogos'] += $item->belanja_ogos;
+            $total_bulanan['sep']  += $item->belanja_sep;
+            $total_bulanan['okt']  += $item->belanja_okt;
+            $total_bulanan['nov']  += $item->belanja_nov;
+            $total_bulanan['dis']  += $item->belanja_dis;
         }
 
         ksort($laporan_kewangan);
@@ -233,6 +278,7 @@ public function index(Request $request)
             'laporan_kewangan' => $laporan_kewangan,
             'grand_total_peruntukan' => $grand_total_peruntukan,
             'grand_total_belanja' => $grand_total_belanja,
+            'total_bulanan' => $total_bulanan,
         ];
 
         $pdf = PDF::loadView('kewangan.pdf_bulanan', $viewData);
@@ -261,35 +307,86 @@ public function index(Request $request)
         return view('kewangan.suku_tahun', $viewData);
     }
 
-    // --- 10. PERBANDINGAN ---
+// --- 10. PERBANDINGAN TAHUNAN ---
     public function perbandingan(Request $request)
     {
-        $viewData = $this->getLaporanKewangan($request);
+        $user = \Illuminate\Support\Facades\Auth::user();
+        
+        // 1. Tentukan 3 Tahun Terkini
+        $tahunSemasa = $request->input('tahun', date('Y'));
+        $tahunLepas = $tahunSemasa - 1;
+        $tahun2Lepas = $tahunSemasa - 2;
 
-        $viewData['tahun_semasa'] = $request->input('tahun', date('Y'));
-        $viewData['tahun_lepas'] = $viewData['tahun_semasa'] - 1;
-        $viewData['tahun_2_lepas'] = $viewData['tahun_semasa'] - 2;
-
-        $laporan = [];
-        foreach ($viewData['laporan_kewangan'] as $kod => $group) {
-            $items = [];
-            foreach ($group['items'] as $item) {
-                $items[] = [
-                    'kod_objek' => $item->kod_objek,
-                    'butiran' => $item->butiran,
-                    'belanja_semasa' => $item->belanja,
-                    'belanja_lepas' => $item->belanja,
-                    'belanja_2_lepas' => $item->belanja,
-                ];
-            }
-            $laporan[$kod] = [
-                'tajuk' => $group['tajuk'],
-                'items' => $items,
-            ];
+        // 2. Tarik Data
+        $query = Kewangan::query();
+        
+        if ($user->negeri) {
+            $query->where('negeri', 'ILIKE', '%' . $user->negeri . '%');
         }
 
-        $viewData['laporan'] = $laporan;
+        $query->where(function($q) use ($tahunSemasa, $tahunLepas, $tahun2Lepas) {
+            $q->whereRaw("CAST(tahun AS TEXT) LIKE ?", ["%{$tahunSemasa}%"])
+              ->orWhereRaw("CAST(tahun AS TEXT) LIKE ?", ["%{$tahunLepas}%"])
+              ->orWhereRaw("CAST(tahun AS TEXT) LIKE ?", ["%{$tahun2Lepas}%"])
+              ->orWhereNull('tahun'); 
+        });
 
-        return view('kewangan.perbandingan', $viewData);
+        $semuaData = $query->get();
+
+        // 3. Setup Struktur Data
+        $laporan = [
+            '10000' => ['tajuk' => 'EMOLUMEN', 'items' => []],
+            '20000' => ['tajuk' => 'PERKHIDMATAN & BEKALAN', 'items' => []],
+            '30000' => ['tajuk' => 'ASET', 'items' => []],
+            '40000' => ['tajuk' => 'PEMBERIAN & KENAAN BAYARAN TETAP', 'items' => []],
+            '50000' => ['tajuk' => 'PERBELANJAAN LAIN-LAIN', 'items' => []],
+        ];
+
+        // 4. Looping & Agihkan Data Ke Tahun Masing-masing
+        foreach ($semuaData as $item) {
+            $tahunDB = trim((string)$item->tahun);
+            
+            if ($tahunDB == "" || $tahunDB == null) {
+                $tahunDB = (string)$tahunSemasa;
+            }
+
+            $kodGroup = (string)$item->kod_utama;
+            $kodObjek = (string)$item->kod_objek;
+
+            if (!isset($laporan[$kodGroup])) continue;
+
+            if (!isset($laporan[$kodGroup]['items'][$kodObjek])) {
+                $laporan[$kodGroup]['items'][$kodObjek] = [
+                    'kod_objek' => $kodObjek,
+                    'butiran' => $item->butiran,
+                    'belanja_semasa' => 0,      
+                    'belanja_lepas' => 0,       
+                    'belanja_2_lepas' => 0,     
+                ];
+            }
+
+            if ($tahunDB == $tahunSemasa) {
+                $laporan[$kodGroup]['items'][$kodObjek]['belanja_semasa'] += $item->belanja;
+            } 
+            elseif ($tahunDB == $tahunLepas) {
+                $laporan[$kodGroup]['items'][$kodObjek]['belanja_lepas'] += $item->belanja;
+            } 
+            elseif ($tahunDB == $tahun2Lepas) {
+                $laporan[$kodGroup]['items'][$kodObjek]['belanja_2_lepas'] += $item->belanja;
+            }
+        }
+
+        // 5. Susun Ikut Kod Objek
+        foreach ($laporan as $key => $val) {
+            ksort($laporan[$key]['items']);
+        }
+
+        return view('kewangan.perbandingan', [
+            'laporan' => $laporan,
+            'tahun_semasa' => $tahunSemasa,
+            'tahun_lepas' => $tahunLepas,
+            'tahun_2_lepas' => $tahun2Lepas,
+            'tahun' => $tahunSemasa
+        ]);
     }
 }
