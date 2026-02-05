@@ -47,10 +47,10 @@
         LAMPIRAN A<br>MAKLUM BALAS
     </div>
 
-    <div class="header-laporan">
+<div class="header-laporan">
         <img src="{{ public_path('images/logo.png') }}" alt="Jata Negara">
         <h4>PRESTASI KERANGKA KEBERHASILAN PROGRAM PENGURUSAN (PPUUN)<br>
-        SEHINGGA 31 DISEMBER {{ $metadata['tahun'] }}</h4>
+        NEGERI {{ $metadata['negeri'] ?? 'MALAYSIA' }}</h4>
     </div>
 
     {{-- BUKA TABLE PERTAMA --}}
