@@ -25,39 +25,50 @@ class LaporanPPUUNController extends Controller
         ],
     ];
 
-    // 1. INDEX (DASHBOARD - IKUT NEGERI)
+// 1. INDEX 
     public function index(Request $request)
     {
         $tahun = $request->tahun ?? date('Y');
-        $userNegeri = Auth::user()->negeri; 
+        $userNegeri = Auth::user()->negeri;
 
         $data = LaporanPPUUN::where('tahun', $tahun)
-                            ->where('negeri', $userNegeri) 
+                            ->where('negeri', $userNegeri)
                             ->orderBy('outcome_id')
                             ->get()
                             ->groupBy('outcome_id');
         
-        // Statistik Ringkas
-        $totalPencapaian = 0;
-        $count = 0;
+
+        $totalPencapaianSemuaOutcome = 0;
+        $bilanganOutcome = 0;
+
         foreach($data as $group) {
             $rec = $group->first();
-            if($rec->sasaran_tahunan > 0) {
-                $totalVal = $rec->suku_1 + $rec->suku_2 + $rec->suku_3 + $rec->suku_4;
-                $perc = ($totalVal / $rec->sasaran_tahunan) * 100;
-                $totalPencapaian += $perc;
-            }
-            $count++;
+            
+            // 1. Ambil nilai peratusan setiap suku
+            $suku = [$rec->suku_1, $rec->suku_2, $rec->suku_3, $rec->suku_4];
+
+            // 2. Kira berapa suku yang dah diisi (Nilai > 0)
+            $sukuBerisi = array_filter($suku, function($val) { return $val > 0; });
+            $jumlahSuku = count($sukuBerisi);
+
+            // 3. Kira Purata Outcome Ini
+
+            $avgOutcome = ($jumlahSuku > 0) ? array_sum($suku) / $jumlahSuku : 0;
+
+            $totalPencapaianSemuaOutcome += $avgOutcome;
+            $bilanganOutcome++;
         }
-        $avgPencapaian = $count > 0 ? round($totalPencapaian / $count, 1) : 0;
+
+        // 4. Kira Purata Keseluruhan 
+        $finalAvg = ($bilanganOutcome > 0) ? round($totalPencapaianSemuaOutcome / $bilanganOutcome, 1) : 0;
 
         $stats = [
-            'avg_pencapaian' => $avgPencapaian,
+            'avg_pencapaian' => $finalAvg,
         ];
 
         $metadata = [
             'tahun' => $tahun,
-            'negeri' => $userNegeri, 
+            'negeri' => $userNegeri,
             'tajuk' => 'PRESTASI KERANGKA KEBERHASILAN PROGRAM PENGURUSAN (PPUUN)',
         ];
 
