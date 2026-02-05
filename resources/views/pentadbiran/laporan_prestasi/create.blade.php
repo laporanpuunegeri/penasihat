@@ -2,169 +2,206 @@
 
 @section('content')
 <style>
-    /* Style untuk kecantikan borang */
     .form-card { background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; overflow: hidden; }
     .form-section-title { color: #1e293b; font-weight: 700; font-size: 1rem; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #f1f5f9; text-transform: uppercase; letter-spacing: 0.5px; }
     .form-label { font-weight: 600; color: #475569; font-size: 0.85rem; text-transform: uppercase; }
-    .suku-input-group { background-color: #f8f9fa; border-radius: 8px; padding: 15px; }
-    .suku-input-group label { font-size: 0.75rem; }
+    .calc-table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
+    .calc-table th { text-align: center; background: #f8f9fa; padding: 10px; border: 1px solid #e2e8f0; font-size: 0.75rem; text-transform: uppercase; color: #64748b; }
+    .calc-table td { padding: 0 5px; vertical-align: middle; }
+    .input-manual { border: 2px solid #3b82f6; background-color: #eff6ff; text-align: center; font-weight: bold; }
+    .input-auto { background-color: #f1f5f9; border: 1px solid #cbd5e1; text-align: center; color: #64748b; pointer-events: none; }
+    .input-final { background-color: #dcfce7; border: 2px solid #22c55e; text-align: center; font-weight: bold; color: #15803d; }
+    .calc-row-title { font-weight: bold; font-size: 0.9rem; color: #1e293b; padding-left: 10px; }
 </style>
 
 <div class="container-fluid py-4">
-
-    {{-- HEADER & BACK BUTTON --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold text-dark">Daftar Prestasi PPUUN Tahun {{ $tahun }}</h3>
-        <a href="{{ route('pentadbiran.laporan_prestasi.index') }}" class="btn btn-secondary shadow-sm">
-            <i class="fas fa-arrow-left me-2"></i> Kembali ke Laporan
+        <div>
+            <h3 class="fw-bold text-dark">
+                {{ isset($rekod) ? 'Kemaskini' : 'Daftar' }} Prestasi PPUUN Tahun {{ $tahun }}
+            </h3>
+            <p class="text-muted small mb-0">Pengiraan automatik berdasarkan beban kes dan penyelesaian.</p>
+        </div>
+        <a href="{{ route('pentadbiran.laporan_prestasi.index', ['tahun' => $tahun]) }}" class="btn btn-secondary shadow-sm">
+            <i class="fas fa-arrow-left me-2"></i> Kembali
         </a>
     </div>
 
     <div class="row justify-content-center">
-        <div class="col-lg-9">
-
-            {{-- Borang Utama --}}
+        <div class="col-lg-11">
             <form action="{{ route('pentadbiran.laporan_prestasi.store') }}" method="POST">
                 @csrf
                 <input type="hidden" name="tahun" value="{{ $tahun }}">
 
-                {{-- CARD UTAMA --}}
-                <div class="form-card p-5 mb-4">
-                    <h5 class="form-section-title text-primary"><i class="fas fa-bullseye me-2"></i> Maklumat Outcome & KPI</h5>
-
-                    {{-- 1. PILIH OUTCOME --}}
+                <div class="form-card p-4 mb-4">
+                    <h5 class="form-section-title text-primary"><i class="fas fa-bullseye me-2"></i> A. PILIH OUTCOME</h5>
                     <div class="mb-4">
-                        <label for="outcome_id" class="form-label">Pilih Outcome</label>
-                        <select name="outcome_id" id="outcome_id" class="form-select form-select-lg @error('outcome_id') is-invalid @enderror" required>
-                            <option value="">-- Pilih Outcome Program --</option>
-                            
-                            {{-- OUTCOME 1: KHIDMAT NASIHAT --}}
-                            <option value="OUTCOME 1" 
-                                data-labels="Nasihat Undang-Undang;Nasihat Syariah;Perjanjian" 
-                                {{ old('outcome_id') == 'OUTCOME 1' ? 'selected' : '' }}>
-                                OUTCOME 1: Khidmat Nasihat Perundangan Yang Cekap Dan Teratur Kepada Kerajaan Negeri
-                            </option>
-
-                            {{-- OUTCOME 2: KES SIVIL --}}
-                            <option value="OUTCOME 2" 
-                                data-labels="Kes Sivil;Kes Pengambilan Tanah;Kes Rayuan Sivil;Kes Rayuan Pengambilan Tanah" 
-                                {{ old('outcome_id') == 'OUTCOME 2' ? 'selected' : '' }}>
-                                OUTCOME 2: Pengendalian Kes Sivil Kerajaan Negeri Yang Cekap Dan Teratur
-                            </option>
-                            
-                            {{-- OUTCOME 3: PENGGUBALAN --}}
-                            <option value="OUTCOME 3" 
-                                data-labels="Penggubalan Perundangan utama dan subsidiari;Semakan dan cetakan semula undang-undang" 
-                                {{ old('outcome_id') == 'OUTCOME 3' ? 'selected' : '' }}>
-                                OUTCOME 3: Penggubalan Semakan Dan Pencetakan Semula Enakmen Dan Rang Undang-Undang Subsidiari Yang Cekap Dan Teratur
-                            </option>
-                            
+                        <select name="outcome_id" id="outcome_id" class="form-select form-select-lg shadow-sm" 
+                                onchange="window.location.href='{{ route('pentadbiran.laporan_prestasi.create') }}?tahun={{ $tahun }}&outcome_id=' + this.value">
+                            <option value="">-- Sila Pilih Outcome --</option>
+                            @foreach($outcomes as $key => $details)
+                                <option value="{{ $key }}" {{ ($selected_outcome == $key) ? 'selected' : '' }}>
+                                    {{ $key }} - {{ $details['tajuk'] }}
+                                </option>
+                            @endforeach
                         </select>
-                        @error('outcome_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
-                    {{-- 2. KPI & SASARAN --}}
-                    <div class="row mb-4 g-3">
-                        <div class="col-md-9">
-                            <label for="kpi_desc" class="form-label">Penerangan KPI</label>
-                            <textarea name="kpi_desc" id="kpi_desc" class="form-control @error('kpi_desc') is-invalid @enderror" rows="2" required>{{ old('kpi_desc', 'Peratusan nasihat perundangan diselesaikan dalam tempoh yang ditetapkan') }}</textarea>
-                            @error('kpi_desc') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-                        <div class="col-md-3">
-                            <label for="sasaran" class="form-label">Sasaran Tahunan (%)</label>
-                            <input type="number" name="sasaran" id="sasaran" class="form-control @error('sasaran') is-invalid @enderror" value="{{ old('sasaran', 90) }}" required>
-                            @error('sasaran') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                        </div>
-                    </div>
-
-                    {{-- 3. PENCAPAIAN SUKU TAHUN --}}
-                    <h5 class="form-section-title mt-5 text-success"><i class="fas fa-tasks me-2"></i> Pencapaian Suku Tahun (Nilai Sebenar)</h5>
-                    
-                    <div class="suku-input-group row mb-4 g-3">
-                        @for($i = 1; $i <= 4; $i++)
-                            <div class="col-md-3">
-                                <label for="suku{{ $i }}" class="form-label">Suku {{ $i }} ({{ $i * 25 }}%)</label>
-                                <input type="number" name="suku[]" id="suku{{ $i }}" class="form-control" value="{{ old('suku.' . ($i-1), 0) }}" required>
+                    @if($selected_outcome)
+                        <div class="mt-4">
+                            <h5 class="form-section-title text-dark"><i class="fas fa-file-alt me-2"></i> B. Maklumat KPI</h5>
+                            <div class="row g-3">
+                                <div class="col-md-9">
+                                    <label class="form-label">Penerangan KPI</label>
+                                    <textarea name="kpi_desc" class="form-control" rows="2" required>{{ old('kpi_desc', $rekod->kpi_desc ?? '') }}</textarea>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Sasaran Tahunan (%)</label>
+                                    <input type="number" name="sasaran" class="form-control text-center" value="{{ old('sasaran', $rekod->sasaran_tahunan ?? 90) }}" required>
+                                </div>
                             </div>
-                        @endfor
-                    </div>
+                        </div>
 
-                    {{-- 4. BAHAGIAN CATATAN (DYNAMIC) --}}
-                    <h5 class="form-section-title mt-5 text-info"><i class="fas fa-edit me-2"></i> Data Catatan (Penerangan Rujukan)</h5>
-                    <div id="catatan_container" class="suku-input-group">
-                        <p class="text-muted mb-0">Sila pilih Outcome di atas untuk memaparkan bidang Catatan (Contoh: Nasihat UU - 55).</p>
-                    </div>
+                        <div class="mt-5">
+                            <h5 class="form-section-title text-success"><i class="fas fa-calculator me-2"></i> C. Pengiraan Pencapaian (Auto Carry-Forward)</h5>
+                            <div class="table-responsive">
+                                <table class="calc-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 15%;">Suku Tahun</th>
+                                            <th style="width: 15%;">Baki Terdahulu<br>(Carry Fwd)</th>
+                                            <th style="width: 15%;">Kes Masuk<br>(Baru)</th>
+                                            <th style="width: 15%;">Jumlah Beban<br>(Baki + Masuk)</th>
+                                            <th style="width: 15%;">Kes Selesai</th>
+                                            <th style="width: 10%;">Baki Semasa<br>(Belum Selesai)</th>
+                                            <th style="width: 15%;">% Pencapaian<br>(Simpan ke DB)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for($i = 1; $i <= 4; $i++)
+                                        <tr>
+                                            <td class="calc-row-title">SUKU {{ $i }}</td>
+                                            
+                                            {{-- BAKI AWAL (Auto) --}}
+                                            <td>
+                                                <input type="number" id="baki_awal_{{ $i }}" class="form-control input-auto" value="0" readonly>
+                                            </td>
+                                            
+                                            {{-- KES MASUK (Data Lama Diambil Dari Sini) --}}
+                                            <td>
+                                                <input type="number" name="masuk[]" id="masuk_{{ $i }}" 
+                                                       class="form-control input-manual" placeholder="0" 
+                                                       value="{{ $rekod->beban_kes['masuk'][$i-1] ?? 0 }}" 
+                                                       oninput="kiraStatistik()">
+                                            </td>
 
-                </div>
+                                            {{-- BEBAN (Auto) --}}
+                                            <td>
+                                                <input type="number" id="beban_{{ $i }}" class="form-control input-auto" value="0" readonly>
+                                            </td>
 
-                {{-- FOOTER / SUBMIT BUTTON --}}
-                <div class="d-flex justify-content-end mt-3 mb-5">
-                    <button type="submit" class="btn btn-primary btn-lg shadow fw-bold px-5">
-                        <i class="fas fa-save me-2"></i> Simpan Laporan
-                    </button>
+                                            {{-- KES SELESAI (Data Lama Diambil Dari Sini) --}}
+                                            <td>
+                                                <input type="number" name="selesai[]" id="selesai_{{ $i }}" 
+                                                       class="form-control input-manual" placeholder="0" 
+                                                       value="{{ $rekod->beban_kes['selesai'][$i-1] ?? 0 }}"
+                                                       oninput="kiraStatistik()">
+                                            </td>
+
+                                            {{-- BAKI AKHIR (Auto) --}}
+                                            <td>
+                                                <input type="number" id="baki_akhir_{{ $i }}" class="form-control input-auto" value="0" readonly>
+                                            </td>
+
+                                            {{-- PERCENTAGE --}}
+                                            <td>
+                                                <input type="text" name="suku[]" id="peratus_{{ $i }}" 
+                                                       class="form-control input-final" 
+                                                       value="{{ old('suku.' . ($i-1), $rekod->{'suku_'.$i} ?? 0) }}" readonly>
+                                            </td>
+                                        </tr>
+                                        @endfor
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="form-text text-muted mt-2">
+                                <i class="fas fa-info-circle me-1"></i> <strong>Cara Guna:</strong> Isi kolum <strong>BIRU</strong> sahaja (Kes Masuk & Kes Selesai). Sistem akan automatik kira peratusan dan bawa baki kes ke suku seterusnya.
+                            </div>
+                        </div>
+
+                        <div class="mt-5">
+                            <h5 class="form-section-title text-info"><i class="fas fa-edit me-2"></i> D. Data Catatan</h5>
+                            <div class="p-3 bg-light border rounded">
+                                @php
+                                    $labels = $outcomes[$selected_outcome]['cat_labels'] ?? [];
+                                    $catatanLama = $rekod->catatan_data ?? []; 
+                                @endphp
+                                @foreach($labels as $label)
+                                    <div class="row mb-2 align-items-center border-bottom pb-2">
+                                        <div class="col-md-8">
+                                            <label class="form-label mb-0">{{ $loop->iteration }}. {{ $label }}</label>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <input type="text" name="catatan_val[]" class="form-control form-control-sm" 
+                                                   value="{{ $catatanLama[$label] ?? '' }}">
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end mt-4 pt-3 border-top">
+                            <button type="submit" class="btn btn-primary btn-lg shadow px-5">
+                                <i class="fas fa-save me-2"></i> Simpan Laporan
+                            </button>
+                        </div>
+                    @else
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-arrow-up fa-3x mb-3 text-gray-300"></i>
+                            <p>Sila pilih <strong>Outcome Program</strong> dahulu.</p>
+                        </div>
+                    @endif
                 </div>
             </form>
         </div>
     </div>
 </div>
-@endsection
 
-@push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const outcomeSelect = document.getElementById('outcome_id');
-    const catatanContainer = document.getElementById('catatan_container');
-    
-    // Data dummy untuk 'old' input fields jika ada error validasi
-    const oldInputValues = @json(old('catatan_val', [])); 
+function kiraStatistik() {
+    let bakiBawaDepan = 0; 
 
-    // Fungsi untuk render input Catatan berdasarkan Outcome yang dipilih
-    function renderCatatanFields(selectedOption) {
-        const labelsData = selectedOption.getAttribute('data-labels');
-        if (!labelsData) {
-            catatanContainer.innerHTML = `<p class="text-muted mb-0">Sila pilih Outcome di atas untuk memaparkan bidang Catatan.</p>`;
-            return;
+    for (let i = 1; i <= 4; i++) {
+        let kesMasuk = parseFloat(document.getElementById('masuk_' + i).value) || 0;
+        let kesSelesai = parseFloat(document.getElementById('selesai_' + i).value) || 0;
+
+        // Set Baki Awal
+        document.getElementById('baki_awal_' + i).value = bakiBawaDepan;
+
+        // Kira Jumlah Beban
+        let jumlahBeban = bakiBawaDepan + kesMasuk;
+        document.getElementById('beban_' + i).value = jumlahBeban;
+
+        // Kira Peratusan
+        let peratus = 0;
+        if (jumlahBeban > 0) {
+            peratus = (kesSelesai / jumlahBeban) * 100;
         }
+        
+        let finalPercent = Math.min(Math.round(peratus), 100);
+        document.getElementById('peratus_' + i).value = finalPercent;
 
-        const labels = labelsData.split(';');
-        let html = '';
+        // Kira Baki Akhir
+        let bakiAkhir = Math.max(0, jumlahBeban - kesSelesai);
+        document.getElementById('baki_akhir_' + i).value = bakiAkhir;
 
-        labels.forEach((label, index) => {
-            const fieldId = `catatan_${index}`;
-            const oldValue = oldInputValues[index] || ''; 
-
-            html += `
-            <div class="row mb-3 align-items-center">
-                <div class="col-md-7">
-                    <label for="${fieldId}" class="form-label">${label}</label>
-                </div>
-                <div class="col-md-5">
-                    <input type="text" name="catatan_val[${index}]" id="${fieldId}" 
-                        class="form-control" placeholder="Nilai Sebenar" value="${oldValue}">
-                    <div class="form-text text-muted small">Cth: 55, atau 20 (G) + 3 (S) = 23</div>
-                </div>
-            </div>`;
-        });
-
-        catatanContainer.innerHTML = html;
+        // Pass baki ke depan
+        bakiBawaDepan = bakiAkhir;
     }
+}
 
-    // Event Listener apabila OUTCOME berubah
-    if (outcomeSelect) {
-        outcomeSelect.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            renderCatatanFields(selectedOption);
-        });
-
-        // Load fields semasa page load (jika ada validation error atau old data)
-        const selectedId = outcomeSelect.value;
-        if (selectedId) {
-            const selectedOption = outcomeSelect.querySelector(`option[value="${selectedId}"]`);
-            if (selectedOption) {
-                renderCatatanFields(selectedOption);
-            }
-        }
-    }
+document.addEventListener("DOMContentLoaded", function() {
+    kiraStatistik();
 });
 </script>
-@endpush
+@endsection
