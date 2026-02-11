@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage; 
 
 // Controllers
+
+
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PergerakanController;
 use App\Http\Controllers\PentadbiranController;
@@ -53,6 +55,8 @@ use App\Http\Controllers\CustomPasswordResetController;
 use App\Http\Controllers\DashboardBahagian\GuamanDashboardController;
 use App\Http\Controllers\DashboardBahagian\KewanganPentadbiranDashboardController;
 use App\Http\Controllers\DashboardBahagian\PenasihatDashboardController;
+use App\Http\Controllers\DashboardBahagian\YBDashboardController;
+
 
 Route::get('/', fn() => redirect()->route('dashboard'))->name('utama');
 
@@ -103,19 +107,23 @@ Route::middleware('auth')->group(function () { // Default auth (guard: web)
         }
     })->name('dashboard');
 
-    // --- GROUP DASHBOARD KHAS ---
+// --- GROUP DASHBOARD KHAS ---
     Route::prefix('dashboard')->group(function () {
+        
+        // 1. Dashboard YB 
+        Route::get('/yb', [YBDashboardController::class, 'index'])->name('dashboard.yb');
+
+        // 2. Dashboard Lain-lain
         Route::get('/pentadbiran', [KewanganPentadbiranDashboardController::class, 'dashboard'])->name('dashboard.pentadbiran');
         Route::get('/kewangan', [KewanganPentadbiranDashboardController::class, 'dashboard'])->name('dashboard.kewangan');
         Route::get('/pentadbiran-kewangan', [KewanganPentadbiranDashboardController::class, 'dashboard'])->name('dashboard.pentadbirandankewangan');
         Route::get('/guaman', [GuamanDashboardController::class, 'dashboard'])->name('dashboard.guaman');
 
-        // Dashboard Penasihat (8 Graf Utama) - Termasuk Semakan & Syariah
+        // 3. Dashboard Penasihat (8 Graf Utama)
         Route::get('/penasihat', [PenasihatDashboardController::class, 'index'])->name('dashboard.penasihat');
         Route::view('/pendakwaan', 'dashboard.pendakwaan')->name('dashboard.pendakwaan');
         Route::get('/semakan', [PenasihatDashboardController::class, 'index'])->name('dashboard.semakan');
         Route::get('/syariah', [PenasihatDashboardController::class, 'index'])->name('dashboard.syariah');
-        
     });
 
     // =========================================================================
