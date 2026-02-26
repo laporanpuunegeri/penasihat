@@ -61,8 +61,8 @@
                         <div class="row mb-4">
                             <div class="col-md-3">
                                 <label for="tarikh_mula" class="form-label fw-bold text-muted"><i class="far fa-calendar-alt me-1"></i> Tarikh Mula</label>
-                                <input type="date" name="tarikh_mula" id="tarikh_mula" class="form-control @error('tarikh_mula') is-invalid @enderror" value="{{ old('tarikh_mula') }}" required>
-                                @error('tarikh_mula')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                <input type="date" name="tarikh_mula" id="tarikh_mula" class="form-control @error('tarikh_mula') is-invalid @enderror" value="{{ old('tarikh_mula') }}" min="{{ date('Y-m-d') }}" required>
+                                    @error('tarikh_mula')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="col-md-3">
                                 <label for="masa_mula" class="form-label fw-bold text-muted"><i class="far fa-clock me-1"></i> Masa Mula</label>
@@ -71,7 +71,7 @@
                             </div>
                             <div class="col-md-3">
                                 <label for="tarikh_akhir" class="form-label fw-bold text-muted"><i class="far fa-calendar-check me-1"></i> Tarikh Akhir</label>
-                                <input type="date" name="tarikh_akhir" id="tarikh_akhir" class="form-control bg-white @error('tarikh_akhir') is-invalid @enderror" value="{{ old('tarikh_akhir') }}" required> 
+                                <input type="date" name="tarikh_akhir" id="tarikh_akhir" class="form-control bg-white @error('tarikh_akhir') is-invalid @enderror" value="{{ old('tarikh_akhir') }}" min="{{ date('Y-m-d') }}" required> 
                                 @error('tarikh_akhir')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="col-md-3">

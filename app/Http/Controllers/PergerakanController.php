@@ -14,7 +14,7 @@ use Carbon\CarbonPeriod;
 class PergerakanController extends Controller
 {
     // =========================================================================
-    // 1. INDEX & PAPARAN (PA DITAMBAH DI SINI)
+    // 1. INDEX & PAPARAN 
     // =========================================================================
     public function index(Request $request)
     {
@@ -22,19 +22,19 @@ class PergerakanController extends Controller
         $userRole = strtolower(Auth::user()->role);
 
         // 🔥 1. Tambah 'pa' dalam senarai pegawai untuk filter dropdown
-        $senarai_pegawai = User::whereIn('role', ['user', 'cc', 'super_admin', 'yb', 'pa'])->orderBy('name')->get();
+        $senarai_pegawai = User::whereIn('role', ['user', 'cc', 'eo', 'super_admin', 'yb', 'pa'])->orderBy('name')->get();
 
         // 🔥 2. Benarkan PA akses data (sama level macam CC/YB/Super Admin)
-        if (in_array($userRole, ['cc', 'super_admin', 'yb', 'pa'])) {
+        if (in_array($userRole, ['cc', 'eo', 'super_admin', 'yb', 'pa'])) {
             
             // Filter ikut nama pegawai
             if ($request->filled('pegawai_id')) { 
                 $query->where('user_id', $request->pegawai_id); 
             }
 
-            // Filter Khas CC (Hanya nampak kenderaan tertentu jika perlu)
-            if ($userRole === 'cc') {
-                $query->whereIn('kenderaan', ['Kenderaan Pejabat', 'Kenderaan Sendiri']);
+            // Filter Khas CC 
+            if ($request->input('status_filter') === 'cc_pending' && in_array($userRole, ['cc', 'eo', 'super_admin'])) {
+              $query->where('status_cc', 'Pending');
             }
 
             // Filter Status Button
@@ -75,6 +75,7 @@ class PergerakanController extends Controller
                     'status_yb' => $event->status_yb,
                     'owner_id' => $event->user_id,
                     'lampiran' => $event->lampiran, 
+                    'created_at' => $event->created_at ? \Carbon\Carbon::parse($event->created_at)->format('d/m/Y') : 'Tiada Rekod',
                 ]
             ];
         });
@@ -262,11 +263,11 @@ class PergerakanController extends Controller
                     ? 'pergerakan.borang_kenderaan_pejabat' 
                     : 'pergerakan.borang_kenderaan_sendiri';
         
-        // Cari CC
+        // Cari CC atau EO
         $cc_user = $pergerakan->cc; 
         if (!$cc_user) {
             $negeri = $pergerakan->user->negeri;
-            $cc_user = User::where('role', 'cc')->where('negeri', $negeri)->first();
+            $cc_user = User::whereIn('role', ['cc', 'eo'])->where('negeri', $negeri)->first();
             if (!$cc_user) {
                 $cc_user = User::where('role', 'super_admin')->first() ?? Auth::user();
             }

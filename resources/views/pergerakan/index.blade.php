@@ -41,13 +41,13 @@
                     <input type="hidden" name="status_filter" id="status_filter_input" value="{{ request('status_filter') }}">
 
                     <div class="col-auto">
-                        @if ($userRole === 'cc' || $userRole === 'boss')
+                        @if (in_array($userRole, ['cc', 'eo']))
                             <button type="button" class="btn btn-warning btn-sm shadow-sm {{ request('status_filter') == 'cc_pending' ? 'active' : '' }}" onclick="toggleStatusFilter('cc_pending')">
                                 <i class="fas fa-hourglass-half me-1"></i> Permohonan Belum Disokong
                             </button>
                         @endif
 
-                        @if ($userRole === 'yb' || $userRole === 'boss')
+                        @if ($userRole === 'yb')
                             <button type="button" class="btn btn-info btn-sm shadow-sm {{ request('status_filter') == 'yb_pending' ? 'active' : '' }}" onclick="toggleStatusFilter('yb_pending')">
                                 <i class="fas fa-clipboard-check me-1"></i> Permohonan Belum Disahkan
                             </button>
@@ -274,9 +274,16 @@ document.addEventListener('DOMContentLoaded', function () {
             var currentRole = "{{ strtolower(auth()->user()->role) }}";
             var baseUrl = "{{ url('/pergerakan') }}"; 
 
-            // 1. DATA POPULATION
+           // 1. DATA POPULATION
             const eventTitleWithVehicle = `[${props.kenderaan.toUpperCase()}] ${eventObj.title}`;
-            document.getElementById('modalTitle').innerText = eventTitleWithVehicle;
+            
+            document.getElementById('modalTitle').innerHTML = `
+                ${eventTitleWithVehicle} <br>
+                <small class="fw-normal text-light" style="font-size: 0.85rem; opacity: 0.9;">
+                    <i class="fas fa-clock me-1"></i> Didaftar pada: ${props.created_at || 'Tiada Rekod'}
+                </small>
+            `;
+            
             document.getElementById('modalStart').innerText = moment(eventObj.start).format('DD/MM/YYYY') + (props.masa_mula ? ' @ ' + props.masa_mula : '');
             document.getElementById('modalEnd').innerText = moment(eventObj.end).subtract(1, 'days').format('DD/MM/YYYY') + (props.masa_akhir ? ' @ ' + props.masa_akhir : '');
             document.getElementById('modalKenderaan').innerText = props.kenderaan ?? '-';
@@ -286,9 +293,8 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('modalPemandu').innerText = props.nama_pemandu ?? '-';
             document.getElementById('modalNoKenderaan').innerText = props.no_kenderaan ?? '-';
             document.getElementById('modalCatatan').innerText = props.catatan ?? '-';
-            document.getElementById('modalCatatanCC').innerText = props.catatan_cc ?? '-'; 
-
-            // LOGIK LAMPIRAN (Base64 vs Link Biasa)
+            document.getElementById('modalCatatanCC').innerText = props.catatan_cc ?? '-';
+            
             var lampiranHtml = '<span class="text-muted fst-italic">Tiada Lampiran</span>';
             
             if (props.lampiran) {
@@ -328,8 +334,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
             [btnSokong, btnTolak, btnLulus, btnTolakYB, btnCetak, deleteBtn].forEach(el => el.style.display = 'none');
 
-            // --- LOGIK CC ---
-            if ((currentRole === 'cc' || currentRole === 'boss') && props.status_cc === 'Pending') {
+           // --- LOGIK CC & EO ---
+                if ((currentRole === 'cc' || currentRole === 'eo' || currentRole === 'boss') && props.status_cc === 'Pending') {
                 btnSokong.style.display = 'inline-block';
                 btnTolak.style.display = 'inline-block';
                 
