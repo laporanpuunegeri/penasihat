@@ -36,33 +36,21 @@ class LaporanPandanganUndangController extends Controller
             $query->where('user_id', $user->id);
         }
 
-        // 3. LOGIC FILTER TARIKH (TRIPLE THREAT)
+        // 3. LOGIC FILTER TARIKH (HANYA TARIKH TERIMA)
         $tahun = $request->input('tahun', date('Y'));
         $bulan = $request->input('bulan', 'all');
 
         $query->where(function($q) use ($tahun, $bulan) {
-            
             if ($tahun != 'all') {
-                // A: Tarikh Terima
-                $q->where(function($sub) use ($tahun, $bulan) {
-                    $sub->whereYear('tarikh_terima', $tahun);
-                    if ($bulan != 'all') $sub->whereMonth('tarikh_terima', $bulan);
-                })
-                // B: Updated At (Tindakan)
-                ->orWhere(function($sub) use ($tahun, $bulan) {
-                    $sub->whereYear('updated_at', $tahun);
-                    if ($bulan != 'all') $sub->whereMonth('updated_at', $bulan);
-                })
-                // C: Tarikh Selesai
-                ->orWhere(function($sub) use ($tahun, $bulan) {
-                    $sub->whereYear('tarikh_selesai', $tahun);
-                    if ($bulan != 'all') $sub->whereMonth('tarikh_selesai', $bulan);
-                });
+                $q->whereYear('tarikh_terima', $tahun);
+                if ($bulan != 'all') {
+                    $q->whereMonth('tarikh_terima', $bulan);
+                }
             }
         });
 
-        // Susun ikut yang paling baru dikemaskini
-        $senaraiLaporan = $query->orderBy('updated_at', 'desc')->get();
+        // Susun ikut tarikh terima paling terkini
+        $senaraiLaporan = $query->orderBy('tarikh_terima', 'desc')->get();
 
         return view('laporanpandanganundang.index', compact('senaraiLaporan', 'tahun'));
     }

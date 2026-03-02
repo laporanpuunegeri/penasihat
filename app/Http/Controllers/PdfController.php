@@ -60,21 +60,10 @@ class PdfController extends Controller
      
         $laporan_pandangan = LaporanPandanganUndang::where($filter)
             ->where('is_current', true)
-            ->where(function($q) use ($tahun, $bulan) {
-                // A: Tarikh Terima
-                $q->where(function($sub) use ($tahun, $bulan) {
-                    $sub->whereYear('tarikh_terima', $tahun)->whereMonth('tarikh_terima', $bulan);
-                })
-                // B: Updated At (Tindakan)
-                ->orWhere(function($sub) use ($tahun, $bulan) {
-                    $sub->whereYear('updated_at', $tahun)->whereMonth('updated_at', $bulan);
-                })
-                // C: Tarikh Selesai
-                ->orWhere(function($sub) use ($tahun, $bulan) {
-                    $sub->whereYear('tarikh_selesai', $tahun)->whereMonth('tarikh_selesai', $bulan);
-                });
-            })
-            ->orderBy('updated_at', 'asc')->get();
+            ->whereYear('tarikh_terima', $tahun)
+            ->whereMonth('tarikh_terima', $bulan)
+            ->orderBy('tarikh_terima', 'asc')
+            ->get();
 
         return Pdf::loadView('laporan.pdf', [
             'bulan' => $bulan, 'tahun' => $tahun, 'user' => $user,

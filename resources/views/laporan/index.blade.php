@@ -117,18 +117,14 @@
                             <tr>
                                 <td class="text-center text-muted">{{ $bil++ }}</td>
                                 <td>
-                                    {{-- 🔥 PAPARAN TARIKH CERDIK 🔥 --}}
-                                    @php
-                                        $displayDate = $item->tarikh_terima; $badgeLabel = "(Terima)"; $badgeColor = "text-muted";
-                                        if ($item->tarikh_selesai && $item->tarikh_selesai->month == $fMonth && $item->tarikh_selesai->year == $fYear) {
-                                            $displayDate = $item->tarikh_selesai; $badgeLabel = "(Selesai)"; $badgeColor = "text-success fw-bold";
-                                        } elseif ($item->updated_at->month == $fMonth && $item->updated_at->year == $fYear) {
-                                            $displayDate = $item->updated_at; $badgeLabel = "(Tindakan)"; $badgeColor = "text-primary fw-bold";
-                                        }
-                                    @endphp
-                                    <div class="{{ $badgeColor }}" style="font-size: 0.85rem;"><i class="fas fa-calendar-alt me-1"></i> {{ $displayDate->format('d/m/Y') }}</div>
-                                    <div class="small fst-italic" style="font-size: 0.65rem;">{{ $badgeLabel }}</div>
-                                    @if ($badgeLabel !== '(Terima)') <hr class="my-1" style="opacity: 0.1"><div class="text-muted" style="font-size: 0.7rem;">Mula: {{ $item->tarikh_terima->format('d/m/Y') }}</div> @endif
+                                    {{-- PAPARAN TARIKH TERIMA SURAT --}}
+                                    <div class="text-primary fw-bold" style="font-size: 0.85rem;">
+                                        <i class="fas fa-calendar-alt me-1"></i> 
+                                        {{ $item->tarikh_terima ? \Carbon\Carbon::parse($item->tarikh_terima)->format('d/m/Y') : '-' }}
+                                    </div>
+                                    <div class="small fst-italic text-muted mt-1" style="font-size: 0.70rem;">
+                                        (Terima)
+                                    </div>
                                 </td>
                                 <td>{{ Str::limit($item->fakta_ringkasan, 80) }}</td>
                                 <td>{{ Str::limit($item->isu, 80) }}</td>

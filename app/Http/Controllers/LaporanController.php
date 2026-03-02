@@ -38,31 +38,19 @@ class LaporanController extends Controller
             $filter['user_id'] = $user->id;
         }
 
-        // --- B. PANDANGAN UNDANG-UNDANG (LOGIC TRIPLE THREAT) ---
-        // Cari rekod yang: Diterima bulan ni ATAU Ada Tindakan bulan ni ATAU Selesai bulan ni
+        // Hanya tarik rekod berdasarkan bulan & tahun tarikh_terima
         $laporan = LaporanPandanganUndang::query()
             ->where($filter)
             ->where('is_current', true)
             ->where(function($q) use ($tahun, $bulan) {
                 if ($tahun != 'all') {
-                    // 1: Tarikh Terima
-                    $q->where(function($sub) use ($tahun, $bulan) {
-                        $sub->whereYear('tarikh_terima', $tahun);
-                        if($bulan != 'all') $sub->whereMonth('tarikh_terima', $bulan);
-                    })
-                    // 2: Updated At (Tarikh Tindakan)
-                    ->orWhere(function($sub) use ($tahun, $bulan) {
-                        $sub->whereYear('updated_at', $tahun);
-                        if($bulan != 'all') $sub->whereMonth('updated_at', $bulan);
-                    })
-                    // 3: Tarikh Selesai
-                    ->orWhere(function($sub) use ($tahun, $bulan) {
-                        $sub->whereYear('tarikh_selesai', $tahun);
-                        if($bulan != 'all') $sub->whereMonth('tarikh_selesai', $bulan);
-                    });
+                    $q->whereYear('tarikh_terima', $tahun);
+                    if ($bulan != 'all') {
+                        $q->whereMonth('tarikh_terima', $bulan);
+                    }
                 }
             })
-            ->orderBy('updated_at', 'desc')
+            ->orderBy('tarikh_terima', 'desc')
             ->get();
 
         // --- C. DATA MODUL LAIN (Simple Filter) ---

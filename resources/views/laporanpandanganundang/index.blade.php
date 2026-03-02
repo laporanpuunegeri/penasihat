@@ -154,20 +154,12 @@
 
                         @forelse ($filtered as $item)
                             <tr>
-                                {{-- Tarikh --}}
+                             {{-- Tarikh --}}
                                 <td>
                                     <div class="fw-bold text-primary" style="font-size: 0.85rem;">
-                                        <i class="fas fa-calendar-check me-1"></i> {{ $item->updated_at->format('d/m/Y') }}
-                                    </div>
-                                    <div class="small text-muted fst-italic" style="font-size: 0.65rem;">(Tindakan Terkini)</div>
-
-                                    <hr class="my-1" style="opacity: 0.1">
-
-                                    <div class="text-dark" style="font-size: 0.75rem;">
-                                        Mula: {{ optional($item->tarikh_terima)->format('d/m/Y') }}
+                                        <i class="fas fa-calendar-alt me-1"></i> {{ optional($item->tarikh_terima)->format('d/m/Y') }}
                                     </div>
                                 </td>
-
                                 <td><span class="badge bg-light text-dark border">{{ Str::limit($item->agensi, 20) }}</span></td>
                                 
                                 <td class="text-start">
@@ -199,9 +191,15 @@
                                 </td>
                                 
                                 <td>
+                                    {{-- NAMA PEGAWAI YANG BUAT REPORT --}}
+                                    <div class="text-secondary mb-2 text-center" style="font-size: 0.7rem; line-height: 1.2;">
+                                        <i class="fas fa-user-edit text-primary"></i><br>
+                                        <span class="fw-bold text-dark">{{ $item->user->name ?? 'Tiada Rekod' }}</span>
+                                    </div>
+
+                                    {{-- BUTANG TINDAKAN --}}
                                     <div class="d-flex justify-content-center gap-1">
                                         
-                                        {{-- Butang Edit: HANYA jika Belum Selesai --}}
                                         @if(!$item->tarikh_selesai)
                                             <a href="{{ route('laporanpandanganundang.edit', $item->id) }}" 
                                                class="btn btn-outline-warning btn-sm btn-icon" 
