@@ -206,8 +206,11 @@
                                 <label for="nama_pemandu_cc" class="form-label fw-bold">Nama Pemandu Ditugaskan <span class="text-danger">*</span></label>
                                 <select name="nama_pemandu" id="nama_pemandu_cc" class="form-select">
                                     <option value="" disabled selected>-- Pilih Pemandu --</option>
-                                    <option value="MOHD MASWAN BIN RASIMAN">ABDUL RASHID BIN MAAN</option>
-                                    <option value="MUHAMMAD HAZIM BIN KAMSAH">MUHAMMAD HAZIM BIN KAMSAH</option>
+                                    <option value="MOHD FAIZAL BIN ABU BAKAR">MOHD FAIZAL BIN ABU BAKAR</option>
+                                    <option value="RAZALI BIN YAAKOB">RAZALI BIN YAAKOB</option>
+                                    <option value="MAL’AZIM BIN OTHMAN">AL’AZIM BIN OTHMAN</option>
+                                    <option value="ABU BAKAR BIN OTHMAN">ABU BAKAR BIN OTHMAN</option>
+                                    <option value="ABDUL RASHID BIN MAAN">ABDUL RASHID BIN MAAN</option>
                                 </select>
                             </div>
                         </div>

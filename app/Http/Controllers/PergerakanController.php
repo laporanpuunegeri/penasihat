@@ -32,15 +32,10 @@ class PergerakanController extends Controller
                 $query->where('user_id', $request->pegawai_id); 
             }
 
-            // Filter Khas CC 
+            // Filter Status Button (Bagi CC & EO nampak senarai belum disokong)
             if ($request->input('status_filter') === 'cc_pending' && in_array($userRole, ['cc', 'eo', 'super_admin'])) {
-              $query->where('status_cc', 'Pending');
-            }
-
-            // Filter Status Button
-            if ($request->input('status_filter') === 'cc_pending' && ($userRole === 'cc' || $userRole === 'super_admin')) {
                 $query->where('status_cc', 'Pending');
-            } 
+            }
             // 🔥 3. Benarkan PA nampak list 'Belum Disahkan YB'
             elseif ($request->input('status_filter') === 'yb_pending' && ($userRole === 'yb' || $userRole === 'super_admin' || $userRole === 'pa')) {
                 $query->where('status_yb', 'Pending');
@@ -102,7 +97,6 @@ class PergerakanController extends Controller
             'kenderaan' => 'required',
             'tujuan_penggunaan' => 'required',
             'destinasi' => 'required',
-            // Validation longgar sikit supaya tak isu JPG/jpg/JPEG
             'lampiran' => 'nullable|file|max:10240', 
         ]);
 
@@ -155,7 +149,11 @@ class PergerakanController extends Controller
     // =========================================================================
     public function cc_review(Request $request, Pergerakan $pergerakan)
     {
-        if (!Gate::allows('review-cc', $pergerakan)) { abort(403); }
+       // Semak: Hanya benarkan CC, EO atau Super Admin buat sokongan
+        $userRole = strtolower(Auth::user()->role);
+        if (!in_array($userRole, ['cc', 'eo', 'super_admin'])) { 
+            abort(403, 'Maaf, hanya CC dan EO sahaja dibenarkan menyokong permohonan ini.'); 
+        }
 
         $actionType = $request->input('action_type');
         $catatan_cc = $request->input('catatan_cc');
