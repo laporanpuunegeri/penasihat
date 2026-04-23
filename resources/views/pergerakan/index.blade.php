@@ -211,6 +211,7 @@
                                     <option value="MAL’AZIM BIN OTHMAN">AL’AZIM BIN OTHMAN</option>
                                     <option value="ABU BAKAR BIN OTHMAN">ABU BAKAR BIN OTHMAN</option>
                                     <option value="ABDUL RASHID BIN MAAN">ABDUL RASHID BIN MAAN</option>
+                                    <option value="ABDUL RASHID BIN MAAN">MUHAMMAD HAZIM B KAMSAH</option>
                                 </select>
                             </div>
                         </div>
